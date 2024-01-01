@@ -54,6 +54,28 @@ YOUR SECTIONS
     width: 800px;
     box-shadow: var(--card-shadow);
     border-radius: 5px;
+    align-items: stretch;
+    gap: 5px;
+}
+
+.visiting-team {
+    width: 200px;
+    display: flex;
+    align-items: center;
+    font-size: 1.2rem;
+}
+
+.home-team {
+    width: 200px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    font-size: 1.2rem;
+}
+
+.date {
+    display: flex;
+    align-items: center;
 }
 
 .card img {
