@@ -31,9 +31,14 @@ body {
     /* mobile viewport bug fix */
     min-height: -webkit-fill-available;
     /* will switch to 100 dvh when browser support grows */
+
+}
+
+main {
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 20px;
 }
 
 /*
@@ -41,15 +46,6 @@ body {
 YOUR SECTIONS
 -------------------------------------------------------------------
 */
-
-p {
-    background-color: var(--card-bg);
-    width: 800px;
-    padding: 20px;
-    box-shadow: var(--card-shadow);
-    border-radius: 5px;
-}
-
 .card {
     display: flex;
     justify-content: space-between;
@@ -71,10 +67,6 @@ p {
 
 .card img:last-of-type {
     border-radius: 0 5px 5px 0;
-}
-
-.card img:empty {
-    background-color: #ddd;
 }
 
 /*

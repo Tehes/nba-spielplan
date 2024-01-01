@@ -77,8 +77,18 @@ games.sort(compareDate);
 
 games.forEach(g => {
     const clone = template.content.cloneNode(true);
-    const paragraph = clone.querySelector("p");
-    paragraph.textContent = `${g.v.tc} ${g.v.tn} @ ${g.h.tc} ${g.h.tn} - ${g.dateString}`;
+
+    const homeLogo = clone.querySelectorAll("img")[1];
+    const visitingLogo = clone.querySelectorAll("img")[0];
+    const visitingTeam = clone.querySelector(".visiting-team");
+    const homeTeam = clone.querySelector(".home-team");
+    const date = clone.querySelector(".date")
+
+    homeLogo.src = `img/${g.h.ta}.svg`;
+    visitingLogo.src = `img/${g.v.ta}.svg`;
+    homeTeam.textContent = `${g.h.tc} ${g.h.tn}`;
+    visitingTeam.textContent = `${g.v.tc} ${g.v.tn}`;
+    date.textContent = g.dateString;
 
     mainEl.appendChild(clone);
 });
