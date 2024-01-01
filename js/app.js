@@ -2,21 +2,54 @@
 Imports
 ---------------------------------------------------------------------------------------------------*/
 
-async function fetchSchedule() {
-    const response = await fetch('https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/2023/league/00_full_schedule.json');
+async function fetchSchedule(year) {
+    const response = await fetch(`https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json`);
     const json = await response.json();
     return json;
 }
 
+/*
+Name        Description                 Value Type              Example
+lscd        League Schedule             Array of JSON Objects	
+mscd	    Month Schedule              Array of JSON Objects	
+mon         Month                       String                  "June"
+g           Games                       Array of JSON Objects	
+gid         Game ID                     String                  "0041500407"
+gcode	    Game Code	                String	                "20160619/CLEGSW"
+seri	    Playoff Series Summary	    String	                "CLE wins series 4-3"
+gdte	    Game Date                   String                  "2016-06-19"
+an	        Arena	                    String	                "ORACLE Arena"
+ac	        Arena City	                String	                "Oakland"
+as	        Arena State	                String	                "CA"
+stt	        Game Status	                String	                "Final"
+bd	        Broadcast Information	    JSON Object	
+b	        Broadcasters	            Array of JSON Objects	
+v	        Visiting Team Information	JSON Object	
+h	        Home Team Information	    JSON Object	
+tid	        Team ID	                    Integer                 1610612739
+re	        W-L Record	                String	                "16-5"
+ta	        Team Abbreviation	        String	                "CLE"
+tn	        Team Name	                String	                "Cavaliers"
+tc	        Team City	                String	                "Cleveland"
+s	        Team Score	                String	                "93"
+gdtutc	    Game Date UTC	            String	                "2016-06-20"
+utctm	    UTC Time	                String	                "00:00"
+dateString  date and time in german     String                  "7.10.2023 - 18:00 Uhr"
+*/
+
 /* --------------------------------------------------------------------------------------------------
 Variables
 ---------------------------------------------------------------------------------------------------*/
-const data = await fetchSchedule();
+const data = await fetchSchedule("2023");
+const games = [];
+const template = document.querySelector("template");
+const mainEl = document.querySelector("main");
 
-let games = [];
 
+/* --------------------------------------------------------------------------------------------------
+functions
+---------------------------------------------------------------------------------------------------*/
 data.lscd.forEach(months => {
-    // objects.push(game.mscd.g)
     months.mscd.g.forEach(game => {
         /*
         date in UTC = gdtutc
@@ -36,29 +69,19 @@ data.lscd.forEach(months => {
     });
 });
 
-/*
-h.ta = short name for home team
-h.tn = home team name
-h.tc = home team city
-v.ta = short name for away team
-v.tn = away team name
-v.tc = away team city
-localDate = time object in local timezone
-dateString = date in german format
-*/
+function compareDate(a, b) {
+    return a.localDate - b.localDate;
+}
 
-console.log(games[0].h.ta);
-console.log(games[0].h.tn);
-console.log(games[0].h.tc);
-console.log(games[0].v.ta);
-console.log(games[0].v.tn);
-console.log(games[0].v.tc);
-console.log(games[0].localDate);
-console.log(games[0].dateString);
+games.sort(compareDate);
 
-/* --------------------------------------------------------------------------------------------------
-functions
----------------------------------------------------------------------------------------------------*/
+games.forEach(g => {
+    const clone = template.content.cloneNode(true);
+    const paragraph = clone.querySelector("p");
+    paragraph.textContent = `${g.v.tc} ${g.v.tn} @ ${g.h.tc} ${g.h.tn} - ${g.dateString}`;
+
+    mainEl.appendChild(clone);
+});
 
 function init() {
     document.addEventListener("touchstart", function () { }, false);

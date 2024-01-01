@@ -1,7 +1,9 @@
 :root {
     /* will switch to oklch soon: */
-   --bg-color: hsl(0, 0%, 95%); /*  oklch(96%, 0%, 0) */
-  --font-color: hsl(0, 0%, 20%); /* oklch(32%, 0%, 0) */
+    --bg-color: hsl(0, 0%, 95%); /*  oklch(96%, 0%, 0) */
+    --font-color: hsl(0, 0%, 20%); /* oklch(32%, 0%, 0) */
+    --card-bg: hsl(0, 0%, 100%);
+    --card-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;;
 }
 
 * {
@@ -21,9 +23,6 @@ html {
 
 body {
     background-color: var(--bg-color);
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
     margin:0;
 	padding:0;
 	color: var(--font-color);
@@ -32,6 +31,9 @@ body {
     /* mobile viewport bug fix */
     min-height: -webkit-fill-available;
     /* will switch to 100 dvh when browser support grows */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 /*
@@ -39,6 +41,41 @@ body {
 YOUR SECTIONS
 -------------------------------------------------------------------
 */
+
+p {
+    background-color: var(--card-bg);
+    width: 800px;
+    padding: 20px;
+    box-shadow: var(--card-shadow);
+    border-radius: 5px;
+}
+
+.card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--card-bg);
+    width: 800px;
+    box-shadow: var(--card-shadow);
+    border-radius: 5px;
+}
+
+.card img {
+    height: 100px;
+    width: 100px;
+}
+
+.card img:first-of-type {
+    border-radius: 5px 0 0 5px;
+}
+
+.card img:last-of-type {
+    border-radius: 0 5px 5px 0;
+}
+
+.card img:empty {
+    background-color: #ddd;
+}
 
 /*
 -------------------------------------------------------------------
