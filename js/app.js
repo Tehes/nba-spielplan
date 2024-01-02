@@ -44,26 +44,22 @@ const data = await fetchSchedule("2023");
 const games = [];
 const template = document.querySelector("template");
 const mainEl = document.querySelector("main");
-
+const today = new Date();
 
 /* --------------------------------------------------------------------------------------------------
 functions
 ---------------------------------------------------------------------------------------------------*/
 data.lscd.forEach(months => {
     months.mscd.g.forEach(game => {
-        /*
-        date in UTC = gdtutc
-        time in UTC = utctm
-        */
         game.localDate = new Date(Date.parse(game.gdtutc + "T" + game.utctm + "+00:00"));
 
         let year = game.localDate.getFullYear();
         let month = game.localDate.getMonth() + 1;
         let day = game.localDate.getDate();
-        let hours = game.localDate.getHours().toString().padStart(2, '0');
-        let minutes = game.localDate.getMinutes().toString().padStart(2, '0');
+        game.hours = game.localDate.getHours().toString().padStart(2, '0');
+        game.minutes = game.localDate.getMinutes().toString().padStart(2, '0');
 
-        game.dateString = `${day}.${month}.${year} - ${hours}:${minutes} Uhr`;
+        game.dateString = `${day}.${month}.${year} - ${game.hours}:${game.minutes} Uhr`;
 
         games.push(game);
     });
@@ -76,21 +72,27 @@ function compareDate(a, b) {
 games.sort(compareDate);
 
 games.forEach(g => {
-    const clone = template.content.cloneNode(true);
+    if (today.toLocaleDateString("de-DE") == g.localDate.toLocaleDateString("de-DE")) {
+        const clone = template.content.cloneNode(true);
 
-    const homeLogo = clone.querySelectorAll("img")[1];
-    const visitingLogo = clone.querySelectorAll("img")[0];
-    const visitingTeam = clone.querySelector(".visiting-team");
-    const homeTeam = clone.querySelector(".home-team");
-    const date = clone.querySelector(".date")
+        const homeTeam = clone.querySelector(".home-team");
+        const visitingTeam = clone.querySelector(".visiting-team");
+        const homeLogo = clone.querySelectorAll("img")[1];
+        const visitingLogo = clone.querySelectorAll("img")[0];
+        const visitingName = clone.querySelector(".v-name");
+        const homeName = clone.querySelector(".h-name");
+        const date = clone.querySelector(".date");
 
-    homeLogo.src = `img/${g.h.ta}.svg`;
-    visitingLogo.src = `img/${g.v.ta}.svg`;
-    homeTeam.textContent = `${g.h.tc} ${g.h.tn}`;
-    visitingTeam.textContent = `${g.v.tc} ${g.v.tn}`;
-    date.textContent = g.dateString;
+        homeTeam.style.setProperty("background-color", `var(--${g.h.ta})`);
+        visitingTeam.style.setProperty("background-color", `var(--${g.v.ta})`);
+        homeLogo.src = `img/${g.h.ta}.svg`;
+        visitingLogo.src = `img/${g.v.ta}.svg`;
+        homeName.textContent = `@ ${g.h.tc} ${g.h.tn}`;
+        visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
+        date.textContent = `${g.hours}:${g.minutes} Uhr`;
 
-    mainEl.appendChild(clone);
+        mainEl.appendChild(clone);
+    }
 });
 
 function init() {
