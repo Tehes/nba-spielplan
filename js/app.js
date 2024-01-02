@@ -78,9 +78,11 @@ games.forEach(g => {
         const homeTeam = clone.querySelector(".home-team");
         const visitingTeam = clone.querySelector(".visiting-team");
         const homeLogo = clone.querySelectorAll("img")[1];
+        const homeAbbr = clone.querySelector(".h-abbr");
+        const visitingAbbr = clone.querySelector(".v-abbr");
         const visitingLogo = clone.querySelectorAll("img")[0];
-        const visitingName = clone.querySelector(".v-name");
         const homeName = clone.querySelector(".h-name");
+        const visitingName = clone.querySelector(".v-name");
         const date = clone.querySelector(".date");
 
         homeTeam.style.setProperty("background-color", `var(--${g.h.ta})`);
@@ -89,6 +91,8 @@ games.forEach(g => {
         visitingLogo.src = `img/${g.v.ta}.svg`;
         homeName.textContent = `${g.h.tc} ${g.h.tn}`;
         visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
+        homeAbbr.textContent = g.h.ta;
+        visitingAbbr.textContent = g.v.ta;
         date.textContent = `${g.hours}:${g.minutes} Uhr`;
 
         mainEl.appendChild(clone);
