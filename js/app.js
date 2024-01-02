@@ -87,7 +87,7 @@ games.forEach(g => {
         visitingTeam.style.setProperty("background-color", `var(--${g.v.ta})`);
         homeLogo.src = `img/${g.h.ta}.svg`;
         visitingLogo.src = `img/${g.v.ta}.svg`;
-        homeName.textContent = `@ ${g.h.tc} ${g.h.tn}`;
+        homeName.textContent = `${g.h.tc} ${g.h.tn}`;
         visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
         date.textContent = `${g.hours}:${g.minutes} Uhr`;
 

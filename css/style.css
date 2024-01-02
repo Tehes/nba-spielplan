@@ -66,6 +66,11 @@ body {
 
 }
 
+/*
+-------------------------------------------------------------------
+MAIN
+-------------------------------------------------------------------
+*/
 main {
     display: flex;
     flex-direction: column;
@@ -73,14 +78,23 @@ main {
     gap: 20px;
 }
 
-/*
--------------------------------------------------------------------
-MAIN
--------------------------------------------------------------------
-*/
 h1 {
     text-transform: uppercase;
     font-size: 2rem;
+}
+
+#info {
+    width: 800px;
+    display: flex;
+    font-size: 1.1rem;
+}
+
+#info span:nth-of-type(1) {
+    flex: 0 0 20%;
+}
+
+#info :where(span:nth-of-type(1), span:nth-of-type(2)) {
+    flex: 0 0 40%;
 }
 
 .card {
@@ -88,38 +102,41 @@ h1 {
     justify-content: flex-end;
     align-items: center;
     background-color: var(--card-bg);
-    width: 800px;
     box-shadow: var(--card-shadow);
     border-radius: 5px;
     align-items: stretch;
+    width: 800px;
 }
 
 .home-team {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    width: 300px;
     border-radius: 5px;
     border-radius: 0 5px 5px 0;
+    flex: 0 0 40%;
 }
 
 .visiting-team {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    width: 300px;
+    border-right: 1px solid var(--bg-color);
+    flex: 0 0 40%;
 }
 
 .v-name {
     font-size: 1.2rem;
     color: #fff;
     text-transform: uppercase;
+    padding: 0 10px 0 0;
 }
 
 .h-name {
     font-size: 1.2rem;
     color: #fff;
     text-transform: uppercase;
+    padding: 0 10px 0 0;
 }
 
 .date {
@@ -129,12 +146,14 @@ h1 {
     font-size: 1.5rem;
     flex-grow: 1;
     font-weight: 600;
+    padding: 0 10px;
+    flex: 0 0 20%;
 }
 
 .card img {
-    height: 100px;
-    width: 100px;
-    padding: 10px;
+    height: 80px;
+    width: 80px;
+    margin: 5px 10px;
 }
 
 /*
