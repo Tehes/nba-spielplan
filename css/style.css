@@ -74,23 +74,20 @@ MAIN
 -------------------------------------------------------------------
 */
 main {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: center;
-    gap: 20px;
     width: 95vw;
     max-width: 800px;
 }
 
 h1 {
     text-transform: uppercase;
-    font-size: 2rem;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    margin: 0 0 10px 0;
 }
 
 #info {
     display: flex;
-    font-size: 1.1rem;
+    font-size: clamp(0.8rem, 3vw, 1.1rem);
+    margin-bottom: 10px;
 }
 
 #info span:nth-of-type(1) {
@@ -99,6 +96,19 @@ h1 {
 
 #info :where(span:nth-of-type(1), span:nth-of-type(2)) {
     flex: 0 0 40%;
+}
+
+/*
+-------------------------------------------------------------------
+TODAY
+-------------------------------------------------------------------
+*/
+
+#today {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
 }
 
 .card {
@@ -121,6 +131,18 @@ h1 {
     flex: 0 0 40%;
 }
 
+.home-team:empty {
+    background-color: #ccc;
+    height: 10vw;
+    max-height: 80px;
+}
+
+.visiting-team:empty {
+    background-color: #ddd;
+    height: 10vw;
+    max-height: 80px;
+}
+
 .visiting-team {
     display: flex;
     justify-content: flex-start;
@@ -134,6 +156,7 @@ h1 {
     color: #fff;
     text-transform: uppercase;
     padding: 0 10px 0 0;
+    font-weight: 500;
 }
 
 .v-abbr, .h-abbr  {
