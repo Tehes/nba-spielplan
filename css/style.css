@@ -1,7 +1,9 @@
 :root {
     /* will switch to oklch soon: */
-    --bg-color: hsl(0, 0%, 95%); /*  oklch(96%, 0%, 0) */
-    --font-color: hsl(0, 0%, 20%); /* oklch(32%, 0%, 0) */
+    --bg-color: hsl(0, 0%, 95%);
+    /*  oklch(96%, 0%, 0) */
+    --font-color: hsl(0, 0%, 20%);
+    /* oklch(32%, 0%, 0) */
     --card-bg: hsl(0, 0%, 100%);
     --card-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
 
@@ -41,24 +43,24 @@
     box-sizing: border-box;
     /* disable double tap to zoom. only use in mobile-pwa */
     /* touch-action: manipulation; */
-    
+
 }
 
 html {
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-     margin:0;
-	 padding:0;
-     /* mobile viewport bug fix */
+    margin: 0;
+    padding: 0;
+    /* mobile viewport bug fix */
     height: -webkit-fill-available;
 }
 
 body {
     font-family: 'Kanit', sans-serif;
     background-color: var(--bg-color);
-    margin:0;
-	padding:0;
-	color: var(--font-color);
-	font-size: 100%;
+    margin: 0;
+    padding: 0;
+    color: var(--font-color);
+    font-size: 100%;
     min-height: 100vh;
     /* mobile viewport bug fix */
     min-height: -webkit-fill-available;
@@ -131,16 +133,18 @@ TODAY
     flex: 0 0 40%;
 }
 
-.home-team:empty {
-    background-color: #ccc;
+.home-team:empty, .visiting-team:empty {
     height: 10vw;
     max-height: 80px;
+    background: linear-gradient(90deg, #e5e5e5, #ccc);
+    background-size: 400% 400%;
+    animation: pulse 3s linear infinite;
 }
 
-.visiting-team:empty {
-    background-color: #ddd;
-    height: 10vw;
-    max-height: 80px;
+@keyframes pulse {
+    0%{background-position:0% 20%}
+    50%{background-position:100% 20%}
+    100%{background-position:0% 20%}
 }
 
 .visiting-team {
@@ -151,7 +155,10 @@ TODAY
     flex: 0 0 40%;
 }
 
-.h-name, .v-name, .v-abbr, .h-abbr  {
+.h-name,
+.v-name,
+.v-abbr,
+.h-abbr {
     font-size: clamp(1rem, 3vw, 1.2rem);
     color: #fff;
     text-transform: uppercase;
@@ -159,7 +166,8 @@ TODAY
     font-weight: 500;
 }
 
-.v-abbr, .h-abbr  {
+.v-abbr,
+.h-abbr {
     display: none;
 }
 
@@ -173,6 +181,11 @@ TODAY
     font-weight: 600;
     padding: 0 10px;
     flex: 0 0 20%;
+}
+
+.date:empty::before {
+    content: "loading";
+    color: hsl(0, 0%, 70%)
 }
 
 .card img {
@@ -190,18 +203,24 @@ MEDIA QUERIES
 */
 
 @media (prefers-color-scheme: dark) {
-	:root {
+    :root {
         /* will switch to oklch soon: */
-		--bg-color: hsl(0, 0%, 20%); /* oklch(32%, 0%, 0) */
-		--font-color: hsl(0, 0%, 90%); /* oklch(92%, 0%, 0) */
-	}
+        --bg-color: hsl(0, 0%, 20%);
+        /* oklch(32%, 0%, 0) */
+        --font-color: hsl(0, 0%, 90%);
+        /* oklch(92%, 0%, 0) */
+    }
 }
 
 @media (max-width: 480px) {
-    .h-name, .v-name {
+
+    .h-name,
+    .v-name {
         display: none;
     }
-    .h-abbr, .v-abbr {
+
+    .h-abbr,
+    .v-abbr {
         display: inline;
         font-size: clamp(1.2rem, 5vw, 1.5rem);
     }
