@@ -86,6 +86,12 @@ h1 {
     margin: 0 0 10px 0;
 }
 
+h2 {
+    text-transform: uppercase;
+    font-size: clamp(1rem, 4vw, 1.5rem);
+    margin: 0 0 10px 0;
+}
+
 #info {
     display: flex;
     font-size: clamp(0.8rem, 3vw, 1.1rem);
@@ -111,9 +117,10 @@ TODAY
     flex-direction: column;
     align-items: stretch;
     gap: 20px;
+    margin-bottom: 30px;
 }
 
-.card {
+#today .card {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -124,23 +131,23 @@ TODAY
     border-radius: 5px;
 }
 
-.card div:first-child {
+#today .card div:first-child {
     border-radius: 5px 0 0 5px;
 }
 
-.card div:last-child {
+#today .card div:last-child {
     border-radius: 0 5px 5px 0;
     border-left: 1px solid var(--card-bg);
 }
 
-.home-team, .visiting-team {
+#today .home-team, #today .visiting-team {
     display: flex;
     justify-content: flex-start;
     align-items: center;
     flex: 0 0 40%;
 }
 
-.home-team:empty, .visiting-team:empty {
+#today .home-team:empty, #today .visiting-team:empty {
     height: 10vw;
     max-height: 80px;
     background: linear-gradient(90deg, #e5e5e5, #ccc);
@@ -154,10 +161,10 @@ TODAY
     100%{background-position:0% 20%}
 }
 
-.h-name,
-.v-name,
-.v-abbr,
-.h-abbr {
+#today .h-name,
+#today .v-name,
+#today .v-abbr,
+#today .h-abbr {
     font-size: clamp(1rem, 3vw, 1.2rem);
     color: #fff;
     text-transform: uppercase;
@@ -165,12 +172,12 @@ TODAY
     font-weight: 500;
 }
 
-.v-abbr,
-.h-abbr {
+#today .v-abbr,
+#today .h-abbr {
     display: none;
 }
 
-.date {
+#today .date {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -182,17 +189,57 @@ TODAY
     flex: 0 0 20%;
 }
 
-.date:empty::before {
+#today .date:empty::before {
     content: "loading";
     color: hsl(0, 0%, 70%)
 }
 
-.card img {
+#today .card img {
     width: 10vw;
     height: 10vw;
     max-height: 80px;
     max-width: 80px;
     margin: 5px 10px;
+}
+
+/*
+-------------------------------------------------------------------
+MORE
+-------------------------------------------------------------------
+*/
+
+#more {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+}
+
+#more .card {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        background-color: var(--card-bg);
+        box-shadow: var(--card-shadow);
+        align-items: stretch;
+        line-height: 150%;
+        border-radius: 5px;
+}
+
+#more .card div:last-child {
+    border-radius: 0 5px 5px 0;
+    border-left: 1px solid var(--card-bg);
+}
+
+#more .date, #more .visiting-team, #more .home-team {
+    flex: 1 0 33%;
+    padding: 10px;
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    text-align: center;
+}
+
+#more .visiting-team, #more .home-team {
+    background-color: #fff;
 }
 
 /*
@@ -213,13 +260,13 @@ MEDIA QUERIES
 
 @media (max-width: 480px) {
 
-    .h-name,
-    .v-name {
+    #today .h-name,
+    #today .v-name {
         display: none;
     }
 
-    .h-abbr,
-    .v-abbr {
+    #today .h-abbr,
+    #today .v-abbr {
         display: inline;
         font-size: clamp(1.2rem, 5vw, 1.5rem);
     }

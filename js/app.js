@@ -42,8 +42,10 @@ Variables
 ---------------------------------------------------------------------------------------------------*/
 const data = await fetchSchedule("2023");
 const games = [];
-const template = document.querySelector("template");
+const templateToday = document.querySelector("#template-today");
+const templateMore = document.querySelector("#template-more");
 const todayEl = document.querySelector("#today");
+const moreEl = document.querySelector("#more");
 const today = new Date();
 
 /* --------------------------------------------------------------------------------------------------
@@ -54,13 +56,11 @@ function prepareGameData() {
         months.mscd.g.forEach(game => {
             game.localDate = new Date(Date.parse(game.gdtutc + "T" + game.utctm + "+00:00"));
 
-            let year = game.localDate.getFullYear();
-            let month = game.localDate.getMonth() + 1;
-            let day = game.localDate.getDate();
+            game.year = game.localDate.getFullYear();
+            game.month = game.localDate.getMonth() + 1;
+            game.day = game.localDate.getDate();
             game.hours = game.localDate.getHours().toString().padStart(2, '0');
             game.minutes = game.localDate.getMinutes().toString().padStart(2, '0');
-
-            game.dateString = `${day}.${month}.${year} - ${game.hours}:${game.minutes} Uhr`;
 
             games.push(game);
         });
@@ -77,9 +77,8 @@ function renderTodaysGames() {
     todayEl.innerHTML = "";
     games.forEach(g => {
         if (today.toLocaleDateString("de-DE") == g.localDate.toLocaleDateString("de-DE")) {
-            console.log(g.stt)
 
-            const clone = template.content.cloneNode(true);
+            const clone = templateToday.content.cloneNode(true);
 
             const homeTeam = clone.querySelector(".home-team");
             const visitingTeam = clone.querySelector(".visiting-team");
@@ -99,17 +98,47 @@ function renderTodaysGames() {
             visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
             homeAbbr.textContent = g.h.ta;
             visitingAbbr.textContent = g.v.ta;
-            
+
             if (g.stt === "Final") {
                 date.textContent = `${g.v.s}:${g.h.s}`;
             }
             else {
                 date.textContent = `${g.hours}:${g.minutes} Uhr`;
             }
-            
+
 
             todayEl.appendChild(clone);
         }
+    });
+}
+
+function renderMoreGames() {
+    moreEl.innerHTML = "";
+    games.forEach(g => {
+
+        const clone = templateMore.content.cloneNode(true);
+
+        const homeTeam = clone.querySelector(".home-team");
+        const visitingTeam = clone.querySelector(".visiting-team");
+        const homeName = clone.querySelector(".h-name");
+        const visitingName = clone.querySelector(".v-name");
+        const date = clone.querySelector(".date");
+
+        // homeTeam.style.setProperty("background-color", `var(--${g.h.ta})`);
+        // visitingTeam.style.setProperty("background-color", `var(--${g.v.ta})`);
+        homeName.textContent = `${g.h.tc} ${g.h.tn}`;
+        visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
+
+        // if (g.stt === "Final") {
+        //     date.textContent = `${g.v.s}:${g.h.s}`;
+        // }
+        // else {
+        //     date.textContent = `${game.day}.${game.month}.${game.year} - ${game.hours}:${game.minutes}`;
+        // }
+        date.textContent = `${g.day}.${g.month}.${g.year} - ${g.hours}:${g.minutes}`;
+
+
+        moreEl.appendChild(clone);
     });
 }
 
@@ -118,6 +147,7 @@ function init() {
     document.addEventListener("touchstart", function () { }, false);
     prepareGameData();
     renderTodaysGames();
+    renderMoreGames();
 }
 
 /* --------------------------------------------------------------------------------------------------
