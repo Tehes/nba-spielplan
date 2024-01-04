@@ -119,17 +119,24 @@ TODAY
     align-items: center;
     background-color: var(--card-bg);
     box-shadow: var(--card-shadow);
-    border-radius: 5px;
     align-items: stretch;
     line-height: 150%;
+    border-radius: 5px;
 }
 
-.home-team {
+.card div:first-child {
+    border-radius: 5px 0 0 5px;
+}
+
+.card div:last-child {
+    border-radius: 0 5px 5px 0;
+    border-left: 1px solid var(--card-bg);
+}
+
+.home-team, .visiting-team {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    border-radius: 5px;
-    border-radius: 0 5px 5px 0;
     flex: 0 0 40%;
 }
 
@@ -145,14 +152,6 @@ TODAY
     0%{background-position:0% 20%}
     50%{background-position:100% 20%}
     100%{background-position:0% 20%}
-}
-
-.visiting-team {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    border-right: 1px solid var(--bg-color);
-    flex: 0 0 40%;
 }
 
 .h-name,
