@@ -106,7 +106,6 @@ function renderTodaysGames() {
                 date.textContent = `${g.hours}:${g.minutes} Uhr`;
             }
 
-
             todayEl.appendChild(clone);
         }
     });
@@ -116,29 +115,25 @@ function renderMoreGames() {
     moreEl.innerHTML = "";
     games.forEach(g => {
 
-        const clone = templateMore.content.cloneNode(true);
+        if (g.stt !== "Final" && 
+			today.toLocaleDateString("de-DE") !== g.localDate.toLocaleDateString("de-DE")) {
+			const clone = templateMore.content.cloneNode(true);
 
-        const homeTeam = clone.querySelector(".home-team");
-        const visitingTeam = clone.querySelector(".visiting-team");
-        const homeName = clone.querySelector(".h-name");
-        const visitingName = clone.querySelector(".v-name");
-        const date = clone.querySelector(".date");
+        	const homeTeam = clone.querySelector(".home-team");
+        	const visitingTeam = clone.querySelector(".visiting-team");
+        	const homeName = clone.querySelector(".h-name");
+        	const visitingName = clone.querySelector(".v-name");
+        	const date = clone.querySelector(".date");
 
-        // homeTeam.style.setProperty("background-color", `var(--${g.h.ta})`);
-        // visitingTeam.style.setProperty("background-color", `var(--${g.v.ta})`);
-        homeName.textContent = `${g.h.tc} ${g.h.tn}`;
-        visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
-
-        // if (g.stt === "Final") {
-        //     date.textContent = `${g.v.s}:${g.h.s}`;
-        // }
-        // else {
-        //     date.textContent = `${game.day}.${game.month}.${game.year} - ${game.hours}:${game.minutes}`;
-        // }
-        date.textContent = `${g.day}.${g.month}.${g.year} - ${g.hours}:${g.minutes}`;
-
-
-        moreEl.appendChild(clone);
+        	// homeTeam.style.setProperty("background-color", `var(--${g.h.ta})`);
+        	// visitingTeam.style.setProperty("background-color", `var(--${g.v.ta})`);
+        	homeName.textContent = `@ ${g.h.tc} ${g.h.tn}`;
+        	visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
+			
+			date.textContent = `${g.day}.${g.month}.${g.year} - ${g.hours}:${g.minutes}`;	
+			
+			moreEl.appendChild(clone);
+        }
     });
 }
 

@@ -235,7 +235,6 @@ MORE
     flex: 1 0 33%;
     padding: 10px;
     font-size: clamp(1rem, 3vw, 1.2rem);
-    text-align: center;
 }
 
 #more .visiting-team, #more .home-team {
