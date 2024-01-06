@@ -57,8 +57,8 @@ function prepareGameData() {
             game.localDate = new Date(Date.parse(game.gdtutc + "T" + game.utctm + "+00:00"));
 
             game.year = game.localDate.getFullYear();
-            game.month = game.localDate.getMonth() + 1;
-            game.day = game.localDate.getDate();
+            game.month = (game.localDate.getMonth() + 1).toString().padStart(2, '0');;
+            game.day = game.localDate.getDate().toString().padStart(2, '0');
             game.hours = game.localDate.getHours().toString().padStart(2, '0');
             game.minutes = game.localDate.getMinutes().toString().padStart(2, '0');
 
