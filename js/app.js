@@ -119,16 +119,16 @@ function renderMoreGames() {
 			today.toLocaleDateString("de-DE") !== g.localDate.toLocaleDateString("de-DE")) {
 			const clone = templateMore.content.cloneNode(true);
 
-        	const homeTeam = clone.querySelector(".home-team");
-        	const visitingTeam = clone.querySelector(".visiting-team");
         	const homeName = clone.querySelector(".h-name");
         	const visitingName = clone.querySelector(".v-name");
+            const homeAbbr = clone.querySelector(".h-abbr");
+            const visitingAbbr = clone.querySelector(".v-abbr");
         	const date = clone.querySelector(".date");
 
-        	// homeTeam.style.setProperty("background-color", `var(--${g.h.ta})`);
-        	// visitingTeam.style.setProperty("background-color", `var(--${g.v.ta})`);
-        	homeName.textContent = `@ ${g.h.tc} ${g.h.tn}`;
+        	homeName.textContent = `${g.h.tc} ${g.h.tn}`;
         	visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
+            homeAbbr.textContent = `@ ${g.h.ta}`;
+            visitingAbbr.textContent = g.v.ta;
 			
 			date.textContent = `${g.day}.${g.month}.${g.year} - ${g.hours}:${g.minutes}`;	
 			

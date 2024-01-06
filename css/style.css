@@ -1,11 +1,10 @@
 :root {
-    /* will switch to oklch soon: */
     --bg-color: hsl(0, 0%, 95%);
-    /*  oklch(96%, 0%, 0) */
     --font-color: hsl(0, 0%, 20%);
-    /* oklch(32%, 0%, 0) */
+
     --card-bg: hsl(0, 0%, 100%);
     --card-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+    --card-corners: 5px;
 
     --ATL: #e03a3e;
     --BKN: #000000;
@@ -41,9 +40,6 @@
 
 * {
     box-sizing: border-box;
-    /* disable double tap to zoom. only use in mobile-pwa */
-    /* touch-action: manipulation; */
-
 }
 
 html {
@@ -102,8 +98,55 @@ h2 {
     flex: 0 0 20%;
 }
 
-#info :where(span:nth-of-type(1), span:nth-of-type(2)) {
+#info :where(span:nth-of-type(2), span:nth-of-type(3)) {
     flex: 0 0 40%;
+}
+
+/*
+-------------------------------------------------------------------
+CARDS GENERAL
+-------------------------------------------------------------------
+*/
+
+section {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 30px;
+}
+
+.card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--card-bg);
+    box-shadow: var(--card-shadow);
+    align-items: stretch;
+    line-height: 150%;
+    border-radius: var(--card-corners);
+}
+
+.card div:first-child {
+    border-radius: var(--card-corners) 0 0 var(--card-corners);
+}
+
+.card div:last-child {
+    border-radius: 0 var(--card-corners) var(--card-corners) 0;
+    border-left: 1px solid var(--card-bg);
+}
+
+.v-abbr,
+.h-abbr {
+    display: none;
+}
+
+.date:empty::before {
+    content: "loading";
+    color: hsl(0, 0%, 70%)
+}
+
+div span {
+    padding: 0 10px 0 0;
 }
 
 /*
@@ -113,31 +156,11 @@ TODAY
 */
 
 #today {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
     gap: 20px;
-    margin-bottom: 30px;
 }
 
 #today .card {
-    display: flex;
     justify-content: center;
-    align-items: center;
-    background-color: var(--card-bg);
-    box-shadow: var(--card-shadow);
-    align-items: stretch;
-    line-height: 150%;
-    border-radius: 5px;
-}
-
-#today .card div:first-child {
-    border-radius: 5px 0 0 5px;
-}
-
-#today .card div:last-child {
-    border-radius: 0 5px 5px 0;
-    border-left: 1px solid var(--card-bg);
 }
 
 #today .home-team, #today .visiting-team {
@@ -145,6 +168,10 @@ TODAY
     justify-content: flex-start;
     align-items: center;
     flex: 0 0 40%;
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    color: #fff;
+    font-weight: 500;
+    text-transform: uppercase;
 }
 
 #today .home-team:empty, #today .visiting-team:empty {
@@ -161,22 +188,6 @@ TODAY
     100%{background-position:0% 20%}
 }
 
-#today .h-name,
-#today .v-name,
-#today .v-abbr,
-#today .h-abbr {
-    font-size: clamp(1rem, 3vw, 1.2rem);
-    color: #fff;
-    text-transform: uppercase;
-    padding: 0 10px 0 0;
-    font-weight: 500;
-}
-
-#today .v-abbr,
-#today .h-abbr {
-    display: none;
-}
-
 #today .date {
     display: flex;
     align-items: center;
@@ -187,11 +198,6 @@ TODAY
     font-weight: 600;
     padding: 0 10px;
     flex: 0 0 20%;
-}
-
-#today .date:empty::before {
-    content: "loading";
-    color: hsl(0, 0%, 70%)
 }
 
 #today .card img {
@@ -209,36 +215,18 @@ MORE
 */
 
 #more {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
     gap: 15px;
 }
 
 #more .card {
-        display: flex;
         justify-content: flex-start;
-        align-items: center;
-        background-color: var(--card-bg);
-        box-shadow: var(--card-shadow);
-        align-items: stretch;
-        line-height: 150%;
-        border-radius: 5px;
+        padding: 10px;
 }
 
-#more .card div:last-child {
-    border-radius: 0 5px 5px 0;
-    border-left: 1px solid var(--card-bg);
-}
-
-#more .date, #more .visiting-team, #more .home-team {
+#more div {
     flex: 1 0 33%;
-    padding: 10px;
+    /* padding: 0 5px; */
     font-size: clamp(1rem, 3vw, 1.2rem);
-}
-
-#more .visiting-team, #more .home-team {
-    background-color: #fff;
 }
 
 /*
@@ -259,14 +247,13 @@ MEDIA QUERIES
 
 @media (max-width: 480px) {
 
-    #today .h-name,
-    #today .v-name {
+    .h-name,
+    .v-name {
         display: none;
     }
 
-    #today .h-abbr,
-    #today .v-abbr {
+    .h-abbr, .v-abbr {
         display: inline;
-        font-size: clamp(1.2rem, 5vw, 1.5rem);
+        font-size: clamp(1.2rem, 4vw, 1.5rem);
     }
 }
