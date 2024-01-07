@@ -112,11 +112,22 @@ function renderTodaysGames() {
 }
 
 function renderMoreGames() {
+	let dateHeadline = "";
     moreEl.innerHTML = "";
     games.forEach(g => {
 
         if (g.stt !== "Final" && 
 			today.toLocaleDateString("de-DE") !== g.localDate.toLocaleDateString("de-DE")) {
+			
+			if (dateHeadline === "" || dateHeadline !== `${g.day}.${g.month}.${g.year}`) {
+				dateHeadline = `${g.day}.${g.month}.${g.year}`;
+				
+				let h3El = document.createElement("h3");
+				let headlineText = document.createTextNode(dateHeadline);
+				h3El.appendChild(headlineText);
+				moreEl.appendChild(h3El);
+			}
+				
 			const clone = templateMore.content.cloneNode(true);
 
         	const homeName = clone.querySelector(".h-name");
@@ -130,7 +141,7 @@ function renderMoreGames() {
             homeAbbr.textContent = `@ ${g.h.ta}`;
             visitingAbbr.textContent = g.v.ta;
 			
-			date.textContent = `${g.day}.${g.month}.${g.year} - ${g.hours}:${g.minutes}`;	
+			date.textContent = `${g.hours}:${g.minutes} Uhr`;	
 			
 			moreEl.appendChild(clone);
         }

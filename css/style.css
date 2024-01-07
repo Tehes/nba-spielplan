@@ -88,6 +88,12 @@ h2 {
     margin: 0 0 10px 0;
 }
 
+h3 {
+	text-transform: uppercase;
+	font-size: clamp(1rem, 3vw, 1.2rem);
+	margin: 10px 0 0 0;
+}
+
 #info {
     display: flex;
     font-size: clamp(0.8rem, 3vw, 1.1rem);
