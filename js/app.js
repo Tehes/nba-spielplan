@@ -47,7 +47,7 @@ const templateMore = document.querySelector("#template-more");
 const todayEl = document.querySelector("#today");
 const moreEl = document.querySelector("#more");
 const today = new Date();
-const progressBar = document.querySelector("progress");
+const progressValue = document.querySelector("#progress-value");
 
 /* --------------------------------------------------------------------------------------------------
 functions
@@ -75,14 +75,17 @@ function prepareGameData() {
 }
 
 function setProgressBar() {
-	progressBar.setAttribute("max", games.length - 1);
+    let AllGames = games.length - 1
 	let progress = 0;
+
 	games.forEach(g => {
 		if (g.stt === "Final") {
                 progress++;
             }
-	progressBar.setAttribute("value", progress);
-	});
+    });
+
+    let gamespercentage = (progress * 100 / AllGames).toFixed(2);
+	progressValue.style.width = `${gamespercentage}%`;
 }
 
 function renderTodaysGames() {
