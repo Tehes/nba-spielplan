@@ -47,6 +47,7 @@ const templateMore = document.querySelector("#template-more");
 const todayEl = document.querySelector("#today");
 const moreEl = document.querySelector("#more");
 const today = new Date();
+const progressBar = document.querySelector("progress");
 
 /* --------------------------------------------------------------------------------------------------
 functions
@@ -71,6 +72,17 @@ function prepareGameData() {
     }
 
     games.sort(compareDate);
+}
+
+function setProgressBar() {
+	progressBar.setAttribute("max", games.length - 1);
+	let progress = 0;
+	games.forEach(g => {
+		if (g.stt === "Final") {
+                progress++;
+            }
+	progressBar.setAttribute("value", progress);
+	});
 }
 
 function renderTodaysGames() {
@@ -152,6 +164,7 @@ function renderMoreGames() {
 function init() {
     document.addEventListener("touchstart", function () { }, false);
     prepareGameData();
+	setProgressBar();
     renderTodaysGames();
     renderMoreGames();
 }

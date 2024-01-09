@@ -1,6 +1,10 @@
 :root {
     --bg-color: hsl(0, 0%, 95%);
     --font-color: hsl(0, 0%, 20%);
+	
+	--progress-background: hsl(0, 0%, 90%);
+	--progress-foreground: hsl(0, 0%, 70%);
+	--progress-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) inset;
 
     --card-bg: hsl(0, 0%, 100%);
     --card-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
@@ -106,6 +110,28 @@ h3 {
 
 #info :where(span:nth-of-type(2), span:nth-of-type(3)) {
     flex: 0 0 40%;
+}
+
+progress {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	width: 100vw;
+	max-width: 800px;
+	height: 20px;
+	border: none;
+	margin: 10px 0;
+}
+
+progress[value]::-webkit-progress-bar {
+	background-color: var(--progress-background);
+	border-radius: 10px;
+	box-shadow: var(--progress-shadow);
+}
+
+progress[value]::-webkit-progress-value {
+	background-color: var(--progress-foreground);
+    border-radius: 10px; 
 }
 
 /*
@@ -245,6 +271,9 @@ MEDIA QUERIES
     :root {
         --bg-color: hsl(0, 0%, 20%);
         --font-color: hsl(0, 0%, 90%);
+		--progress-background: hsl(0, 0%, 25%);
+		--progress-foreground: hsl(0, 0%, 45%);
+		--progress-shadow: 0 2px 5px rgba(0, 0, 0, 0.6) inset;
 		--card-bg: hsl(0, 0%, 35%);
     	--card-shadow: rgba(0, 0, 0, 0.2) 0px 2px 8px 0px;
     }
