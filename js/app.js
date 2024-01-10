@@ -34,7 +34,6 @@ tc	        Team City	                String	                "Cleveland"
 s	        Team Score	                String	                "93"
 gdtutc	    Game Date UTC	            String	                "2016-06-20"
 utctm	    UTC Time	                String	                "00:00"
-dateString  date and time in german     String                  "7.10.2023 - 18:00 Uhr"
 */
 
 /* --------------------------------------------------------------------------------------------------
@@ -153,7 +152,7 @@ function renderMoreGames() {
             const visitingAbbr = clone.querySelector(".v-abbr");
         	const date = clone.querySelector(".date");
 
-        	homeName.textContent = `${g.h.tc} ${g.h.tn}`;
+        	homeName.textContent = `@ ${g.h.tc} ${g.h.tn}`;
         	visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
             homeAbbr.textContent = `@ ${g.h.ta}`;
             visitingAbbr.textContent = g.v.ta;
