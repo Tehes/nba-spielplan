@@ -1,6 +1,6 @@
 {
-    "short_name": "--yourSiteName--",
-    "name": "--yourSiteName--",
+    "short_name": "NBA-Spielplan",
+    "name": "NBA-Spielplan",
     "icons": [
         {
             "src": "icons/180x180.png",
