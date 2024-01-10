@@ -127,6 +127,7 @@ function renderTodaysGames() {
 }
 
 function renderMoreGames() {
+    const weekdays = ['So.','Mo.','Di.','Mi.','Do.','Fr.','Sa.'];
 	let dateHeadline = "";
     moreEl.innerHTML = "";
     games.forEach(g => {
@@ -134,8 +135,9 @@ function renderMoreGames() {
         if (g.stt !== "Final" && 
 			today.toLocaleDateString("de-DE") !== g.localDate.toLocaleDateString("de-DE")) {
 			
-			if (dateHeadline === "" || dateHeadline !== `${g.day}.${g.month}.${g.year}`) {
-				dateHeadline = `${g.day}.${g.month}.${g.year}`;
+            let day = g.localDate.getDay();
+			if (dateHeadline === "" || dateHeadline !== `${weekdays[day]}, ${g.day}.${g.month}.${g.year}`) {
+                dateHeadline = `${weekdays[day]}, ${g.day}.${g.month}.${g.year}`;
 				
 				let h3El = document.createElement("h3");
 				let headlineText = document.createTextNode(dateHeadline);
