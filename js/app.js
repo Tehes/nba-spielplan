@@ -55,12 +55,9 @@ function prepareGameData() {
     data.lscd.forEach(months => {
         months.mscd.g.forEach(game => {
             game.localDate = new Date(Date.parse(game.gdtutc + "T" + game.utctm + "+00:00"));
-
-            game.year = game.localDate.getFullYear();
-            game.month = (game.localDate.getMonth() + 1).toString().padStart(2, '0');;
-            game.day = game.localDate.getDate().toString().padStart(2, '0');
-            game.hours = game.localDate.getHours().toString().padStart(2, '0');
-            game.minutes = game.localDate.getMinutes().toString().padStart(2, '0');
+			
+			game.date = game.localDate.toLocaleDateString("de-DE", {weekday: "short", day: "2-digit", month: "2-digit", year: "numeric"});
+			game.time = game.localDate.toLocaleTimeString("de-DE", {hour: '2-digit', minute:'2-digit'});
 
             games.push(game);
         });
@@ -117,7 +114,7 @@ function renderTodaysGames() {
                 date.textContent = `${g.v.s}:${g.h.s}`;
             }
             else {
-                date.textContent = `${g.hours}:${g.minutes} Uhr`;
+				date.textContent = `${g.time} Uhr`;
             }
 
             todayEl.appendChild(clone);
@@ -126,7 +123,6 @@ function renderTodaysGames() {
 }
 
 function renderMoreGames() {
-    const weekdays = ['So.','Mo.','Di.','Mi.','Do.','Fr.','Sa.'];
 	let dateHeadline = "";
     moreEl.innerHTML = "";
     games.forEach(g => {
@@ -134,12 +130,11 @@ function renderMoreGames() {
         if (g.stt !== "Final" && 
 			today.toLocaleDateString("de-DE") !== g.localDate.toLocaleDateString("de-DE")) {
 			
-            let day = g.localDate.getDay();
-			if (dateHeadline === "" || dateHeadline !== `${weekdays[day]}, ${g.day}.${g.month}.${g.year}`) {
-                dateHeadline = `${weekdays[day]}, ${g.day}.${g.month}.${g.year}`;
+			if (dateHeadline === "" || dateHeadline !== g.date) {
+                dateHeadline = g.date;
 				
 				let h3El = document.createElement("h3");
-				let headlineText = document.createTextNode(dateHeadline);
+				let headlineText = document.createTextNode(g.date);
 				h3El.appendChild(headlineText);
 				moreEl.appendChild(h3El);
 			}
@@ -157,7 +152,7 @@ function renderMoreGames() {
             homeAbbr.textContent = `@ ${g.h.ta}`;
             visitingAbbr.textContent = g.v.ta;
 			
-			date.textContent = `${g.hours}:${g.minutes} Uhr`;	
+			date.textContent = `${g.time} Uhr`;	
 			
 			moreEl.appendChild(clone);
         }
