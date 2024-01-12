@@ -2,11 +2,13 @@
 Imports
 ---------------------------------------------------------------------------------------------------*/
 
-async function fetchSchedule(year) {
+async function fetchData(year) {
     const response = await fetch(`https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json`);
     const json = await response.json();
     return json;
 }
+
+// will use this for standings: https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/2023/00_standings.json
 
 /*
 Name        Description                 Value Type              Example
@@ -39,7 +41,7 @@ utctm	    UTC Time	                String	                "00:00"
 /* --------------------------------------------------------------------------------------------------
 Variables
 ---------------------------------------------------------------------------------------------------*/
-const data = await fetchSchedule("2023");
+const schedule = await fetchData("2023");
 const games = {
     today: [],
     finished: [],
@@ -60,7 +62,7 @@ function compareDate(a, b) {
 }
 
 function prepareGameData() {
-    data.lscd.forEach(months => {
+    schedule.lscd.forEach(months => {
         months.mscd.g.forEach(game => {
             game.localDate = new Date(Date.parse(game.gdtutc + "T" + game.utctm + "+00:00"));
 			
