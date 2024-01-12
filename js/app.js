@@ -40,7 +40,11 @@ utctm	    UTC Time	                String	                "00:00"
 Variables
 ---------------------------------------------------------------------------------------------------*/
 const data = await fetchSchedule("2023");
-const games = [];
+const games = {
+    today: [],
+    finished: [],
+    scheduled: []
+}
 const templateToday = document.querySelector("#template-today");
 const templateMore = document.querySelector("#template-more");
 const todayEl = document.querySelector("#today");
@@ -51,6 +55,10 @@ const progressValue = document.querySelector("#progress-value");
 /* --------------------------------------------------------------------------------------------------
 functions
 ---------------------------------------------------------------------------------------------------*/
+function compareDate(a, b) {
+    return a.localDate - b.localDate;
+}
+
 function prepareGameData() {
     data.lscd.forEach(months => {
         months.mscd.g.forEach(game => {
@@ -59,22 +67,30 @@ function prepareGameData() {
 			game.date = game.localDate.toLocaleDateString("de-DE", {weekday: "short", day: "2-digit", month: "2-digit", year: "numeric"});
 			game.time = game.localDate.toLocaleTimeString("de-DE", {hour: '2-digit', minute:'2-digit'});
 
-            games.push(game);
+            // IF GAME IS TODAY NO MATTER IF FINISHED OR NOT
+            if (today.toLocaleDateString("de-DE") == game.localDate.toLocaleDateString("de-DE")) {
+                games.today.push(game);
+            }
+            // IF GAME STATUS IS FINISHED
+            else if (game.stt === "Final") {
+                games.finished.push(game);
+            }
+            // GAME IS SCHEDULED
+            else {
+                games.scheduled.push(game);
+            }
         });
     });
-
-    function compareDate(a, b) {
-        return a.localDate - b.localDate;
-    }
-
-    games.sort(compareDate);
+    games.today.sort(compareDate);
+    games.finished.sort(compareDate);
+    games.scheduled.sort(compareDate);
 }
 
 function setProgressBar() {
-    let AllGames = games.length - 1
-	let progress = 0;
+    let AllGames = (games.today.length - 1) + (games.finished.length - 1) + (games.scheduled.length - 1);
+	let progress = games.finished.length - 1;
 
-	games.forEach(g => {
+	games.today.forEach(g => {
 		if (g.stt === "Final") {
                 progress++;
             }
@@ -86,9 +102,7 @@ function setProgressBar() {
 
 function renderTodaysGames() {
     todayEl.innerHTML = "";
-    games.forEach(g => {
-        if (today.toLocaleDateString("de-DE") == g.localDate.toLocaleDateString("de-DE")) {
-
+    games.today.forEach(g => {
             const clone = templateToday.content.cloneNode(true);
 
             const homeTeam = clone.querySelector(".home-team");
@@ -118,18 +132,13 @@ function renderTodaysGames() {
             }
 
             todayEl.appendChild(clone);
-        }
     });
 }
 
 function renderMoreGames() {
 	let dateHeadline = "";
     moreEl.innerHTML = "";
-    games.forEach(g => {
-
-        if (g.stt !== "Final" && 
-			today.toLocaleDateString("de-DE") !== g.localDate.toLocaleDateString("de-DE")) {
-			
+    games.scheduled.forEach(g => {
 			if (dateHeadline === "" || dateHeadline !== g.date) {
                 dateHeadline = g.date;
 				
@@ -155,7 +164,6 @@ function renderMoreGames() {
 			date.textContent = `${g.time} Uhr`;	
 			
 			moreEl.appendChild(clone);
-        }
     });
 }
 
