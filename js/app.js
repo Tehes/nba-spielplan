@@ -62,27 +62,28 @@ function compareDate(a, b) {
 }
 
 function prepareGameData() {
-    schedule.lscd.forEach(months => {
-        months.mscd.g.forEach(game => {
-            game.localDate = new Date(Date.parse(game.gdtutc + "T" + game.utctm + "+00:00"));
-			
-			game.date = game.localDate.toLocaleDateString("de-DE", {weekday: "short", day: "2-digit", month: "2-digit", year: "numeric"});
-			game.time = game.localDate.toLocaleTimeString("de-DE", {hour: '2-digit', minute:'2-digit'});
+    const allGames = schedule.lscd.flatMap(month => month.mscd.g);
 
-            // IF GAME IS TODAY NO MATTER IF FINISHED OR NOT
-            if (today.toLocaleDateString("de-DE") == game.localDate.toLocaleDateString("de-DE")) {
-                games.today.push(game);
-            }
-            // IF GAME STATUS IS FINISHED
-            else if (game.stt === "Final") {
-                games.finished.push(game);
-            }
-            // GAME IS SCHEDULED
-            else {
-                games.scheduled.push(game);
-            }
-        });
+    allGames.forEach(game => {
+        game.localDate = new Date(Date.parse(game.gdtutc + "T" + game.utctm + "+00:00"));
+
+        game.date = game.localDate.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+        game.time = game.localDate.toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' });
+
+        // IF GAME IS TODAY NO MATTER IF FINISHED OR NOT
+        if (today.toLocaleDateString("de-DE") == game.localDate.toLocaleDateString("de-DE")) {
+            games.today.push(game);
+        }
+        // IF GAME STATUS IS FINISHED
+        else if (game.stt === "Final") {
+            games.finished.push(game);
+        }
+        // GAME IS SCHEDULED
+        else {
+            games.scheduled.push(game);
+        }
     });
+
     games.today.sort(compareDate);
     games.finished.sort(compareDate);
     games.scheduled.sort(compareDate);
@@ -90,82 +91,82 @@ function prepareGameData() {
 
 function setProgressBar() {
     let AllGames = (games.today.length - 1) + (games.finished.length - 1) + (games.scheduled.length - 1);
-	let progress = games.finished.length - 1;
+    let progress = games.finished.length - 1;
 
-	games.today.forEach(g => {
-		if (g.stt === "Final") {
-                progress++;
-            }
+    games.today.forEach(g => {
+        if (g.stt === "Final") {
+            progress++;
+        }
     });
 
     let gamespercentage = (progress * 100 / AllGames).toFixed(2);
-	progressValue.style.width = `${gamespercentage}%`;
+    progressValue.style.width = `${gamespercentage}%`;
 }
 
 function renderTodaysGames() {
     todayEl.innerHTML = "";
     games.today.forEach(g => {
-            const clone = templateToday.content.cloneNode(true);
+        const clone = templateToday.content.cloneNode(true);
 
-            const homeTeam = clone.querySelector(".home-team");
-            const visitingTeam = clone.querySelector(".visiting-team");
-            const homeLogo = clone.querySelectorAll("img")[1];
-            const homeAbbr = clone.querySelector(".h-abbr");
-            const visitingAbbr = clone.querySelector(".v-abbr");
-            const visitingLogo = clone.querySelectorAll("img")[0];
-            const homeName = clone.querySelector(".h-name");
-            const visitingName = clone.querySelector(".v-name");
-            const date = clone.querySelector(".date");
+        const homeTeam = clone.querySelector(".home-team");
+        const visitingTeam = clone.querySelector(".visiting-team");
+        const homeLogo = clone.querySelectorAll("img")[1];
+        const homeAbbr = clone.querySelector(".h-abbr");
+        const visitingAbbr = clone.querySelector(".v-abbr");
+        const visitingLogo = clone.querySelectorAll("img")[0];
+        const homeName = clone.querySelector(".h-name");
+        const visitingName = clone.querySelector(".v-name");
+        const date = clone.querySelector(".date");
 
-            homeTeam.style.setProperty("background-color", `var(--${g.h.ta})`);
-            visitingTeam.style.setProperty("background-color", `var(--${g.v.ta})`);
-            homeLogo.src = `img/${g.h.ta}.svg`;
-            visitingLogo.src = `img/${g.v.ta}.svg`;
-            homeName.textContent = `${g.h.tc} ${g.h.tn}`;
-            visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
-            homeAbbr.textContent = g.h.ta;
-            visitingAbbr.textContent = g.v.ta;
+        homeTeam.style.setProperty("background-color", `var(--${g.h.ta})`);
+        visitingTeam.style.setProperty("background-color", `var(--${g.v.ta})`);
+        homeLogo.src = `img/${g.h.ta}.svg`;
+        visitingLogo.src = `img/${g.v.ta}.svg`;
+        homeName.textContent = `${g.h.tc} ${g.h.tn}`;
+        visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
+        homeAbbr.textContent = g.h.ta;
+        visitingAbbr.textContent = g.v.ta;
 
-            if (g.stt === "Final") {
-                date.textContent = `${g.v.s}:${g.h.s}`;
-            }
-            else {
-				date.textContent = `${g.time} Uhr`;
-            }
+        if (g.stt === "Final") {
+            date.textContent = `${g.v.s}:${g.h.s}`;
+        }
+        else {
+            date.textContent = `${g.time} Uhr`;
+        }
 
-            todayEl.appendChild(clone);
+        todayEl.appendChild(clone);
     });
 }
 
 function renderMoreGames() {
-	let dateHeadline = "";
+    let dateHeadline = "";
     moreEl.innerHTML = "";
     games.scheduled.forEach(g => {
-			if (dateHeadline === "" || dateHeadline !== g.date) {
-                dateHeadline = g.date;
-				
-				let h3El = document.createElement("h3");
-				let headlineText = document.createTextNode(g.date);
-				h3El.appendChild(headlineText);
-				moreEl.appendChild(h3El);
-			}
-				
-			const clone = templateMore.content.cloneNode(true);
+        if (dateHeadline === "" || dateHeadline !== g.date) {
+            dateHeadline = g.date;
 
-        	const homeName = clone.querySelector(".h-name");
-        	const visitingName = clone.querySelector(".v-name");
-            const homeAbbr = clone.querySelector(".h-abbr");
-            const visitingAbbr = clone.querySelector(".v-abbr");
-        	const date = clone.querySelector(".date");
+            let h3El = document.createElement("h3");
+            let headlineText = document.createTextNode(g.date);
+            h3El.appendChild(headlineText);
+            moreEl.appendChild(h3El);
+        }
 
-        	homeName.textContent = `@ ${g.h.tc} ${g.h.tn}`;
-        	visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
-            homeAbbr.textContent = `@ ${g.h.ta}`;
-            visitingAbbr.textContent = g.v.ta;
-			
-			date.textContent = `${g.time} Uhr`;	
-			
-			moreEl.appendChild(clone);
+        const clone = templateMore.content.cloneNode(true);
+
+        const homeName = clone.querySelector(".h-name");
+        const visitingName = clone.querySelector(".v-name");
+        const homeAbbr = clone.querySelector(".h-abbr");
+        const visitingAbbr = clone.querySelector(".v-abbr");
+        const date = clone.querySelector(".date");
+
+        homeName.textContent = `@ ${g.h.tc} ${g.h.tn}`;
+        visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
+        homeAbbr.textContent = `@ ${g.h.ta}`;
+        visitingAbbr.textContent = g.v.ta;
+
+        date.textContent = `${g.time} Uhr`;
+
+        moreEl.appendChild(clone);
     });
 }
 
@@ -173,7 +174,7 @@ function renderMoreGames() {
 function init() {
     document.addEventListener("touchstart", function () { }, false);
     prepareGameData();
-	setProgressBar();
+    setProgressBar();
     renderTodaysGames();
     renderMoreGames();
 }
