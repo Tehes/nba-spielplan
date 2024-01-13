@@ -8,7 +8,7 @@ async function fetchData(url) {
     return json;
 }
 
-/*
+/* --------------------------------------------------------------------------------------
 Name        Description                 Value Type              Example
 lscd        League Schedule             Array of JSON Objects	
 mscd	    Month Schedule              Array of JSON Objects	
@@ -34,9 +34,9 @@ tc	        Team City	                String	                "Cleveland"
 s	        Team Score	                String	                "93"
 gdtutc	    Game Date UTC	            String	                "2016-06-20"
 utctm	    UTC Time	                String	                "00:00"
-*/
+-------------------------------------------------------------------------------------- */
 
-/*
+/* --------------------------------------------------------------------------------------
 tid         team ID                     Integer                 1610612738
 see         seed                        Integer                 1
 w           wins                        Integer                 29
@@ -53,8 +53,7 @@ dr          division record             String                  "10-1"
 cr          conference record           String                  "22-6"
 hr          home record                 String                  "18-0"
 ar          away record                 String                  "11-9"
-
-*/
+-------------------------------------------------------------------------------------- */
 
 /* --------------------------------------------------------------------------------------------------
 Variables
