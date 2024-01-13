@@ -2,13 +2,11 @@
 Imports
 ---------------------------------------------------------------------------------------------------*/
 
-async function fetchData(year) {
-    const response = await fetch(`https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json`);
+async function fetchData(url) {
+    const response = await fetch(url);
     const json = await response.json();
     return json;
 }
-
-// will use this for standings: https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/2023/00_standings.json
 
 /*
 Name        Description                 Value Type              Example
@@ -38,15 +36,44 @@ gdtutc	    Game Date UTC	            String	                "2016-06-20"
 utctm	    UTC Time	                String	                "00:00"
 */
 
+/*
+tid         team ID                     Integer                 1610612738
+see         seed                        Integer                 1
+w           wins                        Integer                 29
+l           losses                      Integer                 9
+gb          games behind                Integer                 0.000
+gbd         games behind division       Integer                 0.000
+gbl         games behind league         Integer                 0.00000
+tc          team city                   String                  "Boston"
+tn          team name                   String                  "Celtics"
+ta          team abbreviation           String                  "BOS"
+str         streak                      String                  "L 1"
+l10         last 10 games               String                  "7-3"
+dr          division record             String                  "10-1"
+cr          conference record           String                  "22-6"
+hr          home record                 String                  "18-0"
+ar          away record                 String                  "11-9"
+
+*/
+
 /* --------------------------------------------------------------------------------------------------
 Variables
 ---------------------------------------------------------------------------------------------------*/
-const schedule = await fetchData("2023");
+const year = "2023"
+const scheduleURL = `https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json`;
+const standingsURL = `https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/00_standings.json`;
+const schedule = await fetchData(scheduleURL);
+const standings = await fetchData(standingsURL);
 const games = {
     today: [],
     finished: [],
     scheduled: []
 }
+
+const conferences = standings.sta.co.map(conference => conference.di.flatMap(division => division.t));
+const easternConference = conferences[0].sort((a, b) => a.see - b.see);
+const westernConferemce = conferences[1].sort((a, b) => a.see - b.see);
+
 const templateToday = document.querySelector("#template-today");
 const templateMore = document.querySelector("#template-more");
 const todayEl = document.querySelector("#today");
@@ -57,10 +84,6 @@ const progressValue = document.querySelector("#progress-value");
 /* --------------------------------------------------------------------------------------------------
 functions
 ---------------------------------------------------------------------------------------------------*/
-function compareDate(a, b) {
-    return a.localDate - b.localDate;
-}
-
 function prepareGameData() {
     const allGames = schedule.lscd.flatMap(month => month.mscd.g);
 
@@ -84,9 +107,9 @@ function prepareGameData() {
         }
     });
 
-    games.today.sort(compareDate);
-    games.finished.sort(compareDate);
-    games.scheduled.sort(compareDate);
+    games.today.sort((a, b) => a.localDate - b.localDate);
+    games.finished.sort((a, b) => a.localDate - b.localDate);
+    games.scheduled.sort((a, b) => a.localDate - b.localDate);
 }
 
 function setProgressBar() {
@@ -169,7 +192,6 @@ function renderMoreGames() {
         moreEl.appendChild(clone);
     });
 }
-
 
 function init() {
     document.addEventListener("touchstart", function () { }, false);
