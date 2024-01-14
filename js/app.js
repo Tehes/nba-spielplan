@@ -71,7 +71,10 @@ const games = {
 
 const conferences = standings.sta.co.map(conference => conference.di.flatMap(division => division.t));
 const easternConference = conferences[0].sort((a, b) => a.see - b.see);
-const westernConferemce = conferences[1].sort((a, b) => a.see - b.see);
+const westernConference = conferences[1].sort((a, b) => a.see - b.see);
+
+const standingsEast = document.querySelector("#east table");
+const standingsWest = document.querySelector("#west table");
 
 const templateToday = document.querySelector("#template-today");
 const templateMore = document.querySelector("#template-more");
@@ -192,12 +195,33 @@ function renderMoreGames() {
     });
 }
 
+function renderStandings() {
+    const rowsEast = standingsEast.querySelectorAll("tr:not(:first-of-type)");
+    
+    rowsEast.forEach((row, index) => {
+        let cells = row.querySelectorAll("td");
+        cells[1].textContent = easternConference[index].ta;
+        cells[2].textContent = `${easternConference[index].w} - ${easternConference[index].l}`;
+        cells[3].textContent = easternConference[index].gb;
+    });
+
+    const rowsWest= standingsWest.querySelectorAll("tr:not(:first-of-type)");
+    
+    rowsWest.forEach((row, index) => {
+        let cells = row.querySelectorAll("td");
+        cells[1].textContent = westernConference[index].ta;
+        cells[2].textContent = `${westernConference[index].w} - ${westernConference[index].l}`;
+        cells[3].textContent = westernConference[index].gb;
+    });
+}
+
 function init() {
     document.addEventListener("touchstart", function () { }, false);
     prepareGameData();
     setProgressBar();
     renderTodaysGames();
     renderMoreGames();
+    renderStandings();
 }
 
 /* --------------------------------------------------------------------------------------------------

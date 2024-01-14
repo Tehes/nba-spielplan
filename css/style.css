@@ -1,10 +1,10 @@
 :root {
     --bg-color: hsl(0, 0%, 95%);
     --font-color: hsl(0, 0%, 20%);
-	
-	--progress-background: hsl(0, 0%, 90%);
-	--progress-foreground: hsl(0, 0%, 70%);
-	--progress-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) inset;
+
+    --progress-background: hsl(0, 0%, 90%);
+    --progress-foreground: hsl(0, 0%, 70%);
+    --progress-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) inset;
 
     --card-bg: hsl(0, 0%, 100%);
     --card-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
@@ -68,6 +68,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: flex-start;
+    gap: 3vw;
+    margin: 0 5vw;
 }
 
 /*
@@ -76,7 +78,7 @@ MAIN
 -------------------------------------------------------------------
 */
 main {
-    width: 95vw;
+    width: 100vw;
     max-width: 800px;
 }
 
@@ -93,9 +95,9 @@ h2 {
 }
 
 h3 {
-	text-transform: uppercase;
-	font-size: clamp(1rem, 3vw, 1.2rem);
-	margin: 10px 0 0 0;
+    text-transform: uppercase;
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    margin: 10px 0 0 0;
 }
 
 #info {
@@ -113,19 +115,19 @@ h3 {
 }
 
 #progress-bar {
-	width: 100%;
-	height: 20px;
-	margin: 10px 0;
+    width: 100%;
+    height: 20px;
+    margin: 10px 0;
     background-color: var(--progress-background);
-	border-radius: 10px;
-	box-shadow: var(--progress-shadow);
+    border-radius: 10px;
+    box-shadow: var(--progress-shadow);
 }
 
 #progress-value {
     background-color: var(--progress-foreground);
     border-radius: 10px;
     height: 20px;
-    width: 0; 
+    width: 0;
     transition: width 0.5s;
 }
 
@@ -190,7 +192,8 @@ TODAY
     justify-content: center;
 }
 
-#today .home-team, #today .visiting-team {
+#today .home-team,
+#today .visiting-team {
     display: flex;
     justify-content: flex-start;
     align-items: center;
@@ -201,7 +204,8 @@ TODAY
     text-transform: uppercase;
 }
 
-#today .home-team:empty, #today .visiting-team:empty {
+#today .home-team:empty,
+#today .visiting-team:empty {
     height: 10vw;
     max-height: 80px;
     background: linear-gradient(90deg, #e5e5e5, #ccc);
@@ -210,9 +214,17 @@ TODAY
 }
 
 @keyframes pulse {
-    0%{background-position:0% 20%}
-    50%{background-position:100% 20%}
-    100%{background-position:0% 20%}
+    0% {
+        background-position: 0% 20%
+    }
+
+    50% {
+        background-position: 100% 20%
+    }
+
+    100% {
+        background-position: 0% 20%
+    }
 }
 
 #today .date {
@@ -246,14 +258,63 @@ MORE
 }
 
 #more .card {
-        justify-content: flex-start;
-        padding: 10px;
+    justify-content: flex-start;
+    padding: 10px;
 }
 
 #more div {
     flex: 1 0 33%;
     /* padding: 0 5px; */
     font-size: clamp(1rem, 3vw, 1.2rem);
+}
+
+/*
+-------------------------------------------------------------------
+ASIDE
+-------------------------------------------------------------------
+*/
+
+div+h3 {
+    margin-top: 30px;
+}
+
+#east, #west {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: var(--card-bg);
+    box-shadow: var(--card-shadow);
+    border-radius: var(--card-corners);
+    width: 20vw;
+    min-width: 220px;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+table tr td:empty:after {
+    content: "---";
+    display: inline-block;
+    vertical-align: top;
+    min-height: 26px;
+    color: hsl(0, 0%, 70%);
+}
+
+th,
+td {
+    text-align: left;
+    padding: 5px;
+}
+
+td:first-of-type {
+    text-align: right;
+    width: 8%;
+    padding-right: 10px;
+}
+
+tr:where(:nth-of-type(7), :nth-of-type(11)) {
+    border-bottom: 1px solid hsl(0, 0%, 70%)
 }
 
 /*
@@ -266,11 +327,17 @@ MEDIA QUERIES
     :root {
         --bg-color: hsl(0, 0%, 20%);
         --font-color: hsl(0, 0%, 90%);
-		--progress-background: hsl(0, 0%, 25%);
-		--progress-foreground: hsl(0, 0%, 45%);
-		--progress-shadow: 0 2px 5px rgba(0, 0, 0, 0.6) inset;
-		--card-bg: hsl(0, 0%, 35%);
-    	--card-shadow: rgba(0, 0, 0, 0.2) 0px 2px 8px 0px;
+        --progress-background: hsl(0, 0%, 25%);
+        --progress-foreground: hsl(0, 0%, 45%);
+        --progress-shadow: 0 2px 5px rgba(0, 0, 0, 0.6) inset;
+        --card-bg: hsl(0, 0%, 35%);
+        --card-shadow: rgba(0, 0, 0, 0.2) 0px 2px 8px 0px;
+    }
+}
+
+@media (max-width: 1024px) {
+    aside {
+        display: none;
     }
 }
 
@@ -281,7 +348,8 @@ MEDIA QUERIES
         display: none;
     }
 
-    .h-abbr, .v-abbr {
+    .h-abbr,
+    .v-abbr {
         display: inline;
         font-size: clamp(1.2rem, 4vw, 1.5rem);
     }
