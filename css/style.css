@@ -58,7 +58,7 @@ body {
     font-family: 'Kanit', sans-serif;
     background-color: var(--bg-color);
     margin: 0;
-    padding: 0;
+	padding: 0;
     color: var(--font-color);
     font-size: 100%;
     min-height: 100vh;
@@ -67,9 +67,7 @@ body {
     /* will switch to 100 dvh when browser support grows */
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    gap: 3vw;
-    margin: 0 5vw;
+    column-gap: 3vw;
 }
 
 /*
@@ -78,7 +76,7 @@ MAIN
 -------------------------------------------------------------------
 */
 main {
-    width: 100vw;
+    width: 95vw;
     max-width: 800px;
 }
 
@@ -274,8 +272,13 @@ ASIDE
 -------------------------------------------------------------------
 */
 
-div+h3 {
+aside div+div{
     margin-top: 30px;
+}
+
+aside div {
+	width: 20vw;
+    min-width: 220px;
 }
 
 #east, #west {
@@ -284,8 +287,7 @@ div+h3 {
     background-color: var(--card-bg);
     box-shadow: var(--card-shadow);
     border-radius: var(--card-corners);
-    width: 20vw;
-    min-width: 220px;
+    width: 100%;
 }
 
 table {
@@ -336,9 +338,27 @@ MEDIA QUERIES
 }
 
 @media (max-width: 1024px) {
-    aside {
-        display: none;
+    body {
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-start;
     }
+	
+	aside {
+		width: 95vw;
+		max-width: 800px;
+		display: flex;
+		gap: 10%;
+		margin-bottom: 30px;
+    }
+	
+	aside div {
+		flex: 1 0 45%;
+	}
+	
+	aside div+div {
+		margin-top: inherit;
+	}
 }
 
 @media (max-width: 480px) {
@@ -353,4 +373,12 @@ MEDIA QUERIES
         display: inline;
         font-size: clamp(1.2rem, 4vw, 1.5rem);
     }
+	
+	aside {
+		flex-wrap: wrap;
+	}
+	
+	aside div {
+		flex: 1 0 100%;
+	}
 }
