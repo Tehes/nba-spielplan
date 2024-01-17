@@ -11,7 +11,7 @@
     --card-corners: 5px;
 
     --footer-bg: hsl(0, 0%, 25%);
-    --footer-color: hsl(0, 0%, 90%);
+    --footer-color: hsl(0, 0%, 60%);
 
     --ATL: #e03a3e;
     --BKN: #000000;
@@ -342,12 +342,14 @@ FOOTER
 footer {
     width: 100vw;
     max-width: 100%;
-    background-color: var(--footer-bg);
+    background-color: var(--progress-background);
+	box-shadow: var(--progress-shadow);
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 5px 10px;
-    color: var(--footer-color);
+	margin-bottom: 20px;
+	color: var(--footer-color);
 }
 
 footer img {
@@ -356,7 +358,7 @@ footer img {
 }
 
 footer img:hover {
-    filter: invert(85%);
+    filter: invert(45%);
 }
 
 /*
@@ -375,6 +377,10 @@ MEDIA QUERIES
         --card-bg: hsl(0, 0%, 35%);
         --card-shadow: rgba(0, 0, 0, 0.2) 0px 2px 8px 0px;
     }
+	
+	footer img:hover {
+    filter: invert(85%);
+	}
 }
 
 @media (max-width: 1024px) {
