@@ -10,6 +10,9 @@
     --card-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
     --card-corners: 5px;
 
+    --footer-bg: hsl(0, 0%, 25%);
+    --footer-color: hsl(0, 0%, 90%);
+
     --ATL: #e03a3e;
     --BKN: #000000;
     --BOS: #007a33;
@@ -66,8 +69,18 @@ body {
     min-height: -webkit-fill-available;
     /* will switch to 100 dvh when browser support grows */
     display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+body > div {
+    display: flex;
     justify-content: center;
     column-gap: 3vw;
+    padding: 0 3vw;
+    width: 100vw;
+    max-width: 100%;
 }
 
 /*
@@ -76,7 +89,7 @@ MAIN
 -------------------------------------------------------------------
 */
 main {
-    width: 95vw;
+    width: 100%;
     max-width: 800px;
 }
 
@@ -172,7 +185,7 @@ section {
     color: hsl(0, 0%, 70%)
 }
 
-div span {
+main div span {
     padding: 0 10px 0 0;
 }
 
@@ -272,13 +285,13 @@ ASIDE
 -------------------------------------------------------------------
 */
 
-aside div+div{
+aside div+div {
     margin-top: 30px;
 }
 
 aside div {
-	width: 20vw;
-    min-width: 220px;
+    width: 20vw;
+    min-width: 200px;
 }
 
 #east, #west {
@@ -293,6 +306,7 @@ aside div {
 table {
     border-collapse: collapse;
     width: 100%;
+    border-spacing: 30px;
 }
 
 table tr td:empty:after {
@@ -321,6 +335,32 @@ tr:where(:nth-of-type(7), :nth-of-type(11)) {
 
 /*
 -------------------------------------------------------------------
+FOOTER
+-------------------------------------------------------------------
+*/
+
+footer {
+    width: 100vw;
+    max-width: 100%;
+    background-color: var(--footer-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    color: var(--footer-color);
+}
+
+footer img {
+    margin: 0 10px;
+    filter: invert(65%);
+}
+
+footer img:hover {
+    filter: invert(85%);
+}
+
+/*
+-------------------------------------------------------------------
 MEDIA QUERIES
 -------------------------------------------------------------------
 */
@@ -338,7 +378,7 @@ MEDIA QUERIES
 }
 
 @media (max-width: 1024px) {
-    body {
+    body > div {
 		flex-direction: column;
 		align-items: center;
 		justify-content: flex-start;
@@ -359,6 +399,10 @@ MEDIA QUERIES
 	aside div+div {
 		margin-top: inherit;
 	}
+
+    footer {
+        padding: 5px 3vw;
+    }
 }
 
 @media (max-width: 480px) {
