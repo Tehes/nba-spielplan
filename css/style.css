@@ -290,9 +290,10 @@ aside div+div {
 }
 
 aside div {
-    width: 20vw;
+    width: 15vw;
     min-width: 200px;
 }
+
 
 #east, #west {
     margin: 10px 0;
@@ -301,6 +302,7 @@ aside div {
     box-shadow: var(--card-shadow);
     border-radius: var(--card-corners);
     width: 100%;
+    container-type: inline-size;
 }
 
 table {
@@ -308,6 +310,12 @@ table {
     width: 100%;
     border-spacing: 30px;
 }
+
+@container (max-width: 215px) {
+    td:nth-of-type(5), th:nth-of-type(5) {
+        display: none;
+    }
+  }
 
 table tr td:empty:after {
     content: "---";

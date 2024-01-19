@@ -203,6 +203,7 @@ function renderStandings() {
         cells[1].textContent = easternConference[index].ta;
         cells[2].textContent = `${easternConference[index].w} - ${easternConference[index].l}`;
         cells[3].textContent = easternConference[index].gb;
+        cells[4].textContent = easternConference[index].str;
     });
 
     const rowsWest= standingsWest.querySelectorAll("tr:not(:first-of-type)");
@@ -212,6 +213,7 @@ function renderStandings() {
         cells[1].textContent = westernConference[index].ta;
         cells[2].textContent = `${westernConference[index].w} - ${westernConference[index].l}`;
         cells[3].textContent = westernConference[index].gb;
+        cells[4].textContent = westernConference[index].str;
     });
 }
 
