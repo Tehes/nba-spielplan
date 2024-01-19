@@ -100,7 +100,7 @@ function prepareGameData() {
             games.today.push(game);
         }
         // IF GAME STATUS IS FINISHED
-        else if (game.stt === "Final") {
+        else if (game.stt === "Final" || game.stt === "PPD") {
             games.finished.push(game);
         }
         // GAME IS SCHEDULED
