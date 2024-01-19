@@ -290,8 +290,9 @@ aside div+div {
 }
 
 aside div {
-    width: 15vw;
+    width: calc(91vw - 800px);
     min-width: 200px;
+    max-width: 400px;
 }
 
 
@@ -311,7 +312,7 @@ table {
     border-spacing: 30px;
 }
 
-@container (max-width: 215px) {
+@container (max-width: 220px) {
     td:nth-of-type(5), th:nth-of-type(5) {
         display: none;
     }
@@ -329,6 +330,7 @@ th,
 td {
     text-align: left;
     padding: 5px;
+    white-space: nowrap;
 }
 
 td:first-of-type {
@@ -399,8 +401,8 @@ MEDIA QUERIES
     }
 	
 	aside {
-		width: 95vw;
-		max-width: 800px;
+		width: 100%;
+        max-width: 800px;
 		display: flex;
 		gap: 10%;
 		margin-bottom: 30px;
@@ -408,6 +410,7 @@ MEDIA QUERIES
 	
 	aside div {
 		flex: 1 0 45%;
+        max-width: unset;
 	}
 	
 	aside div+div {
