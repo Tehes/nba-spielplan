@@ -200,6 +200,7 @@ function renderStandings() {
     
     rowsEast.forEach((row, index) => {
         let cells = row.querySelectorAll("td");
+        row.dataset.ta = easternConference[index].ta;
         cells[1].textContent = easternConference[index].ta;
         cells[2].textContent = `${easternConference[index].w} - ${easternConference[index].l}`;
         cells[3].textContent = easternConference[index].gb;
@@ -210,6 +211,7 @@ function renderStandings() {
     
     rowsWest.forEach((row, index) => {
         let cells = row.querySelectorAll("td");
+        row.dataset.ta = westernConference[index].ta;
         cells[1].textContent = westernConference[index].ta;
         cells[2].textContent = `${westernConference[index].w} - ${westernConference[index].l}`;
         cells[3].textContent = westernConference[index].gb;
