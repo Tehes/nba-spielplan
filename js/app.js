@@ -202,9 +202,11 @@ function renderStandings() {
         let cells = row.querySelectorAll("td");
         row.dataset.ta = easternConference[index].ta;
         cells[1].textContent = easternConference[index].ta;
-        cells[2].textContent = `${easternConference[index].w} - ${easternConference[index].l}`;
+        cells[2].textContent = `${easternConference[index].w}-${easternConference[index].l}`;
         cells[3].textContent = easternConference[index].gb;
         cells[4].textContent = easternConference[index].str;
+        cells[5].textContent = easternConference[index].hr;
+        cells[6].textContent = easternConference[index].ar;
     });
 
     const rowsWest= standingsWest.querySelectorAll("tr:not(:first-of-type)");
@@ -213,9 +215,11 @@ function renderStandings() {
         let cells = row.querySelectorAll("td");
         row.dataset.ta = westernConference[index].ta;
         cells[1].textContent = westernConference[index].ta;
-        cells[2].textContent = `${westernConference[index].w} - ${westernConference[index].l}`;
+        cells[2].textContent = `${westernConference[index].w}-${westernConference[index].l}`;
         cells[3].textContent = westernConference[index].gb;
         cells[4].textContent = westernConference[index].str;
+        cells[5].textContent = westernConference[index].hr;
+        cells[6].textContent = westernConference[index].ar;
     });
 }
 
@@ -235,4 +239,4 @@ window.app = {
     init
 };
 
-app.init();
+window.app.init();

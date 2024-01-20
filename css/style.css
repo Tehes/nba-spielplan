@@ -61,7 +61,7 @@ body {
     font-family: 'Kanit', sans-serif;
     background-color: var(--bg-color);
     margin: 0;
-	padding: 0;
+    padding: 0;
     color: var(--font-color);
     font-size: 100%;
     min-height: 100vh;
@@ -74,7 +74,7 @@ body {
     align-items: center;
 }
 
-body > div {
+body>div {
     display: flex;
     justify-content: center;
     column-gap: 3vw;
@@ -296,7 +296,8 @@ aside div {
 }
 
 
-#east, #west {
+#east,
+#west {
     margin: 10px 0;
     padding: 10px;
     background-color: var(--card-bg);
@@ -313,10 +314,22 @@ table {
 }
 
 @container (max-width: 220px) {
-    td:nth-of-type(5), th:nth-of-type(5) {
+
+    td:nth-of-type(5),
+    th:nth-of-type(5) {
         display: none;
     }
-  }
+}
+
+@container (max-width: 330px) {
+
+    td:nth-of-type(6),
+    th:nth-of-type(6),
+    td:nth-of-type(7),
+    th:nth-of-type(7) {
+        display: none;
+    }
+}
 
 table tr td:empty:after {
     content: "---";
@@ -324,6 +337,10 @@ table tr td:empty:after {
     vertical-align: top;
     min-height: 26px;
     color: hsl(0, 0%, 70%);
+}
+
+tr {
+    transition: background-color 0.3s;
 }
 
 tr[data-ta]:hover {
@@ -477,13 +494,13 @@ footer {
     width: 100vw;
     max-width: 100%;
     background-color: var(--progress-background);
-	box-shadow: var(--progress-shadow);
+    box-shadow: var(--progress-shadow);
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 5px 10px;
-	margin-bottom: 20px;
-	color: var(--footer-color);
+    margin-bottom: 20px;
+    color: var(--footer-color);
 }
 
 footer img {
@@ -511,35 +528,35 @@ MEDIA QUERIES
         --card-bg: hsl(0, 0%, 35%);
         --card-shadow: rgba(0, 0, 0, 0.2) 0px 2px 8px 0px;
     }
-	
-	footer img:hover {
-    filter: invert(85%);
-	}
+
+    footer img:hover {
+        filter: invert(85%);
+    }
 }
 
 @media (max-width: 1024px) {
-    body > div {
-		flex-direction: column;
-		align-items: center;
-		justify-content: flex-start;
+    body>div {
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
     }
-	
-	aside {
-		width: 100%;
+
+    aside {
+        width: 100%;
         max-width: 800px;
-		display: flex;
-		gap: 10%;
-		margin-bottom: 30px;
+        display: flex;
+        gap: 10%;
+        margin-bottom: 30px;
     }
-	
-	aside div {
-		flex: 1 0 45%;
+
+    aside div {
+        flex: 1 0 45%;
         max-width: unset;
-	}
-	
-	aside div+div {
-		margin-top: inherit;
-	}
+    }
+
+    aside div+div {
+        margin-top: inherit;
+    }
 
     footer {
         padding: 5px 3vw;
@@ -558,12 +575,12 @@ MEDIA QUERIES
         display: inline;
         font-size: clamp(1.2rem, 4vw, 1.5rem);
     }
-	
-	aside {
-		flex-wrap: wrap;
-	}
-	
-	aside div {
-		flex: 1 0 100%;
-	}
+
+    aside {
+        flex-wrap: wrap;
+    }
+
+    aside div {
+        flex: 1 0 100%;
+    }
 }
