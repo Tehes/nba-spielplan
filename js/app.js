@@ -197,7 +197,12 @@ function renderMoreGames() {
         visitingAbbr.textContent = g.v.ta;
         card.dataset.code = `${g.v.ta}/${g.h.ta}`;
 
-        date.textContent = `${g.time} Uhr`;
+        if (g.stt === "Final") {
+            date.textContent = `${g.v.s}:${g.h.s}`;
+        }
+        else {
+            date.textContent = `${g.time} Uhr`;
+        }
 
         moreEl.appendChild(clone);
     });
