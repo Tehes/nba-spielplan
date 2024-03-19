@@ -203,9 +203,9 @@ function renderMoreGames() {
         const visitingAbbr = clone.querySelector(".v-abbr");
         const date = clone.querySelector(".date");
 
-        homeName.textContent = `@ ${g.h.tc} ${g.h.tn}`;
+        homeName.textContent = `${g.h.tc} ${g.h.tn}`;
         visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
-        homeAbbr.textContent = `@ ${g.h.ta}`;
+        homeAbbr.textContent = g.h.ta;
         visitingAbbr.textContent = g.v.ta;
         card.dataset.code = `${g.v.ta}/${g.h.ta}`;
 

@@ -308,9 +308,20 @@ MORE
 }
 
 #more div {
-    flex: 1 0 33%;
-    /* padding: 0 5px; */
+    padding-right: 10px;
     font-size: clamp(1rem, 3vw, 1.2rem);
+}
+
+#more :is(.home-team, .visiting-team) {
+    flex: 1 0 35%;
+}
+
+#more .date {
+    flex: 0 0 25%;
+}
+
+#more .at {
+    flex: 0 0 5%;
 }
 
 #options {
@@ -667,6 +678,10 @@ MEDIA QUERIES
 }
 
 @media (max-width: 480px) {
+
+    #more :is(.home-team, .visiting-team) {
+        text-align: center;
+    }
 
     .h-name,
     .v-name {
