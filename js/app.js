@@ -86,6 +86,7 @@ const todayEl = document.querySelector("#today");
 const moreEl = document.querySelector("#more");
 const today = new Date();
 const progressValue = document.querySelector("#progress-value");
+const teamPicker = document.querySelector("select");
 
 /* --------------------------------------------------------------------------------------------------
 functions
@@ -233,11 +234,28 @@ function renderStandings() {
         cells[4].textContent = westernConference[index].str;
         cells[5].textContent = westernConference[index].hr;
         cells[6].textContent = westernConference[index].ar;
-});
+    });
+}
+
+function filterTeams(select) {
+    const selectedTeam = select.target.value;
+    const allCards = document.querySelectorAll("#more .card");
+
+    for (const card of allCards) {
+        card.classList.remove("hidden");
+    }
+
+    if (selectedTeam !== "") {
+        const otherTeams = document.querySelectorAll(`#more .card:not([data-code*="${selectedTeam}"])`);
+        for (const card of otherTeams) {
+            card.classList.add("hidden");
+        }
+    }
 }
 
 function init() {
     document.addEventListener("touchstart", function () { }, false);
+    teamPicker.addEventListener("change", filterTeams, false);
     prepareGameData();
     setProgressBar();
     renderTodaysGames();

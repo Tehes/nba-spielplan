@@ -192,6 +192,9 @@ TODAY
 
 #today .card {
     justify-content: center;
+}
+
+#today .card:has(.series:not(:empty)) {
     flex-wrap: wrap;
 }
 
@@ -275,8 +278,10 @@ TODAY
 }
 
 .series {
+    display: flex;
+    justify-content: center;
+    flex-grow: 1;
     width: 100%;
-    text-align: center;
     border-radius: 0 0 var(--card-corners) var(--card-corners);
     background-color: color-mix(in hsl, var(--card-bg) 95%, black);
     border-top: 1px solid color-mix(in hsl, var(--card-bg) 90%, black);
@@ -302,6 +307,20 @@ MORE
     flex: 1 0 33%;
     /* padding: 0 5px; */
     font-size: clamp(1rem, 3vw, 1.2rem);
+}
+
+select {
+    border: none;
+    box-shadow: var(--card-shadow);
+    background-color: var(--card-bg);
+    color: var(--font-color);
+    font-size: inherit;
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+.hidden {
+    display: none;
 }
 
 /*
