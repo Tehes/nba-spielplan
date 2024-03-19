@@ -146,6 +146,7 @@ function renderTodaysGames() {
         const homeName = clone.querySelector(".h-name");
         const visitingName = clone.querySelector(".v-name");
         const date = clone.querySelector(".date");
+        const series = clone.querySelector(".series");
 
         homeTeam.style.setProperty("background-color", `var(--${g.h.ta})`);
         visitingTeam.style.setProperty("background-color", `var(--${g.v.ta})`);
@@ -155,6 +156,7 @@ function renderTodaysGames() {
         visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
         homeAbbr.textContent = g.h.ta;
         visitingAbbr.textContent = g.v.ta;
+        series.textContent = g.seri;
 
         if (g.stt === "Final") {
             date.textContent = `${g.v.s}:${g.h.s}`;
@@ -182,6 +184,7 @@ function renderMoreGames() {
 
         const clone = templateMore.content.cloneNode(true);
 
+        const card = clone.querySelector(".card");
         const homeName = clone.querySelector(".h-name");
         const visitingName = clone.querySelector(".v-name");
         const homeAbbr = clone.querySelector(".h-abbr");
@@ -192,6 +195,7 @@ function renderMoreGames() {
         visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
         homeAbbr.textContent = `@ ${g.h.ta}`;
         visitingAbbr.textContent = g.v.ta;
+        card.dataset.code = `${g.v.ta}/${g.h.ta}`;
 
         date.textContent = `${g.time} Uhr`;
 
@@ -224,7 +228,7 @@ function renderStandings() {
         cells[4].textContent = westernConference[index].str;
         cells[5].textContent = westernConference[index].hr;
         cells[6].textContent = westernConference[index].ar;
-    });
+});
 }
 
 function init() {

@@ -166,15 +166,6 @@ section {
     border-radius: var(--card-corners);
 }
 
-.card div:first-child {
-    border-radius: var(--card-corners) 0 0 var(--card-corners);
-}
-
-.card div:last-child {
-    border-radius: 0 var(--card-corners) var(--card-corners) 0;
-    border-left: 1px solid var(--card-bg);
-}
-
 .v-abbr,
 .h-abbr {
     display: none;
@@ -201,6 +192,11 @@ TODAY
 
 #today .card {
     justify-content: center;
+    flex-wrap: wrap;
+}
+
+#today .visiting-team+.home-team {
+    border-left: 1px solid var(--card-bg);
 }
 
 #today .home-team,
@@ -250,12 +246,41 @@ TODAY
     flex: 0 0 20%;
 }
 
+#today .date {
+    border-radius: var(--card-corners) 0 0 0;
+}
+
+#today:has(.series:empty) .date {
+    border-radius: var(--card-corners) 0 0 var(--card-corners);
+}
+
+#today .home-team {
+    border-radius: 0 var(--card-corners) 0 0;
+}
+
+#today:has(.series:empty) .home-team {
+    border-radius: 0 var(--card-corners) var(--card-corners) 0;
+}
+
 #today .card img {
     width: 10vw;
     height: 10vw;
     max-height: 80px;
     max-width: 80px;
     margin: 5px 10px;
+}
+
+.series:empty {
+    display: none;
+}
+
+.series {
+    width: 100%;
+    text-align: center;
+    border-radius: 0 0 var(--card-corners) var(--card-corners);
+    background-color: color-mix(in hsl, var(--card-bg) 95%, black);
+    border-top: 1px solid color-mix(in hsl, var(--card-bg) 90%, black);
+    font-size: clamp(1rem, 3vw, 1.2rem);
 }
 
 /*
