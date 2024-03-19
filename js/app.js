@@ -87,6 +87,7 @@ const moreEl = document.querySelector("#more");
 const today = new Date();
 const progressValue = document.querySelector("#progress-value");
 const teamPicker = document.querySelector("select");
+const checkbox = document.querySelector("input[type='checkbox']");
 
 /* --------------------------------------------------------------------------------------------------
 functions
@@ -173,7 +174,17 @@ function renderTodaysGames() {
 function renderMoreGames() {
     let dateHeadline = "";
     moreEl.innerHTML = "";
-    games.scheduled.forEach(g => {
+
+    let gamesToDisplay = [];
+
+    if (checkbox.checked) {
+        gamesToDisplay = games.scheduled;
+    }
+    else {
+        gamesToDisplay = games.finished.concat(games.scheduled);
+    }
+
+    gamesToDisplay.forEach(g => {
         if (dateHeadline === "" || dateHeadline !== g.date) {
             dateHeadline = g.date;
 
@@ -207,11 +218,12 @@ function renderMoreGames() {
 
         moreEl.appendChild(clone);
     });
+    filterTeams();
 }
 
 function renderStandings() {
     const rowsEast = standingsEast.querySelectorAll("tr:not(:first-of-type)");
-    
+
     rowsEast.forEach((row, index) => {
         let cells = row.querySelectorAll("td");
         row.dataset.ta = easternConference[index].ta;
@@ -223,8 +235,8 @@ function renderStandings() {
         cells[6].textContent = easternConference[index].ar;
     });
 
-    const rowsWest= standingsWest.querySelectorAll("tr:not(:first-of-type)");
-    
+    const rowsWest = standingsWest.querySelectorAll("tr:not(:first-of-type)");
+
     rowsWest.forEach((row, index) => {
         let cells = row.querySelectorAll("td");
         row.dataset.ta = westernConference[index].ta;
@@ -237,10 +249,8 @@ function renderStandings() {
     });
 }
 
-function filterTeams(select) {
-    const selectedTeam = select.target.value;
-
-    renderMoreGames();
+function filterTeams() {
+    const selectedTeam = teamPicker.value;
 
     if (selectedTeam !== "") {
         const otherTeams = document.querySelectorAll(`#more .card:not([data-code*="${selectedTeam}"])`);
@@ -252,7 +262,8 @@ function filterTeams(select) {
 
 function init() {
     document.addEventListener("touchstart", function () { }, false);
-    teamPicker.addEventListener("change", filterTeams, false);
+    teamPicker.addEventListener("change", renderMoreGames, false);
+    checkbox.addEventListener("change", renderMoreGames, false);
     prepareGameData();
     setProgressBar();
     renderTodaysGames();

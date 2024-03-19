@@ -111,7 +111,7 @@ h3 {
     margin: 10px 0 0 0;
 }
 
-h3:has( + h3) {
+h3:has(+ h3) {
     display: none;
 }
 
@@ -313,18 +313,73 @@ MORE
     font-size: clamp(1rem, 3vw, 1.2rem);
 }
 
+#options {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
 select {
-    background: url(data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0Ljk1IDEwIj48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2ZmZjt9LmNscy0ye2ZpbGw6IzQ0NDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPmFycm93czwvdGl0bGU+PHJlY3QgY2xhc3M9ImNscy0xIiB3aWR0aD0iNC45NSIgaGVpZ2h0PSIxMCIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIxLjQxIDQuNjcgMi40OCAzLjE4IDMuNTQgNC42NyAxLjQxIDQuNjciLz48cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iMy41NCA1LjMzIDIuNDggNi44MiAxLjQxIDUuMzMgMy41NCA1LjMzIi8+PC9zdmc+) no-repeat 95% 50%;
-    -moz-appearance: none; 
-    -webkit-appearance: none; 
+    -moz-appearance: none;
+    -webkit-appearance: none;
     appearance: none;
+    flex: 0 0 auto;
     border: none;
     box-shadow: var(--card-shadow);
     background-color: var(--card-bg);
     color: var(--font-color);
     font-size: inherit;
-    padding: 10px;
-    margin-bottom: 10px;
+    font: inherit;
+    padding: 10px 50px 10px 10px;
+    border-radius: var(--card-corners);
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--font-color) 50%),
+        linear-gradient(135deg, var(--font-color) 50%, transparent 50%),
+        linear-gradient(to right, var(--font-color), var(--font-color));
+    background-position:
+        calc(100% - 20px) calc(1em + 2px),
+        calc(100% - 15px) calc(1em + 2px),
+        calc(100% - 2.5em) 0.5em;
+    background-size:
+        5px 5px,
+        5px 5px,
+        1px 1.5em;
+    background-repeat: no-repeat;
+}
+
+.hide-older-games {
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+input[type="checkbox"] {
+    width: 25px;
+    height: 25px;
+    margin: 5px;
+    appearance: none;
+    background-color: var(--card-bg);
+    box-shadow: var(--card-shadow);
+    color: var(--font-color);
+    cursor: pointer;
+}
+
+input[type="checkbox"]:checked {
+    position: relative;
+}
+
+input[type="checkbox"]:checked::before {
+    content: "✓";
+    font-size: 180%;
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 /*
