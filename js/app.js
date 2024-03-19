@@ -239,16 +239,13 @@ function renderStandings() {
 
 function filterTeams(select) {
     const selectedTeam = select.target.value;
-    const allCards = document.querySelectorAll("#more .card");
 
-    for (const card of allCards) {
-        card.classList.remove("hidden");
-    }
+    renderMoreGames();
 
     if (selectedTeam !== "") {
         const otherTeams = document.querySelectorAll(`#more .card:not([data-code*="${selectedTeam}"])`);
         for (const card of otherTeams) {
-            card.classList.add("hidden");
+            card.remove();
         }
     }
 }

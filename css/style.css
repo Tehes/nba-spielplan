@@ -111,6 +111,10 @@ h3 {
     margin: 10px 0 0 0;
 }
 
+h3:has( + h3) {
+    display: none;
+}
+
 #info {
     display: flex;
     font-size: clamp(0.8rem, 3vw, 1.1rem);
@@ -321,10 +325,6 @@ select {
     font-size: inherit;
     padding: 10px;
     margin-bottom: 10px;
-}
-
-.hidden {
-    display: none;
 }
 
 /*
