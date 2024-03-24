@@ -165,6 +165,7 @@ function renderTodaysGames() {
         }
         else {
             date.textContent = `${g.time} Uhr`;
+            date.dataset.gameCode = g.gcode;
         }
 
         todayEl.appendChild(clone);
@@ -207,7 +208,7 @@ function renderMoreGames() {
         visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
         homeAbbr.textContent = g.h.ta;
         visitingAbbr.textContent = g.v.ta;
-        card.dataset.code = `${g.v.ta}/${g.h.ta}`;
+        card.dataset.abbr = `${g.v.ta}/${g.h.ta}`;
 
         if (g.stt === "Final") {
             date.textContent = `${g.v.s}:${g.h.s}`;
@@ -253,7 +254,7 @@ function filterTeams() {
     const selectedTeam = teamPicker.value;
 
     if (selectedTeam !== "") {
-        const otherTeams = document.querySelectorAll(`#more .card:not([data-code*="${selectedTeam}"])`);
+        const otherTeams = document.querySelectorAll(`#more .card:not([data-abbr*="${selectedTeam}"])`);
         for (const card of otherTeams) {
             card.remove();
         }
