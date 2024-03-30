@@ -144,6 +144,11 @@ h3:has(+ h3) {
     height: 20px;
     width: 0;
     transition: width 0.5s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--progress-background);
+    font-size: 90%;
 }
 
 /*

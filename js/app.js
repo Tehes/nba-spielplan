@@ -132,6 +132,7 @@ function setProgressBar() {
 
     let gamespercentage = parseInt(progress * 100 / AllGames);
     progressValue.style.width = `${gamespercentage}%`;
+    progressValue.textContent = `${gamespercentage}%`;
     
     if (gamespercentage === 100) {
         checkbox.checked = false;
