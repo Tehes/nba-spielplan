@@ -58,7 +58,7 @@ ar          away record                 String                  "11-9"
 /* --------------------------------------------------------------------------------------------------
 Variables
 ---------------------------------------------------------------------------------------------------*/
-const year = "2022"
+const year = "2023"
 const scheduleURL = `https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json`;
 /* 
 In case the other json fails, here is a second url that I could implement
