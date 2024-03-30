@@ -149,6 +149,7 @@ h3:has(+ h3) {
     align-items: center;
     color: var(--progress-background);
     font-size: 90%;
+    overflow: clip;
 }
 
 /*
