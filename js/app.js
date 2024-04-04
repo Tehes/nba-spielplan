@@ -70,15 +70,17 @@ const standings = await fetchData(standingsURL);
 const games = {
     today: [],
     finished: [],
-    scheduled: []
+    scheduled: [],
+    playoffs: []
 }
 
 const conferences = standings.sta.co.map(conference => conference.di.flatMap(division => division.t));
-const easternConference = conferences[0].sort((a, b) => a.see - b.see);
-const westernConference = conferences[1].sort((a, b) => a.see - b.see);
+const conferenceStandings = [conferences[0].sort((a, b) => a.see - b.see), conferences[1].sort((a, b) => a.see - b.see)];
 
 const standingsEast = document.querySelector("#east table");
 const standingsWest = document.querySelector("#west table");
+
+const playoffTeams = [[], []];
 
 const templateToday = document.querySelector("#template-today");
 const templateMore = document.querySelector("#template-more");
@@ -108,6 +110,10 @@ function prepareGameData() {
         // IF GAME STATUS IS FINISHED
         else if (game.stt === "Final" || game.stt === "PPD") {
             games.finished.push(game);
+            // add playoff games to its own array
+            if (game.seri !== "") {
+                games.playoffs.push(game);
+            }
         }
         // GAME IS SCHEDULED
         else {
@@ -133,7 +139,7 @@ function setProgressBar() {
     let gamespercentage = parseInt(progress * 100 / AllGames);
     progressValue.style.width = `${gamespercentage}%`;
     progressValue.textContent = `${gamespercentage}%`;
-    
+
     if (gamespercentage === 100) {
         checkbox.checked = false;
     }
@@ -228,31 +234,24 @@ function renderMoreGames() {
 }
 
 function renderStandings() {
-    const rowsEast = standingsEast.querySelectorAll("tr:not(:first-of-type)");
+    const rows = [standingsEast.querySelectorAll("tr:not(:first-of-type)"), standingsWest.querySelectorAll("tr:not(:first-of-type)")];
 
-    rowsEast.forEach((row, index) => {
-        let cells = row.querySelectorAll("td");
-        row.dataset.ta = easternConference[index].ta;
-        cells[1].textContent = easternConference[index].ta;
-        cells[2].textContent = `${easternConference[index].w}-${easternConference[index].l}`;
-        cells[3].textContent = easternConference[index].gb;
-        cells[4].textContent = easternConference[index].str;
-        cells[5].textContent = easternConference[index].hr;
-        cells[6].textContent = easternConference[index].ar;
-    });
-
-    const rowsWest = standingsWest.querySelectorAll("tr:not(:first-of-type)");
-
-    rowsWest.forEach((row, index) => {
-        let cells = row.querySelectorAll("td");
-        row.dataset.ta = westernConference[index].ta;
-        cells[1].textContent = westernConference[index].ta;
-        cells[2].textContent = `${westernConference[index].w}-${westernConference[index].l}`;
-        cells[3].textContent = westernConference[index].gb;
-        cells[4].textContent = westernConference[index].str;
-        cells[5].textContent = westernConference[index].hr;
-        cells[6].textContent = westernConference[index].ar;
-    });
+    for (let i = 0; i < rows.length; i++) {
+        rows[i].forEach((row, index) => {
+            let cells = row.querySelectorAll("td");
+            row.dataset.ta = conferenceStandings[i][index].ta;
+            cells[1].textContent = conferenceStandings[i][index].ta;
+            cells[2].textContent = `${conferenceStandings[i][index].w}-${conferenceStandings[i][index].l}`;
+            cells[3].textContent = conferenceStandings[i][index].gb;
+            cells[4].textContent = conferenceStandings[i][index].str;
+            cells[5].textContent = conferenceStandings[i][index].hr;
+            cells[6].textContent = conferenceStandings[i][index].ar;
+            // add seed 1 - 8 to playoff Teams
+            if (index < 8) {
+                playoffTeams[i].push(conferenceStandings[i][index]);
+            }
+        });
+    }
 }
 
 function filterTeams() {
@@ -266,6 +265,146 @@ function filterTeams() {
     }
 }
 
+function playoffPicture() {
+    const conferenceIndex = ["east", "west"];
+
+    let indexesToRemove = [];
+    function removeMatchupsFromPlayoffs() {
+        for (let i = indexesToRemove.length - 1; i >= 0; i--) {
+            games.playoffs.splice(indexesToRemove[i], 1);
+        }
+        indexesToRemove = [];
+    }
+
+    function getMatchups(noOfTeams, thisRound, previousRound) {
+        for (let j = 0; j < conferenceIndex.length; j++) {
+            for (let i = 0; i < noOfTeams / 2; i++) {
+                thisRound[j].push({
+                    conference: conferenceIndex[j],
+                    series: "0-0",
+                    leadingTeam: "",
+                    leadingTeamSeed: 0
+                });
+                if (previousRound[j][i].series.includes("4")) {
+                    Object.assign(thisRound[j][i], {
+                        teamA: previousRound[j][i].leadingTeam,
+                        teamASeed: previousRound[j][i].leadingTeamSeed
+                    });
+                }
+                if (previousRound[j][numberOfTeams - 1 - i].series.includes("4")) {
+                    Object.assign(thisRound[j][i], {
+                        teamB: previousRound[j][numberOfTeams - 1 - i].leadingTeam,
+                        teamBSeed: previousRound[j][numberOfTeams - 1 - i].leadingTeamSeed
+                    });
+                }
+            }
+        }
+    }
+
+    function playSeries(round) {
+        games.playoffs.forEach((g, index) => {
+            const teamNames = g.gcode.slice(-6);
+
+            for (let j = 0; j < conferenceIndex.length; j++) {
+                for (let i = 0; i < round[j].length; i++) {
+                    const matchup = round[j][i];
+                    if (teamNames.includes(matchup.teamA) && teamNames.includes(matchup.teamB)) {
+                        matchup.series = g.seri.slice(-3);
+                        matchup.leadingTeam = g.seri.slice(0, 3);
+                        if (matchup.leadingTeam === matchup.teamB) {
+                            matchup.series = matchup.series.split("").reverse().join("");
+                            matchup.leadingTeamSeed = matchup.teamBSeed;
+                        }
+                        else {
+                            matchup.leadingTeamSeed = matchup.teamASeed;
+                        }
+                        indexesToRemove.push(index);
+                    }
+                }
+            }
+        });
+        removeMatchupsFromPlayoffs()
+    }
+
+    // first Round
+    const firstRound = [[], []];
+    let numberOfTeams = 8;
+
+    for (let j = 0; j < conferenceIndex.length; j++) {
+        for (let i = 0; i < numberOfTeams / 2; i++) {
+            firstRound[j].push({
+                conference: conferenceIndex[j],
+                teamA: playoffTeams[j][i].ta,
+                teamASeed: i + 1,
+                teamB: playoffTeams[j][numberOfTeams - 1 - i].ta,
+                teamBSeed: playoffTeams[0].length - i,
+                series: "0-0",
+                leadingTeam: "",
+                leadingTeamSeed: 0
+            })
+        }
+    }
+
+    playSeries(firstRound);
+
+    //second Round
+    const secondRound = [[], []];
+    numberOfTeams = 4;
+
+    getMatchups(numberOfTeams, secondRound, firstRound);
+    playSeries(secondRound);
+
+    //conference Finals
+    const conferenceFinals = [[], []];
+    numberOfTeams = 2;
+
+    getMatchups(numberOfTeams, conferenceFinals, secondRound);
+    playSeries(conferenceFinals);
+
+    //finals
+    const finals = {
+        series: "0-0",
+        leadingTeam: "",
+        leadingTeamSeed: 0
+    };
+    if (conferenceFinals[0][0].series.includes("4")) {
+        Object.assign(finals, {
+            teamA: conferenceFinals[0][0].leadingTeam,
+            teamASeed: conferenceFinals[0][0].leadingTeamSeed
+        });
+    }
+    if (conferenceFinals[1][0].series.includes("4")) {
+        Object.assign(finals, {
+            teamB: conferenceFinals[1][0].leadingTeam,
+            teamBSeed: conferenceFinals[1][0].leadingTeamSeed
+        });
+    }
+
+    games.playoffs.forEach((g, index) => {
+        const teamNames = g.gcode.slice(-6);
+
+        if (teamNames.includes(finals.teamA) && teamNames.includes(finals.teamB)) {
+            finals.series = g.seri.slice(-3);
+            finals.leadingTeam = g.seri.slice(0, 3);
+            if (finals.leadingTeam === finals.teamB) {
+                finals.series = finals.series.split("").reverse().join("");
+                finals.leadingTeamSeed = finals.teamBSeed;
+            }
+            else {
+                finals.leadingTeamSeed = finals.teamASeed;
+            }
+            indexesToRemove.push(index);
+        }
+    });
+    removeMatchupsFromPlayoffs()
+
+    console.log(firstRound);
+    console.log(secondRound);
+    console.log(conferenceFinals);
+    console.log(finals);
+    console.log(games.playoffs)
+}
+
 function init() {
     document.addEventListener("touchstart", function () { }, false);
     teamPicker.addEventListener("change", renderMoreGames, false);
@@ -275,6 +414,9 @@ function init() {
     renderTodaysGames();
     renderMoreGames();
     renderStandings();
+    if (games.playoffs.length > 0) {
+        playoffPicture();
+    }
 }
 
 /* --------------------------------------------------------------------------------------------------
