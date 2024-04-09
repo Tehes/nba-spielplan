@@ -58,7 +58,9 @@ ar          away record                 String                  "11-9"
 /* --------------------------------------------------------------------------------------------------
 Variables
 ---------------------------------------------------------------------------------------------------*/
-const year = "2023"
+let params = new URLSearchParams(document.location.search);
+
+const year = params.get("year") || "2023";
 const scheduleURL = `https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json`;
 /* 
 In case the other json fails, here is a second url that I could implement
@@ -266,6 +268,11 @@ function filterTeams() {
 }
 
 function playoffPicture() {
+    const playoffBracket = document.querySelector("#playoffs");
+    const playoffHeadline = document.querySelectorAll("h1")[0];
+    playoffHeadline.classList.remove("hidden");
+    playoffBracket.classList.remove("hidden");
+
     const conferenceIndex = ["east", "west"];
 
     let indexesToRemove = [];
@@ -326,6 +333,20 @@ function playoffPicture() {
         removeMatchupsFromPlayoffs()
     }
 
+    function renderMatchups(roundNr, round) {
+        const matchupElements = document.querySelectorAll(`[data-round="${roundNr}"]`);
+        const matchups = Array.isArray(round) ? round.flat() : [round];
+
+        matchups.forEach((matchup, index) => {
+            matchupElements[index].querySelector(".teamA .score").textContent = matchup.series.split("-")[0];
+            matchupElements[index].querySelector(".teamB .score").textContent = matchup.series.split("-")[1];
+            matchupElements[index].querySelector(".teamA .teamname").textContent = matchup.teamA;
+            matchupElements[index].querySelector(".teamB .teamname").textContent = matchup.teamB;
+            matchupElements[index].querySelector(".teamA .teamname").style.setProperty("background-color", `var(--${matchup.teamA})`);
+            matchupElements[index].querySelector(".teamB .teamname").style.setProperty("background-color", `var(--${matchup.teamB})`);
+        });
+    }
+
     // first Round
     const firstRound = [[], []];
     let numberOfTeams = 8;
@@ -346,6 +367,8 @@ function playoffPicture() {
     }
 
     playSeries(firstRound);
+    renderMatchups(1, firstRound);
+
 
     //second Round
     const secondRound = [[], []];
@@ -353,6 +376,7 @@ function playoffPicture() {
 
     getMatchups(numberOfTeams, secondRound, firstRound);
     playSeries(secondRound);
+    renderMatchups(2, secondRound);
 
     //conference Finals
     const conferenceFinals = [[], []];
@@ -360,6 +384,7 @@ function playoffPicture() {
 
     getMatchups(numberOfTeams, conferenceFinals, secondRound);
     playSeries(conferenceFinals);
+    renderMatchups(3, conferenceFinals);
 
     //finals
     const finals = {
@@ -397,12 +422,7 @@ function playoffPicture() {
         }
     });
     removeMatchupsFromPlayoffs()
-
-    console.log(firstRound);
-    console.log(secondRound);
-    console.log(conferenceFinals);
-    console.log(finals);
-    console.log(games.playoffs)
+    renderMatchups(4, finals);
 }
 
 function init() {
