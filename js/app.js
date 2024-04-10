@@ -77,7 +77,7 @@ const games = {
 }
 
 const conferences = standings.sta.co.map(conference => conference.di.flatMap(division => division.t));
-const conferenceStandings = [conferences[0].sort((a, b) => a.see - b.see), conferences[1].sort((a, b) => a.see - b.see)];
+const conferenceStandings = [conferences[1].sort((a, b) => a.see - b.see), conferences[0].sort((a, b) => a.see - b.see)];
 
 const standingsEast = document.querySelector("#east table");
 const standingsWest = document.querySelector("#west table");
@@ -273,7 +273,7 @@ function playoffPicture() {
     playoffHeadline.classList.remove("hidden");
     playoffBracket.classList.remove("hidden");
 
-    const conferenceIndex = ["east", "west"];
+    const conferenceIndex = ["west", "east"];
 
     let indexesToRemove = [];
     function removeMatchupsFromPlayoffs() {
@@ -350,7 +350,7 @@ function playoffPicture() {
     // first Round
     const firstRound = [[], []];
     let numberOfTeams = 8;
-
+    
     for (let j = 0; j < conferenceIndex.length; j++) {
         for (let i = 0; i < numberOfTeams / 2; i++) {
             firstRound[j].push({
@@ -362,7 +362,7 @@ function playoffPicture() {
                 series: "0-0",
                 leadingTeam: "",
                 leadingTeamSeed: 0
-            })
+            });
         }
     }
 
