@@ -330,27 +330,31 @@ function playoffPicture() {
                 }
             }
         });
-        removeMatchupsFromPlayoffs()
+        removeMatchupsFromPlayoffs();
     }
 
     function renderMatchups(roundNr, round) {
-        const matchupElements = document.querySelectorAll(`[data-round="${roundNr}"]`);
-        const matchups = Array.isArray(round) ? round.flat() : [round];
+        const matchups = Array.isArray(round) ? round : [round];
+        const order = roundNr === 1 ? [0, 3, 2, 1] : [0, 1, 2, 3];
 
-        matchups.forEach((matchup, index) => {
-            matchupElements[index].querySelector(".teamA .score").textContent = matchup.series.split("-")[0];
-            matchupElements[index].querySelector(".teamB .score").textContent = matchup.series.split("-")[1];
-            matchupElements[index].querySelector(".teamA .teamname").textContent = matchup.teamA;
-            matchupElements[index].querySelector(".teamB .teamname").textContent = matchup.teamB;
-            matchupElements[index].querySelector(".teamA .teamname").style.setProperty("background-color", `var(--${matchup.teamA})`);
-            matchupElements[index].querySelector(".teamB .teamname").style.setProperty("background-color", `var(--${matchup.teamB})`);
-        });
+        for (let j = 0; j < conferenceIndex.length; j++) {
+            const matchupElements = document.querySelectorAll(`#${conferenceIndex[j]}ern [data-round="${roundNr}"]`);
+
+            for (let i = 0; i < matchupElements.length; i++) {
+                matchupElements[order[i]].querySelector(".teamA .score").textContent = matchups[j][i].series.split("-")[0];
+                matchupElements[order[i]].querySelector(".teamB .score").textContent = matchups[j][i].series.split("-")[1];
+                matchupElements[order[i]].querySelector(".teamA .teamname").textContent = matchups[j][i].teamA;
+                matchupElements[order[i]].querySelector(".teamB .teamname").textContent = matchups[j][i].teamB;
+                matchupElements[order[i]].querySelector(".teamA .teamname").style.setProperty("background-color", `var(--${matchups[j][i].teamA})`);
+                matchupElements[order[i]].querySelector(".teamB .teamname").style.setProperty("background-color", `var(--${matchups[j][i].teamB})`);
+            }
+        }
     }
 
     // first Round
     const firstRound = [[], []];
     let numberOfTeams = 8;
-    
+
     for (let j = 0; j < conferenceIndex.length; j++) {
         for (let i = 0; i < numberOfTeams / 2; i++) {
             firstRound[j].push({
@@ -421,8 +425,15 @@ function playoffPicture() {
             indexesToRemove.push(index);
         }
     });
-    removeMatchupsFromPlayoffs()
-    renderMatchups(4, finals);
+    removeMatchupsFromPlayoffs();
+
+    const finalMatchupElements = document.querySelector("#finals");
+    finalMatchupElements.querySelector(".teamA .score").textContent = finals.series.split("-")[0];
+    finalMatchupElements.querySelector(".teamB .score").textContent = finals.series.split("-")[1];
+    finalMatchupElements.querySelector(".teamA .teamname").textContent = finals.teamA;
+    finalMatchupElements.querySelector(".teamB .teamname").textContent = finals.teamB;
+    finalMatchupElements.querySelector(".teamA .teamname").style.setProperty("background-color", `var(--${finals.teamA})`);
+    finalMatchupElements.querySelector(".teamB .teamname").style.setProperty("background-color", `var(--${finals.teamB})`);
 }
 
 function init() {
