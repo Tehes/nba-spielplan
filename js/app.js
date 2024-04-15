@@ -101,9 +101,15 @@ function prepareGameData() {
 
     allGames.forEach(game => {
         game.localDate = new Date(Date.parse(game.gdtutc + "T" + game.utctm + "+00:00"));
-
-        game.date = game.localDate.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
-        game.time = game.localDate.toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' });
+        
+        if (game.gdtutc === "TBD") {
+            game.date = "Noch offen";
+            game.time = "HH:MM";
+        }
+        else {
+            game.date = game.localDate.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+            game.time = game.localDate.toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' });
+        }
 
         // IF GAME IS TODAY NO MATTER IF FINISHED OR NOT
         if (today.toLocaleDateString("de-DE") == game.localDate.toLocaleDateString("de-DE")) {
