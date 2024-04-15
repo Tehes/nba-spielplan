@@ -155,6 +155,12 @@ function setProgressBar() {
 
 function renderTodaysGames() {
     todayEl.innerHTML = "";
+    if (games.today.length > 0) {
+
+    }
+    else {
+        todayEl.innerHTML = "Heute finden keine Spiele statt."
+    }
     games.today.forEach(g => {
         const clone = templateToday.content.cloneNode(true);
 
@@ -269,6 +275,11 @@ function filterTeams() {
         const otherTeams = document.querySelectorAll(`#more .card:not([data-abbr*="${selectedTeam}"])`);
         for (const card of otherTeams) {
             card.remove();
+        }
+        const emptyHeadlines = document.querySelectorAll("#more h3:not(:has(+ .card))");
+        console.log(emptyHeadlines);
+        for (const emptyHeadline of emptyHeadlines) {
+            emptyHeadline.remove();
         }
     }
 }

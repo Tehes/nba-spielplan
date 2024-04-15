@@ -111,10 +111,6 @@ h3 {
     margin: 10px 0 0 0;
 }
 
-h3:has(+ h3) {
-    display: none;
-}
-
 #info {
     display: flex;
     font-size: clamp(0.8rem, 3vw, 1.1rem);
@@ -501,8 +497,8 @@ ASIDE
 -------------------------------------------------------------------
 */
 
-aside div+div {
-    margin-top: 30px;
+aside > div {
+    margin-bottom: 30px;
 }
 
 aside div {
