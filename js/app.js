@@ -101,7 +101,7 @@ function prepareGameData() {
 
     allGames.forEach(game => {
         game.localDate = new Date(Date.parse(game.gdtutc + "T" + game.utctm + "+00:00"));
-        
+
         if (game.gdtutc === "TBD") {
             game.date = "Noch offen";
             game.time = "HH:MM";
@@ -118,14 +118,15 @@ function prepareGameData() {
         // IF GAME STATUS IS FINISHED
         else if (game.stt === "Final" || game.stt === "PPD") {
             games.finished.push(game);
-            // add playoff games to its own array
-            if (game.seri !== "") {
-                games.playoffs.push(game);
-            }
         }
         // GAME IS SCHEDULED
         else {
             games.scheduled.push(game);
+        }
+
+        // add playoff games to its own array
+        if (game.stt === "Final" && game.seri !== "") {
+            games.playoffs.push(game);
         }
     });
 
@@ -156,45 +157,46 @@ function setProgressBar() {
 function renderTodaysGames() {
     todayEl.innerHTML = "";
     if (games.today.length > 0) {
+        games.today.forEach(g => {
+            const clone = templateToday.content.cloneNode(true);
 
+            const homeTeam = clone.querySelector(".home-team");
+            const visitingTeam = clone.querySelector(".visiting-team");
+            const homeLogo = clone.querySelectorAll("img")[1];
+            const homeAbbr = clone.querySelector(".h-abbr");
+            const visitingAbbr = clone.querySelector(".v-abbr");
+            const visitingLogo = clone.querySelectorAll("img")[0];
+            const homeName = clone.querySelector(".h-name");
+            const visitingName = clone.querySelector(".v-name");
+            const date = clone.querySelector(".date");
+            const series = clone.querySelector(".series");
+
+            homeTeam.style.setProperty("background-color", `var(--${g.h.ta})`);
+            visitingTeam.style.setProperty("background-color", `var(--${g.v.ta})`);
+            homeLogo.src = `img/${g.h.ta}.svg`;
+            visitingLogo.src = `img/${g.v.ta}.svg`;
+            homeName.textContent = `${g.h.tc} ${g.h.tn}`;
+            visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
+            homeAbbr.textContent = g.h.ta;
+            visitingAbbr.textContent = g.v.ta;
+            g.seri = g.seri.replace("Series tied", "Gleichstand");
+            g.seri = g.seri.replace("leads series", "führt");
+            series.textContent = g.seri;
+
+            if (g.stt === "Final") {
+                date.textContent = `${g.v.s}:${g.h.s}`;
+            }
+            else {
+                date.textContent = `${g.time} Uhr`;
+                date.dataset.gameCode = g.gcode;
+            }
+
+            todayEl.appendChild(clone);
+        });
     }
     else {
         todayEl.innerHTML = "Heute finden keine Spiele statt."
     }
-    games.today.forEach(g => {
-        const clone = templateToday.content.cloneNode(true);
-
-        const homeTeam = clone.querySelector(".home-team");
-        const visitingTeam = clone.querySelector(".visiting-team");
-        const homeLogo = clone.querySelectorAll("img")[1];
-        const homeAbbr = clone.querySelector(".h-abbr");
-        const visitingAbbr = clone.querySelector(".v-abbr");
-        const visitingLogo = clone.querySelectorAll("img")[0];
-        const homeName = clone.querySelector(".h-name");
-        const visitingName = clone.querySelector(".v-name");
-        const date = clone.querySelector(".date");
-        const series = clone.querySelector(".series");
-
-        homeTeam.style.setProperty("background-color", `var(--${g.h.ta})`);
-        visitingTeam.style.setProperty("background-color", `var(--${g.v.ta})`);
-        homeLogo.src = `img/${g.h.ta}.svg`;
-        visitingLogo.src = `img/${g.v.ta}.svg`;
-        homeName.textContent = `${g.h.tc} ${g.h.tn}`;
-        visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
-        homeAbbr.textContent = g.h.ta;
-        visitingAbbr.textContent = g.v.ta;
-        series.textContent = g.seri;
-
-        if (g.stt === "Final") {
-            date.textContent = `${g.v.s}:${g.h.s}`;
-        }
-        else {
-            date.textContent = `${g.time} Uhr`;
-            date.dataset.gameCode = g.gcode;
-        }
-
-        todayEl.appendChild(clone);
-    });
 }
 
 function renderMoreGames() {
@@ -261,7 +263,7 @@ function renderStandings() {
             cells[5].textContent = conferenceStandings[i][index].hr;
             cells[6].textContent = conferenceStandings[i][index].ar;
             // add seed 1 - 8 to playoff Teams
-            if (index < 8) {
+            if (index < 6) {
                 playoffTeams[i].push(conferenceStandings[i][index]);
             }
         });
@@ -291,6 +293,12 @@ function playoffPicture() {
     playoffBracket.classList.remove("hidden");
 
     const conferenceIndex = ["west", "east"];
+
+    //add play-in-winners
+    playoffTeams[0].push(conferenceStandings[0][7]);
+    playoffTeams[0].push(conferenceStandings[0][6]);
+    playoffTeams[1].push(conferenceStandings[1][6]);
+    playoffTeams[1].push(conferenceStandings[1][7]);
 
     let indexesToRemove = [];
     function removeMatchupsFromPlayoffs() {
@@ -389,6 +397,7 @@ function playoffPicture() {
 
     playSeries(firstRound);
     renderMatchups(1, firstRound);
+    console.log(firstRound);
 
 
     //second Round
