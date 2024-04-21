@@ -43,6 +43,7 @@
     --TOR: #ce1141;
     --UTA: #f9a01b;
     --WAS: #002b5c;
+    --undefined: color-mix(in hsl, var(--card-bg) 85%, black);
 }
 
 * {
@@ -281,6 +282,10 @@ PLAYOFFS
     color: #fff;
 }
 
+#playoffs .teamname:empty::before {
+    content: "TBD";
+}
+
 /*
 -------------------------------------------------------------------
 TODAY
@@ -386,7 +391,7 @@ TODAY
     border-radius: 0 0 var(--card-corners) var(--card-corners);
     background-color: color-mix(in hsl, var(--card-bg) 95%, black);
     border-top: 1px solid color-mix(in hsl, var(--card-bg) 90%, black);
-    font-size: clamp(1rem, 3vw, 1.2rem);
+    font-size: 1rem;
 }
 
 /*
