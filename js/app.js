@@ -181,6 +181,7 @@ function renderTodaysGames() {
             visitingAbbr.textContent = g.v.ta;
             g.seri = g.seri.replace("Series tied", "Gleichstand");
             g.seri = g.seri.replace("leads series", "führt");
+            g.seri = g.seri.replace("wins series", "gewinnt");
             series.textContent = g.seri;
 
             if (g.stt === "Final") {
