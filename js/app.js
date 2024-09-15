@@ -3,9 +3,17 @@ Imports
 ---------------------------------------------------------------------------------------------------*/
 
 async function fetchData(url) {
-    const response = await fetch(url);
-    const json = await response.json();
-    return json;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const json = await response.json();
+        return json;
+    } catch (error) {
+        console.error("Fetching data failed:", error);
+        return null; // Fallback-Wert bei Fehler
+    }
 }
 
 /* --------------------------------------------------------------------------------------
@@ -75,13 +83,11 @@ const games = {
     scheduled: [],
     playoffs: []
 }
+let conferences;
+let conferenceStandings;
 
-const conferences = standings.sta.co.map(conference => conference.di.flatMap(division => division.t));
-const conferenceStandings = [conferences[1].sort((a, b) => a.see - b.see), conferences[0].sort((a, b) => a.see - b.see)];
-
-const standingsEast = document.querySelector("#east table");
-const standingsWest = document.querySelector("#west table");
-
+let standingsEast;
+let standingsWest;
 const playoffTeams = [[], []];
 
 const templateToday = document.querySelector("#template-today");
@@ -287,6 +293,8 @@ function filterTeams() {
     }
 }
 
+
+
 function playoffPicture() {
     const playoffBracket = document.querySelector("#playoffs");
     const playoffHeadline = document.querySelectorAll("h1")[0];
@@ -295,7 +303,7 @@ function playoffPicture() {
 
     const conferenceIndex = ["west", "east"];
 
-    //add play-in-winners
+    //IMPORTANT: add play-in-winners
     playoffTeams[0].push(conferenceStandings[0][7]);
     playoffTeams[0].push(conferenceStandings[0][6]);
     playoffTeams[1].push(conferenceStandings[1][6]);
@@ -467,11 +475,25 @@ function init() {
     document.addEventListener("touchstart", function () { }, false);
     teamPicker.addEventListener("change", renderMoreGames, false);
     checkbox.addEventListener("change", renderMoreGames, false);
-    prepareGameData();
-    setProgressBar();
-    renderTodaysGames();
-    renderMoreGames();
-    renderStandings();
+
+    if (schedule) {
+        prepareGameData();
+        renderTodaysGames();
+        renderMoreGames();
+        setProgressBar();
+    }
+
+    if (standings) {
+        conferences = standings.sta.co.map(conference => conference.di.flatMap(division => division.t));
+        conferenceStandings = [conferences[1].sort((a, b) => a.see - b.see), conferences[0].sort((a, b) => a.see - b.see)];
+
+        standingsEast = document.querySelector("#east table");
+        standingsWest = document.querySelector("#west table");
+        renderStandings();
+    } else {
+        console.log("Standings data not available. Skipping standings rendering.");
+    }
+
     if (games.playoffs.length > 0) {
         playoffPicture();
     }
