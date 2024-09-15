@@ -66,7 +66,7 @@ ar          away record                 String                  "11-9"
 /* --------------------------------------------------------------------------------------------------
 Variables
 ---------------------------------------------------------------------------------------------------*/
-let params = new URLSearchParams(document.location.search);
+const params = new URLSearchParams(document.location.search);
 
 const year = params.get("year") || "2024";
 const scheduleURL = `https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json`;
@@ -286,7 +286,6 @@ function filterTeams() {
             card.remove();
         }
         const emptyHeadlines = document.querySelectorAll("#more h3:not(:has(+ .card))");
-        console.log(emptyHeadlines);
         for (const emptyHeadline of emptyHeadlines) {
             emptyHeadline.remove();
         }
@@ -342,50 +341,32 @@ function determinePlayInWinners() {
     function getWinner(game) {
         const homeScore = parseInt(game.h.s, 10); // Home team score
         const awayScore = parseInt(game.v.s, 10); // Away team score
-        return homeScore > awayScore ? game.h : game.v; // Return the winner's full object, not just tid
+        return homeScore > awayScore ? game.h : game.v; // Return the winner's full object
     }
 
-    function playInTournament(playInTeams) {
+    function playInTournament(playInTeams, conferenceIndex) {
         const [seed7, seed8, seed9, seed10] = playInTeams;
 
         // Game 1: Seed 7 (home) vs Seed 8 → Winner is 7th Seed
         const game1 = playInGames.find(game => game.h.tid === seed7.tid && game.v.tid === seed8.tid);
         const winnerGame1 = getWinner(game1);
         const loserGame1 = winnerGame1.tid === seed7.tid ? seed8 : seed7;
-        console.log(winnerGame1);
-        console.log(loserGame1);
 
         // Game 2: Seed 9 (home) vs Seed 10 → Loser is out, Winner plays next
         const game2 = playInGames.find(game => game.h.tid === seed9.tid && game.v.tid === seed10.tid);
         const winnerGame2 = getWinner(game2);
-        console.log(game2);
-        console.log(winnerGame2);
 
         // Game 3: Loser of Game 1 vs Winner of Game 2 → Winner is 8th Seed
         const game3 = playInGames.find(game => game.h.tid === loserGame1.tid && game.v.tid === winnerGame2.tid);
         const winnerGame3 = getWinner(game3);
-        console.log(game3);
-        console.log(winnerGame3);
 
-        return {
-            seed7: winnerGame1,
-            seed8: winnerGame3
-        };
+        playoffTeams[conferenceIndex].push(winnerGame1); // 7th Seed
+        playoffTeams[conferenceIndex].push(winnerGame3); // 8th Seed
     }
 
     // Determine East and West Play-In winners
-    const eastWinners = playInTournament(eastPlayInTeams);
-    const westWinners = playInTournament(westPlayInTeams);
-
-    playoffTeams[0].push(eastWinners.seed7); // East 7th Seed (complete object)
-    playoffTeams[0].push(eastWinners.seed8); // East 8th Seed (complete object)
-    playoffTeams[1].push(westWinners.seed7); // West 7th Seed (complete object)
-    playoffTeams[1].push(westWinners.seed8); // West 8th Seed (complete object)
-
-    return {
-        eastPlayoffTeams: playoffTeams[0],
-        westPlayoffTeams: playoffTeams[1]
-    };
+    playInTournament(eastPlayInTeams, 0); // East is index 0 in playoffTeams
+    playInTournament(westPlayInTeams, 1); // West is index 1 in playoffTeams
 }
 
 function playoffPicture() {
