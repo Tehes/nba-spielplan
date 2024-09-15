@@ -68,7 +68,7 @@ Variables
 ---------------------------------------------------------------------------------------------------*/
 let params = new URLSearchParams(document.location.search);
 
-const year = params.get("year") || "2023";
+const year = params.get("year") || "2024";
 const scheduleURL = `https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json`;
 /* 
 In case the other json fails, here is a second url that I could implement
@@ -293,7 +293,100 @@ function filterTeams() {
     }
 }
 
+function findLastRegularSeasonGame() {
+    const allGames = schedule.lscd.flatMap(month => month.mscd.g);
 
+    // Group games by date
+    const gamesByDate = allGames.reduce(function (groupedGames, game) {
+        const gameDate = game.gdtutc.split("T")[0]; // Extract only the date
+        if (!groupedGames[gameDate]) {
+            groupedGames[gameDate] = [];
+        }
+        groupedGames[gameDate].push(game);
+        return groupedGames;
+    }, {});
+
+    // Get all dates with exactly 15 games
+    const daysWith15Games = Object.keys(gamesByDate).filter(function (date) {
+        return gamesByDate[date].length === 15;
+    });
+
+    // Sort the dates in ascending order and return the last one
+    const lastRegularSeasonDay = daysWith15Games
+        .sort((a, b) => new Date(a) - new Date(b))
+        .pop();
+
+    return lastRegularSeasonDay;
+}
+
+function determinePlayInWinners() {
+    const allGames = schedule.lscd.flatMap(month => month.mscd.g);
+
+    // Find the last regular season day
+    const lastRegularSeasonDay = findLastRegularSeasonGame();
+
+    // Filter all games after the last regular season day and exclude Playoff games (with seri)
+    const playInGames = allGames
+        .filter(function (game) {
+            const gameDate = game.gdtutc.split("T")[0];
+            const isAfterRegularSeason = new Date(gameDate) > new Date(lastRegularSeasonDay);
+            const isNotPlayoffGame = !game.seri; // Exclude playoff games
+            return isAfterRegularSeason && isNotPlayoffGame;
+        })
+        .filter(game => game && game.h && game.v); // Ensure valid games
+
+    // Play-In Teams (7-10) for East and West conferences
+    const eastPlayInTeams = conferenceStandings[0].slice(6, 10); // Seeds 7-10 in the East
+    const westPlayInTeams = conferenceStandings[1].slice(6, 10); // Seeds 7-10 in the West
+
+    function getWinner(game) {
+        const homeScore = parseInt(game.h.s, 10); // Home team score
+        const awayScore = parseInt(game.v.s, 10); // Away team score
+        return homeScore > awayScore ? game.h : game.v; // Return the winner's full object, not just tid
+    }
+
+    function playInTournament(playInTeams) {
+        const [seed7, seed8, seed9, seed10] = playInTeams;
+
+        // Game 1: Seed 7 (home) vs Seed 8 → Winner is 7th Seed
+        const game1 = playInGames.find(game => game.h.tid === seed7.tid && game.v.tid === seed8.tid);
+        const winnerGame1 = getWinner(game1);
+        const loserGame1 = winnerGame1.tid === seed7.tid ? seed8 : seed7;
+        console.log(winnerGame1);
+        console.log(loserGame1);
+
+        // Game 2: Seed 9 (home) vs Seed 10 → Loser is out, Winner plays next
+        const game2 = playInGames.find(game => game.h.tid === seed9.tid && game.v.tid === seed10.tid);
+        const winnerGame2 = getWinner(game2);
+        console.log(game2);
+        console.log(winnerGame2);
+
+        // Game 3: Loser of Game 1 vs Winner of Game 2 → Winner is 8th Seed
+        const game3 = playInGames.find(game => game.h.tid === loserGame1.tid && game.v.tid === winnerGame2.tid);
+        const winnerGame3 = getWinner(game3);
+        console.log(game3);
+        console.log(winnerGame3);
+
+        return {
+            seed7: winnerGame1,
+            seed8: winnerGame3
+        };
+    }
+
+    // Determine East and West Play-In winners
+    const eastWinners = playInTournament(eastPlayInTeams);
+    const westWinners = playInTournament(westPlayInTeams);
+
+    playoffTeams[0].push(eastWinners.seed7); // East 7th Seed (complete object)
+    playoffTeams[0].push(eastWinners.seed8); // East 8th Seed (complete object)
+    playoffTeams[1].push(westWinners.seed7); // West 7th Seed (complete object)
+    playoffTeams[1].push(westWinners.seed8); // West 8th Seed (complete object)
+
+    return {
+        eastPlayoffTeams: playoffTeams[0],
+        westPlayoffTeams: playoffTeams[1]
+    };
+}
 
 function playoffPicture() {
     const playoffBracket = document.querySelector("#playoffs");
@@ -302,12 +395,6 @@ function playoffPicture() {
     playoffBracket.classList.remove("hidden");
 
     const conferenceIndex = ["west", "east"];
-
-    //IMPORTANT: add play-in-winners
-    playoffTeams[0].push(conferenceStandings[0][7]);
-    playoffTeams[0].push(conferenceStandings[0][6]);
-    playoffTeams[1].push(conferenceStandings[1][6]);
-    playoffTeams[1].push(conferenceStandings[1][7]);
 
     let indexesToRemove = [];
     function removeMatchupsFromPlayoffs() {
@@ -406,8 +493,6 @@ function playoffPicture() {
 
     playSeries(firstRound);
     renderMatchups(1, firstRound);
-    console.log(firstRound);
-
 
     //second Round
     const secondRound = [[], []];
@@ -478,9 +563,9 @@ function init() {
 
     if (schedule) {
         prepareGameData();
+        setProgressBar();
         renderTodaysGames();
         renderMoreGames();
-        setProgressBar();
     }
 
     if (standings) {
@@ -495,6 +580,7 @@ function init() {
     }
 
     if (games.playoffs.length > 0) {
+        determinePlayInWinners();
         playoffPicture();
     }
 }
