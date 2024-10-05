@@ -177,10 +177,13 @@ function renderTodaysGames() {
             const date = clone.querySelector(".date");
             const series = clone.querySelector(".series");
 
-            homeTeam.style.setProperty("background-color", `var(--${g.h.ta})`);
-            visitingTeam.style.setProperty("background-color", `var(--${g.v.ta})`);
+            homeTeam.style.setProperty("--team-color", `var(--${g.h.ta})`);
+            visitingTeam.style.setProperty("--team-color", `var(--${g.v.ta})`);
             homeLogo.src = `img/${g.h.ta}.svg`;
+            homeLogo.onerror = () => homeLogo.src = "img/no-logo.svg";
+            
             visitingLogo.src = `img/${g.v.ta}.svg`;
+            visitingLogo.onerror = () => visitingLogo.src = "img/no-logo.svg";
             homeName.textContent = `${g.h.tc} ${g.h.tn}`;
             visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
             homeAbbr.textContent = g.h.ta;

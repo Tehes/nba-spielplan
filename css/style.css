@@ -318,6 +318,7 @@ TODAY
     color: #fff;
     font-weight: 500;
     text-transform: uppercase;
+    background-color: var(--team-color, #AAA);
 }
 
 #today .home-team:empty,
