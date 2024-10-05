@@ -181,7 +181,7 @@ function renderTodaysGames() {
             visitingTeam.style.setProperty("--team-color", `var(--${g.v.ta})`);
             homeLogo.src = `img/${g.h.ta}.svg`;
             homeLogo.onerror = () => homeLogo.src = "img/no-logo.svg";
-            
+
             visitingLogo.src = `img/${g.v.ta}.svg`;
             visitingLogo.onerror = () => visitingLogo.src = "img/no-logo.svg";
             homeName.textContent = `${g.h.tc} ${g.h.tn}`;
@@ -553,7 +553,9 @@ function init() {
     }
 
     if (standings) {
-        conferences = standings.sta.co.map(conference => conference.di.flatMap(division => division.t));
+        conferences = standings.sta.co
+            .filter(conference => conference.val !== "Intl")
+            .map(conference => conference.di.flatMap(division => division.t));
         conferenceStandings = [conferences[1].sort((a, b) => a.see - b.see), conferences[0].sort((a, b) => a.see - b.see)];
 
         standingsEast = document.querySelector("#east table");
