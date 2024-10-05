@@ -2,19 +2,42 @@
 Imports
 ---------------------------------------------------------------------------------------------------*/
 
-async function fetchData(url) {
+async function fetchDataWithCache(url, updateFunction) {
+    const cacheName = 'nba-data-cache';
+    const cache = await caches.open(cacheName);
+
+    console.time('Cache-to-Network Time');
+    
+    const cachedResponse = await cache.match(url);
+
+    if (cachedResponse) {
+        const cachedJson = await cachedResponse.json();
+        console.log("Cached data loaded:", cachedJson);
+        updateFunction(cachedJson);
+    }
+
     try {
         const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        
+        if (response.ok) {
+            const clonedResponse = response.clone();
+            
+            const json = await response.json();
+            console.log("Fresh data fetched:", json);
+
+            cache.put(url, clonedResponse);
+            
+            updateFunction(json); 
+        } else {
+            throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        const json = await response.json();
-        return json;
+        
+        console.timeEnd('Cache-to-Network Time');
     } catch (error) {
-        console.error("Fetching data failed:", error);
-        return null; // Fallback-Wert bei Fehler
+        console.error("Fetching fresh data failed:", error);
     }
 }
+
 
 /* --------------------------------------------------------------------------------------
 Name        Description                 Value Type              Example
@@ -75,20 +98,15 @@ In case the other json fails, here is a second url that I could implement
 https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json
 */
 const standingsURL = `https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/00_standings.json`;
-const schedule = await fetchData(scheduleURL);
-const standings = await fetchData(standingsURL);
-const games = {
-    today: [],
-    finished: [],
-    scheduled: [],
-    playoffs: []
-}
+let schedule;
+let standings;
+let games = {};
 let conferences;
 let conferenceStandings;
 
 let standingsEast;
 let standingsWest;
-const playoffTeams = [[], []];
+let playoffTeams;
 
 const templateToday = document.querySelector("#template-today");
 const templateMore = document.querySelector("#template-more");
@@ -540,22 +558,35 @@ function playoffPicture() {
     finalMatchupElements.querySelector(".teamB .teamname").style.setProperty("background-color", `var(--${finals.teamB})`);
 }
 
-function init() {
-    document.addEventListener("touchstart", function () { }, false);
-    teamPicker.addEventListener("change", renderMoreGames, false);
-    checkbox.addEventListener("change", renderMoreGames, false);
+function handleScheduleData(json) {
+    if (json && json.lscd && json.lscd.length > 0) {
+        schedule = json;
 
-    if (schedule) {
+        games = {
+            today: [],
+            finished: [],
+            scheduled: [],
+            playoffs: []
+        };
+
         prepareGameData();
         setProgressBar();
         renderTodaysGames();
         renderMoreGames();
+    } else {
+        console.log("Schedule data not available. Skipping schedule rendering.");
     }
+}
 
-    if (standings) {
+function handleStandingsData(json) {
+    if (json && json.sta && json.sta.co) {
+        standings = json;
+        playoffTeams = [[], []];
+
         conferences = standings.sta.co
             .filter(conference => conference.val !== "Intl")
             .map(conference => conference.di.flatMap(division => division.t));
+
         conferenceStandings = [conferences[1].sort((a, b) => a.see - b.see), conferences[0].sort((a, b) => a.see - b.see)];
 
         standingsEast = document.querySelector("#east table");
@@ -564,6 +595,15 @@ function init() {
     } else {
         console.log("Standings data not available. Skipping standings rendering.");
     }
+}
+
+async function init() {
+    document.addEventListener("touchstart", function () { }, false);
+    teamPicker.addEventListener("change", renderMoreGames, false);
+    checkbox.addEventListener("change", renderMoreGames, false);
+
+    await fetchDataWithCache(scheduleURL, handleScheduleData);
+    await fetchDataWithCache(standingsURL, handleStandingsData);
 
     if (games.playoffs.length > 0) {
         determinePlayInWinners();
