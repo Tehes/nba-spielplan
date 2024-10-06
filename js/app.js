@@ -2,18 +2,39 @@
 Imports
 ---------------------------------------------------------------------------------------------------*/
 
-// Funktion zum Laden der Daten aus dem Cache
-async function fetchDataWithCache(url, updateFunction) {
+/// Funktion zum Laden der Daten mit optionalem erzwungenem Netzwerkabruf
+async function fetchData(url, updateFunction, forceNetwork = false) {
     const cacheName = 'nba-data-cache';
     const cache = await caches.open(cacheName);
 
-    const cachedResponse = await cache.match(url);
-    if (cachedResponse) {
-        const cachedJson = await cachedResponse.json();
-        console.log("Cached data loaded:", cachedJson);
-        updateFunction(cachedJson); // Fülle die games-Daten
-    } else {
-        console.log("No cached data available.");
+    // Falls der Netzwerkabruf erzwungen wird, Cache überspringen
+    if (!forceNetwork) {
+        // Erstens: Cache überprüfen
+        const cachedResponse = await cache.match(url);
+        if (cachedResponse) {
+            const cachedJson = await cachedResponse.json();
+            console.log("Cached data loaded:", cachedJson);
+            updateFunction(cachedJson); // Verarbeite gecachte Daten
+            return; // Cache wurde gefunden, nichts weiter tun
+        }
+    }
+
+    console.log("Fetching from network...");
+
+    // Falls kein Cache vorhanden oder der Netzwerkabruf erzwungen wird
+    try {
+        const networkResponse = await fetch(url);
+        if (networkResponse.ok) {
+            const clonedResponse = networkResponse.clone();
+            const json = await networkResponse.json();
+            console.log("Fresh data fetched:", json);
+            cache.put(url, clonedResponse); // Cache aktualisieren
+            updateFunction(json); // Verarbeite die neuen Daten
+        } else {
+            throw new Error(`Network error! Status: ${networkResponse.status}`);
+        }
+    } catch (error) {
+        console.error("Fetching fresh data failed:", error);
     }
 }
 
@@ -617,17 +638,14 @@ function shouldReloadData() {
 }
 
 async function loadData() {
-    // Zuerst Daten aus dem Cache laden
-    await fetchDataWithCache(scheduleURL, handleScheduleData);
-    await fetchDataWithCache(standingsURL, handleStandingsData);
+    await fetchData(scheduleURL, handleScheduleData);
+    await fetchData(standingsURL, handleStandingsData);
 
-    // Dann prüfen, ob ein Neuladen der Daten notwendig ist
     if (shouldReloadData()) {
-        await fetchDataFromNetwork(scheduleURL, handleScheduleData);
-        await fetchDataFromNetwork(standingsURL, handleStandingsData);
+        await fetchData(scheduleURL, handleScheduleData, true);
+        await fetchData(standingsURL, handleStandingsData, true);
     }
 
-    // Nach dem Laden der Daten den aktuellen Zustand speichern
     localStorage.setItem('nba_finishedCount', games.finished.length);
     localStorage.setItem('nba_scheduledCount', games.scheduled.length);
 }
@@ -638,7 +656,7 @@ async function init() {
     checkbox.addEventListener("change", renderMoreGames, false);
 
     document.addEventListener("DOMContentLoaded", function () {
-        loadData(); 
+        loadData();
     });
 
     // Event-Listener für Sichtbarkeitsänderung, um beim Zurückkehren auf die Seite zu aktualisieren
