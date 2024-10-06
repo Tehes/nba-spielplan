@@ -2,57 +2,36 @@
 Imports
 ---------------------------------------------------------------------------------------------------*/
 
-/// Funktion zum Laden der Daten mit optionalem erzwungenem Netzwerkabruf
+// Function to load data with optional forced network retrieval
 async function fetchData(url, updateFunction, forceNetwork = false) {
     const cacheName = 'nba-data-cache';
     const cache = await caches.open(cacheName);
 
-    // Falls der Netzwerkabruf erzwungen wird, Cache überspringen
+    // If network retrieval is forced, skip the cache
     if (!forceNetwork) {
-        // Erstens: Cache überprüfen
+        // First: Check the cache
         const cachedResponse = await cache.match(url);
         if (cachedResponse) {
             const cachedJson = await cachedResponse.json();
             console.log("Cached data loaded:", cachedJson);
-            updateFunction(cachedJson); // Verarbeite gecachte Daten
-            return; // Cache wurde gefunden, nichts weiter tun
+            updateFunction(cachedJson); // Process cached data
+            return; // Cache found, no further action needed
         }
     }
 
     console.log("Fetching from network...");
 
-    // Falls kein Cache vorhanden oder der Netzwerkabruf erzwungen wird
+    // If no cache is found or network retrieval is forced
     try {
         const networkResponse = await fetch(url);
         if (networkResponse.ok) {
             const clonedResponse = networkResponse.clone();
             const json = await networkResponse.json();
             console.log("Fresh data fetched:", json);
-            cache.put(url, clonedResponse); // Cache aktualisieren
-            updateFunction(json); // Verarbeite die neuen Daten
+            cache.put(url, clonedResponse); // Update the cache
+            updateFunction(json); // Process the new data
         } else {
             throw new Error(`Network error! Status: ${networkResponse.status}`);
-        }
-    } catch (error) {
-        console.error("Fetching fresh data failed:", error);
-    }
-}
-
-// Funktion zum Neuladen der Daten aus dem Netzwerk
-async function fetchDataFromNetwork(url, updateFunction) {
-    const cacheName = 'nba-data-cache';
-    const cache = await caches.open(cacheName);
-
-    try {
-        const response = await fetch(url);
-        if (response.ok) {
-            const clonedResponse = response.clone();
-            const json = await response.json();
-            console.log("Fresh data fetched:", json);
-            cache.put(url, clonedResponse); // Cache aktualisieren
-            updateFunction(json); // Daten verarbeiten
-        } else {
-            throw new Error(`HTTP error! Status: ${response.status}`);
         }
     } catch (error) {
         console.error("Fetching fresh data failed:", error);
