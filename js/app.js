@@ -604,7 +604,6 @@ function handleStandingsData(json) {
 }
 
 function shouldReloadData() {
-    // Prüfen, ob wir das nächste geplante Spiel bereits im localStorage haben
     const nextGame = JSON.parse(localStorage.getItem('nba_nextScheduledGame'));
 
     if (nextGame) {
@@ -613,12 +612,10 @@ function shouldReloadData() {
         const expectedEndTime = new Date(nextGameDate.getTime() + gameDuration);
         const now = new Date();
 
-        // Debugging: Zeige das nächste Spiel und die aktuelle Zeit
         console.log(`Next scheduled game date: ${nextGameDate}`);
         console.log(`Expected end time: ${expectedEndTime}`);
         console.log(`Current date: ${now}`);
 
-        // Prüfen, ob das Spiel jetzt in der Vergangenheit liegt
         if (now > expectedEndTime) {
             console.log("Next scheduled game is in the past. Data should be reloaded.");
             return true;
@@ -628,28 +625,33 @@ function shouldReloadData() {
         }
     } else {
         console.log("No next scheduled game found. Data should be reloaded.");
-        return true; // Wenn kein Spiel gefunden wurde, müssen die Daten neu geladen werden
+        return true; 
     }
 }
 
-// Funktion zum Speichern des nächsten geplanten Spiels
 function storeNextScheduledGame() {
-    if (games && games.scheduled && games.scheduled.length > 0) {
-        // Das erste geplante Spiel ist das nächstgelegene
-        const nextGame = games.scheduled[0];
-        localStorage.setItem('nba_nextScheduledGame', JSON.stringify(nextGame));
+    const allScheduledGames = games.scheduled.concat(
+        games.today.filter(game => game.stt !== "Final")
+    );
+
+    if (allScheduledGames.length === 0) {
+        return;
     }
+
+    const nextGame = allScheduledGames.reduce((soonest, game) => {
+        const gameDate = new Date(game.localDate);
+        return gameDate < new Date(soonest.localDate) ? game : soonest;
+    });
+
+    localStorage.setItem('nba_nextScheduledGame', JSON.stringify(nextGame));
 }
 
 async function loadData() {
-    // Zuerst Daten aus dem Cache laden
     await fetchData(scheduleURL, handleScheduleData);
     await fetchData(standingsURL, handleStandingsData);
 
-    // Nach dem ersten Laden das nächste geplante Spiel speichern
     storeNextScheduledGame();
 
-    // Dann prüfen, ob ein Neuladen der Daten notwendig ist
     if (shouldReloadData()) {
         await fetchData(scheduleURL, handleScheduleData, true); // Erzwungenes Neuladen
         await fetchData(standingsURL, handleStandingsData, true); // Erzwungenes Neuladen
@@ -665,7 +667,6 @@ async function init() {
         loadData();
     });
 
-    // Event-Listener für Sichtbarkeitsänderung, um beim Zurückkehren auf die Seite zu aktualisieren
     document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === 'visible') {
             loadData();
