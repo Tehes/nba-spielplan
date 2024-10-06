@@ -1,4 +1,4 @@
-const STATIC_CACHE_NAME = "nba-static-cache-v7"; // Erhöhe die Versionsnummer bei jeder Änderung
+const STATIC_CACHE_NAME = "nba-static-cache-v8"; // Erhöhe die Versionsnummer bei jeder Änderung
 
 self.addEventListener("install", (event) => {
     self.skipWaiting(); // Aktiviert sofort den neuen Service Worker

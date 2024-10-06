@@ -2,34 +2,33 @@
 Imports
 ---------------------------------------------------------------------------------------------------*/
 
-// Function to load data with optional forced network retrieval
 async function fetchData(url, updateFunction, forceNetwork = false) {
     const cacheName = 'nba-data-cache';
     const cache = await caches.open(cacheName);
 
-    // If network retrieval is forced, skip the cache
     if (!forceNetwork) {
-        // First: Check the cache
         const cachedResponse = await cache.match(url);
         if (cachedResponse) {
             const cachedJson = await cachedResponse.json();
             console.log("Cached data loaded:", cachedJson);
-            updateFunction(cachedJson); // Process cached data
-            return; // Cache found, no further action needed
+            if (!domAlreadyRendered) {
+                updateFunction(cachedJson);
+                domAlreadyRendered = true;
+            }
+            return;
         }
     }
 
     console.log("Fetching from network...");
 
-    // If no cache is found or network retrieval is forced
     try {
         const networkResponse = await fetch(url);
         if (networkResponse.ok) {
             const clonedResponse = networkResponse.clone();
             const json = await networkResponse.json();
             console.log("Fresh data fetched:", json);
-            cache.put(url, clonedResponse); // Update the cache
-            updateFunction(json); // Process the new data
+            cache.put(url, clonedResponse);
+            updateFunction(json);
         } else {
             throw new Error(`Network error! Status: ${networkResponse.status}`);
         }
@@ -107,6 +106,8 @@ let conferenceStandings;
 let standingsEast;
 let standingsWest;
 let playoffTeams;
+
+let domAlreadyRendered = false;
 
 const templateToday = document.querySelector("#template-today");
 const templateMore = document.querySelector("#template-more");
@@ -603,35 +604,56 @@ function handleStandingsData(json) {
 }
 
 function shouldReloadData() {
-    const lastFinishedCount = parseInt(localStorage.getItem('nba_finishedCount')) || 0;
-    const lastScheduledCount = parseInt(localStorage.getItem('nba_scheduledCount')) || 0;
+    // Prüfen, ob wir das nächste geplante Spiel bereits im localStorage haben
+    const nextGame = JSON.parse(localStorage.getItem('nba_nextScheduledGame'));
 
-    const currentFinishedCount = games.finished.length;
-    const currentScheduledCount = games.scheduled.length;
+    if (nextGame) {
+        const nextGameDate = new Date(nextGame.localDate); // 'localDate' enthält das Datum des Spiels
+        const gameDuration = 2 * 60 * 60 * 1000; // 2 Stunden in Millisekunden
+        const expectedEndTime = new Date(nextGameDate.getTime() + gameDuration);
+        const now = new Date();
 
-    const hasMoreFinishedGames = currentFinishedCount > lastFinishedCount;
-    const hasFewerScheduledGames = currentScheduledCount < lastScheduledCount;
+        // Debugging: Zeige das nächste Spiel und die aktuelle Zeit
+        console.log(`Next scheduled game date: ${nextGameDate}`);
+        console.log(`Expected end time: ${expectedEndTime}`);
+        console.log(`Current date: ${now}`);
 
-    if (hasMoreFinishedGames || hasFewerScheduledGames) {
-        console.log("Games in the past or no future games. Reloading data.");
-        return true;
+        // Prüfen, ob das Spiel jetzt in der Vergangenheit liegt
+        if (now > expectedEndTime) {
+            console.log("Next scheduled game is in the past. Data should be reloaded.");
+            return true;
+        } else {
+            console.log("Cache still valid.");
+            return false;
+        }
+    } else {
+        console.log("No next scheduled game found. Data should be reloaded.");
+        return true; // Wenn kein Spiel gefunden wurde, müssen die Daten neu geladen werden
     }
+}
 
-    console.log("Cache still valid. No need to reload data.");
-    return false;
+// Funktion zum Speichern des nächsten geplanten Spiels
+function storeNextScheduledGame() {
+    if (games && games.scheduled && games.scheduled.length > 0) {
+        // Das erste geplante Spiel ist das nächstgelegene
+        const nextGame = games.scheduled[0];
+        localStorage.setItem('nba_nextScheduledGame', JSON.stringify(nextGame));
+    }
 }
 
 async function loadData() {
+    // Zuerst Daten aus dem Cache laden
     await fetchData(scheduleURL, handleScheduleData);
     await fetchData(standingsURL, handleStandingsData);
 
-    if (shouldReloadData()) {
-        await fetchData(scheduleURL, handleScheduleData, true);
-        await fetchData(standingsURL, handleStandingsData, true);
-    }
+    // Nach dem ersten Laden das nächste geplante Spiel speichern
+    storeNextScheduledGame();
 
-    localStorage.setItem('nba_finishedCount', games.finished.length);
-    localStorage.setItem('nba_scheduledCount', games.scheduled.length);
+    // Dann prüfen, ob ein Neuladen der Daten notwendig ist
+    if (shouldReloadData()) {
+        await fetchData(scheduleURL, handleScheduleData, true); // Erzwungenes Neuladen
+        await fetchData(standingsURL, handleStandingsData, true); // Erzwungenes Neuladen
+    }
 }
 
 async function init() {
