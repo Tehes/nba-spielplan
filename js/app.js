@@ -2,37 +2,37 @@
 Imports
 ---------------------------------------------------------------------------------------------------*/
 
+// Funktion zum Laden der Daten aus dem Cache
 async function fetchDataWithCache(url, updateFunction) {
     const cacheName = 'nba-data-cache';
     const cache = await caches.open(cacheName);
 
-    console.time('Cache-to-Network Time');
-    
     const cachedResponse = await cache.match(url);
-
     if (cachedResponse) {
         const cachedJson = await cachedResponse.json();
         console.log("Cached data loaded:", cachedJson);
-        updateFunction(cachedJson);
+        updateFunction(cachedJson); // Fülle die games-Daten
+    } else {
+        console.log("No cached data available.");
     }
+}
+
+// Funktion zum Neuladen der Daten aus dem Netzwerk
+async function fetchDataFromNetwork(url, updateFunction) {
+    const cacheName = 'nba-data-cache';
+    const cache = await caches.open(cacheName);
 
     try {
         const response = await fetch(url);
-        
         if (response.ok) {
             const clonedResponse = response.clone();
-            
             const json = await response.json();
             console.log("Fresh data fetched:", json);
-
-            cache.put(url, clonedResponse);
-            
-            updateFunction(json); 
+            cache.put(url, clonedResponse); // Cache aktualisieren
+            updateFunction(json); // Daten verarbeiten
         } else {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        
-        console.timeEnd('Cache-to-Network Time');
     } catch (error) {
         console.error("Fetching fresh data failed:", error);
     }
@@ -597,13 +597,56 @@ function handleStandingsData(json) {
     }
 }
 
+function shouldReloadData() {
+    const lastFinishedCount = parseInt(localStorage.getItem('nba_finishedCount')) || 0;
+    const lastScheduledCount = parseInt(localStorage.getItem('nba_scheduledCount')) || 0;
+
+    const currentFinishedCount = games.finished.length;
+    const currentScheduledCount = games.scheduled.length;
+
+    const hasMoreFinishedGames = currentFinishedCount > lastFinishedCount;
+    const hasFewerScheduledGames = currentScheduledCount < lastScheduledCount;
+
+    if (hasMoreFinishedGames || hasFewerScheduledGames) {
+        console.log("Games in the past or no future games. Reloading data.");
+        return true;
+    }
+
+    console.log("Cache still valid. No need to reload data.");
+    return false;
+}
+
+async function loadData() {
+    // Zuerst Daten aus dem Cache laden
+    await fetchDataWithCache(scheduleURL, handleScheduleData);
+    await fetchDataWithCache(standingsURL, handleStandingsData);
+
+    // Dann prüfen, ob ein Neuladen der Daten notwendig ist
+    if (shouldReloadData()) {
+        await fetchDataFromNetwork(scheduleURL, handleScheduleData);
+        await fetchDataFromNetwork(standingsURL, handleStandingsData);
+    }
+
+    // Nach dem Laden der Daten den aktuellen Zustand speichern
+    localStorage.setItem('nba_finishedCount', games.finished.length);
+    localStorage.setItem('nba_scheduledCount', games.scheduled.length);
+}
+
 async function init() {
     document.addEventListener("touchstart", function () { }, false);
     teamPicker.addEventListener("change", renderMoreGames, false);
     checkbox.addEventListener("change", renderMoreGames, false);
 
-    await fetchDataWithCache(scheduleURL, handleScheduleData);
-    await fetchDataWithCache(standingsURL, handleStandingsData);
+    document.addEventListener("DOMContentLoaded", function () {
+        loadData(); 
+    });
+
+    // Event-Listener für Sichtbarkeitsänderung, um beim Zurückkehren auf die Seite zu aktualisieren
+    document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === 'visible') {
+            loadData();
+        }
+    });
 
     if (games.playoffs.length > 0) {
         determinePlayInWinners();
