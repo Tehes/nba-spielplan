@@ -573,6 +573,11 @@ function handleScheduleData(json) {
         setProgressBar();
         renderTodaysGames();
         renderMoreGames();
+
+        if (games.playoffs.length > 0) {
+            determinePlayInWinners();
+            playoffPicture();
+        }
     } else {
         console.log("Schedule data not available. Skipping schedule rendering.");
     }
@@ -644,11 +649,6 @@ async function init() {
             loadData();
         }
     });
-
-    if (games.playoffs.length > 0) {
-        determinePlayInWinners();
-        playoffPicture();
-    }
 }
 
 /* --------------------------------------------------------------------------------------------------
