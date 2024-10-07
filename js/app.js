@@ -11,9 +11,9 @@ async function fetchData(url, updateFunction, forceNetwork = false) {
         if (cachedResponse) {
             const cachedJson = await cachedResponse.json();
             console.log("Cached data loaded:", cachedJson);
-            if (!domAlreadyRendered) {
+            if (renderCount < 2) {
                 updateFunction(cachedJson);
-                domAlreadyRendered = true;
+                renderCount++;
             }
             return;
         }
@@ -107,7 +107,7 @@ let standingsEast;
 let standingsWest;
 let playoffTeams;
 
-let domAlreadyRendered = false;
+let renderCount = 0;
 
 const templateToday = document.querySelector("#template-today");
 const templateMore = document.querySelector("#template-more");
@@ -653,8 +653,8 @@ async function loadData() {
     storeNextScheduledGame();
 
     if (shouldReloadData()) {
-        await fetchData(scheduleURL, handleScheduleData, true); // Erzwungenes Neuladen
-        await fetchData(standingsURL, handleStandingsData, true); // Erzwungenes Neuladen
+        await fetchData(scheduleURL, handleScheduleData, true); 
+        await fetchData(standingsURL, handleStandingsData, true); 
     }
 }
 
