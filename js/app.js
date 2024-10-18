@@ -574,11 +574,6 @@ function handleScheduleData(json) {
         setProgressBar();
         renderTodaysGames();
         renderMoreGames();
-
-        if (games.playoffs.length > 0) {
-            determinePlayInWinners();
-            playoffPicture();
-        }
     } else {
         console.log("Schedule data not available. Skipping schedule rendering.");
     }
@@ -598,6 +593,11 @@ function handleStandingsData(json) {
         standingsEast = document.querySelector("#east table");
         standingsWest = document.querySelector("#west table");
         renderStandings();
+
+        if (games.playoffs.length > 0) {
+            determinePlayInWinners();
+            playoffPicture();
+        }
     } else {
         console.log("Standings data not available. Skipping standings rendering.");
     }
