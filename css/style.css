@@ -407,7 +407,8 @@ ANKER
 }
 
 .go-to-table {
-        padding: 8px 12px;
+        font-size: clamp(0.8rem, 2vw, 1rem);
+        padding: 6px 10px;
         color: var(--font-color);
         border: 1px solid var(--font-color);
         border-radius: var(--card-corners);
