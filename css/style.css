@@ -397,6 +397,34 @@ TODAY
 
 /*
 -------------------------------------------------------------------
+ANKER
+-------------------------------------------------------------------
+*/
+
+#ankerlink {
+    display: none;
+    justify-content: center;
+}
+
+.go-to-table {
+        padding: 8px 12px;
+        color: var(--font-color);
+        border: 1px solid var(--font-color);
+        border-radius: var(--card-corners);
+        text-decoration: none;
+        font-weight: bold;
+        transition: all 0.3s ease; 
+        margin-bottom: 20px;
+    }
+    
+    .go-to-table:hover {
+        background-color: var(--font-color);
+        color: var(--bg-color);
+        cursor: pointer;
+    }
+
+/*
+-------------------------------------------------------------------
 MORE
 -------------------------------------------------------------------
 */
@@ -757,6 +785,10 @@ MEDIA QUERIES
         flex-direction: column;
         align-items: center;
         justify-content: flex-start;
+    }
+
+    #ankerlink {
+        display: flex;
     }
 
     aside {
