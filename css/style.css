@@ -412,9 +412,9 @@ ANKER
         border: 1px solid var(--font-color);
         border-radius: var(--card-corners);
         text-decoration: none;
-        font-weight: bold;
         transition: all 0.3s ease; 
         margin-bottom: 20px;
+        text-transform: uppercase;
     }
     
     .go-to-table:hover {
