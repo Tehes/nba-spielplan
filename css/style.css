@@ -492,7 +492,7 @@ select {
     background-repeat: no-repeat;
 }
 
-.hide-older-games {
+label {
     -moz-appearance: none;
     -webkit-appearance: none;
     appearance: none;

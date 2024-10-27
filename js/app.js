@@ -10,7 +10,7 @@ async function fetchData(url, updateFunction, forceNetwork = false) {
         const cachedResponse = await cache.match(url);
         if (cachedResponse) {
             const cachedJson = await cachedResponse.json();
-            console.log("Cached data loaded:", cachedJson);
+            console.log("Cached data loaded");
             if (renderCount < 2) {
                 updateFunction(cachedJson);
                 renderCount++;
@@ -116,7 +116,8 @@ const moreEl = document.querySelector("#more");
 const today = new Date();
 const progressValue = document.querySelector("#progress-value");
 const teamPicker = document.querySelector("select");
-const checkbox = document.querySelector("input[type='checkbox']");
+const checkboxHidePastGames = document.querySelectorAll("input[type='checkbox']")[0];
+const checkboxPrimetime = document.querySelectorAll("input[type='checkbox']")[1];
 
 /* --------------------------------------------------------------------------------------------------
 functions
@@ -175,7 +176,7 @@ function setProgressBar() {
     progressValue.textContent = `${gamespercentage}%`;
 
     if (gamespercentage === 100) {
-        checkbox.checked = false;
+        checkboxHidePastGames.checked = false;
     }
 }
 
@@ -234,11 +235,21 @@ function renderMoreGames() {
 
     let gamesToDisplay = [];
 
-    if (checkbox.checked) {
+    if (checkboxHidePastGames.checked) {
         gamesToDisplay = games.scheduled;
     }
     else {
         gamesToDisplay = games.finished.concat(games.scheduled);
+    }
+
+    if (checkboxPrimetime.checked) {
+        gamesToDisplay = gamesToDisplay.filter(g => {
+            const [hours, minutes] = g.time.split(":").map(Number);
+            const gameHour = hours + minutes / 60;
+
+            // Prime-Time zwischen 18:00 und Mitternacht
+            return gameHour >= 18 && gameHour < 24;
+        });
     }
 
     gamesToDisplay.forEach(g => {
@@ -607,15 +618,13 @@ function shouldReloadData() {
     const nextGame = JSON.parse(localStorage.getItem('nba_nextScheduledGame'));
 
     if (nextGame) {
-        const nextGameDate = new Date(nextGame.localDate); // 'localDate' enthält das Datum des Spiels
-        const gameDuration = 2 * 60 * 60 * 1000; // 2 Stunden in Millisekunden
+        const nextGameDate = new Date(nextGame.localDate);
+        const gameDuration = 2 * 60 * 60 * 1000; // 2 hours
         const expectedEndTime = new Date(nextGameDate.getTime() + gameDuration);
         const now = new Date();
 
-        console.log(`Next scheduled game date: ${nextGameDate}`);
-        console.log(`Expected end time: ${expectedEndTime}`);
-        console.log(`Current date: ${now}`);
-
+        console.log(`Next game: ${nextGameDate.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} | Expected end: ${expectedEndTime.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} | Now: ${now.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`);
+        
         if (now > expectedEndTime) {
             console.log("Next scheduled game is in the past. Data should be reloaded.");
             return true;
@@ -648,9 +657,8 @@ function storeNextScheduledGame() {
 
 async function loadData() {
     await fetchData(scheduleURL, handleScheduleData);
-    await fetchData(standingsURL, handleStandingsData);
-
     storeNextScheduledGame();
+    await fetchData(standingsURL, handleStandingsData);
 
     if (shouldReloadData()) {
         await fetchData(scheduleURL, handleScheduleData, true); 
@@ -661,7 +669,8 @@ async function loadData() {
 async function init() {
     document.addEventListener("touchstart", function () { }, false);
     teamPicker.addEventListener("change", renderMoreGames, false);
-    checkbox.addEventListener("change", renderMoreGames, false);
+    checkboxHidePastGames.addEventListener("change", renderMoreGames, false);
+    checkboxPrimetime.addEventListener("change", renderMoreGames, false);
 
     document.addEventListener("DOMContentLoaded", function () {
         loadData();
