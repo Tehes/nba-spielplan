@@ -196,12 +196,7 @@ function renderTodaysGames() {
             const visitingName = clone.querySelector(".v-name");
             const date = clone.querySelector(".date");
             const series = clone.querySelector(".series");
-
             const now = new Date();
-            if (now >= g.localDate && g.stt !== "Final") {
-                date.textContent = "LIVE";
-                date.classList.add("live");
-            }
 
             homeTeam.style.setProperty("--team-color", `var(--${g.h.ta})`);
             visitingTeam.style.setProperty("--team-color", `var(--${g.v.ta})`);
@@ -221,6 +216,10 @@ function renderTodaysGames() {
 
             if (g.stt === "Final") {
                 date.textContent = `${g.v.s}:${g.h.s}`;
+            }
+            else if (now >= g.localDate) {
+                date.textContent = "LIVE";
+                date.classList.add("live");
             }
             else {
                 date.textContent = `${g.time} Uhr`;
