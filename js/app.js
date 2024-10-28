@@ -197,6 +197,12 @@ function renderTodaysGames() {
             const date = clone.querySelector(".date");
             const series = clone.querySelector(".series");
 
+            const now = new Date();
+            if (now >= g.localDate && g.stt !== "Final") {
+                date.textContent = "LIVE";
+                date.classList.add("live");
+            }
+
             homeTeam.style.setProperty("--team-color", `var(--${g.h.ta})`);
             visitingTeam.style.setProperty("--team-color", `var(--${g.v.ta})`);
             homeLogo.src = `img/${g.h.ta}.svg`;
@@ -695,7 +701,7 @@ window.app.init();
 /* --------------------------------------------------------------------------------------------------
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
-const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
+const useServiceWorker = false; // Set to "true" if you want to register the Service Worker, "false" to unregister
 
 async function registerServiceWorker() {
     try {

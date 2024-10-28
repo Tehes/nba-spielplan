@@ -360,6 +360,22 @@ TODAY
     border-radius: var(--card-corners) 0 0 0;
 }
 
+@keyframes blink-border {
+    0% {
+        border-left: 3px solid red;
+    }
+    50% {
+        border-left: 3px solid transparent;
+    }
+    100% {
+        border-left: 3px solid red;
+    }
+}
+
+#today .live {
+    animation: blink-border 2s infinite;
+}
+
 #today:has(.series:empty) .date {
     border-radius: var(--card-corners) 0 0 var(--card-corners);
 }
