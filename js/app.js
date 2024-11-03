@@ -108,6 +108,7 @@ let standingsWest;
 let playoffTeams;
 
 let renderCount = 0;
+let lastCheckedDay = new Date().toLocaleDateString("de-DE", { year: 'numeric', month: '2-digit', day: '2-digit' });
 
 const templateToday = document.querySelector("#template-today");
 const templateMore = document.querySelector("#template-more");
@@ -185,6 +186,7 @@ function renderTodaysGames() {
     if (games.today.length > 0) {
         games.today.forEach(g => {
             const clone = templateToday.content.cloneNode(true);
+            clone.querySelector(".card").dataset.gameCode = g.gcode;
 
             const homeTeam = clone.querySelector(".home-team");
             const visitingTeam = clone.querySelector(".visiting-team");
@@ -619,6 +621,33 @@ function handleStandingsData(json) {
     }
 }
 
+function shouldRerender() {
+    const now = new Date();
+
+    const todayString = now.toLocaleDateString("de-DE", { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+    if (lastCheckedDay !== todayString) {
+        lastCheckedDay = todayString;
+        console.log("New day detected, rerender required.");
+        return true;
+    }
+
+    const gameJustWentLive = games.today.some(g => {
+        const gameTime = new Date(g.localDate);
+        const card = document.querySelector(`[data-game-code="${g.gcode}"]`);
+        const dateEl = card.querySelector(".date");
+
+        return now >= gameTime && g.stt !== "Final" && !dateEl.classList.contains("live");
+    });
+
+    if (gameJustWentLive) {
+        console.log("A game just went live, rerender required.");
+        return true;
+    }
+    console.log("no rerendering needed");
+    return false;
+}
+
 function shouldReloadData() {
     const nextGame = JSON.parse(localStorage.getItem('nba_nextScheduledGame'));
 
@@ -629,7 +658,7 @@ function shouldReloadData() {
         const now = new Date();
 
         console.log(`Next game: ${nextGameDate.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} | Expected end: ${expectedEndTime.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} | Now: ${now.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`);
-        
+
         if (now > expectedEndTime) {
             console.log("Next scheduled game is in the past. Data should be reloaded.");
             return true;
@@ -639,7 +668,7 @@ function shouldReloadData() {
         }
     } else {
         console.log("No next scheduled game found. Data should be reloaded.");
-        return true; 
+        return true;
     }
 }
 
@@ -666,8 +695,8 @@ async function loadData() {
     await fetchData(standingsURL, handleStandingsData);
 
     if (shouldReloadData()) {
-        await fetchData(scheduleURL, handleScheduleData, true); 
-        await fetchData(standingsURL, handleStandingsData, true); 
+        await fetchData(scheduleURL, handleScheduleData, true);
+        await fetchData(standingsURL, handleStandingsData, true);
     }
 }
 
@@ -686,6 +715,13 @@ async function init() {
             loadData();
         }
     });
+
+    setInterval(() => { 
+        if (shouldRerender()) {
+            renderCount = 0;
+            loadData(); 
+        }
+    }, 60000);
 }
 
 /* --------------------------------------------------------------------------------------------------
@@ -700,7 +736,7 @@ window.app.init();
 /* --------------------------------------------------------------------------------------------------
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
-const useServiceWorker = false; // Set to "true" if you want to register the Service Worker, "false" to unregister
+const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
 
 async function registerServiceWorker() {
     try {
