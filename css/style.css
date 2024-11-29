@@ -360,6 +360,22 @@ TODAY
     border-radius: var(--card-corners) 0 0 0;
 }
 
+#today .date a:where(:link, :visited) {
+    text-decoration: none;
+    color: red;
+    border: 2px solid red;
+    border-radius: 5px;
+    padding: 5px 10px;
+    transition: all 0.3s ease;
+}
+
+#today .date a:where(:hover, :focus, a:active) {
+    color: white;
+    background-color: red;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 @keyframes blink-border {
     0% {
         border-left: 3px solid red;
@@ -853,5 +869,15 @@ MEDIA QUERIES
 
     aside div {
         flex: 1 0 100%;
+    }
+
+    #today .date a:where(:link, :visited) {
+        border: none;
+    }
+    
+    #today .date a:where(:hover, :focus, a:active) {
+        color: white;
+        text-decoration: underline;
+        background-color: transparent;
     }
 }

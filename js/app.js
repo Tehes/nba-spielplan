@@ -220,7 +220,12 @@ function renderTodaysGames() {
                 date.textContent = `${g.v.s}:${g.h.s}`;
             }
             else if (now >= g.localDate) {
-                date.textContent = "LIVE";
+                const link = document.createElement("a");
+                link.href = `https://www.nba.com/game/${g.v.ta}-vs-${g.h.ta}-${g.gid}/play-by-play`; // Ersetze mit der gewünschten URL
+                link.textContent = "LIVE";
+                link.target = "_blank";
+            
+                date.appendChild(link);
                 date.classList.add("live");
             }
             else {
