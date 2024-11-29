@@ -873,6 +873,7 @@ MEDIA QUERIES
 
     #today .date a:where(:link, :visited) {
         border: none;
+        text-decoration: underline;
     }
     
     #today .date a:where(:hover, :focus, a:active) {
