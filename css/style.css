@@ -13,6 +13,8 @@
     --footer-bg: hsl(0, 0%, 25%);
     --footer-color: hsl(0, 0%, 60%);
 
+    --live-color: red;
+
     --ATL: #e03a3e;
     --BKN: #000000;
     --BOS: #007a33;
@@ -362,8 +364,8 @@ TODAY
 
 #today .date a:where(:link, :visited) {
     text-decoration: none;
-    color: red;
-    border: 2px solid red;
+    color: var(--live-color);
+    border: 2px solid var(--live-color);
     border-radius: 5px;
     padding: 5px 10px;
     transition: all 0.3s ease;
@@ -371,20 +373,20 @@ TODAY
 
 #today .date a:where(:hover, :focus, a:active) {
     color: white;
-    background-color: red;
+    background-color: var(--live-color);
     text-decoration: underline;
     cursor: pointer;
 }
 
 @keyframes blink-border {
     0% {
-        border-left: 3px solid red;
+        border-left: 3px solid var(--live-color);
     }
     50% {
         border-left: 3px solid transparent;
     }
     100% {
-        border-left: 3px solid red;
+        border-left: 3px solid var(--live-color);
     }
 }
 
@@ -806,6 +808,7 @@ MEDIA QUERIES
         --progress-shadow: 0 2px 5px rgba(0, 0, 0, 0.6) inset;
         --card-bg: hsl(0, 0%, 35%);
         --card-shadow: rgba(0, 0, 0, 0.2) 0px 2px 8px 0px;
+        --live-color: hsl(0, 85%, 65%);
     }
 
     footer img:hover {
