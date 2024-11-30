@@ -192,7 +192,9 @@ function renderTodaysGames() {
             const visitingTeam = clone.querySelector(".visiting-team");
             const homeLogo = clone.querySelectorAll("img")[1];
             const homeAbbr = clone.querySelector(".h-abbr");
+            const homeWL = clone.querySelector(".h-wl");
             const visitingAbbr = clone.querySelector(".v-abbr");
+            const visitingWL = clone.querySelector(".v-wl");
             const visitingLogo = clone.querySelectorAll("img")[0];
             const homeName = clone.querySelector(".h-name");
             const visitingName = clone.querySelector(".v-name");
@@ -211,6 +213,9 @@ function renderTodaysGames() {
             visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
             homeAbbr.textContent = g.h.ta;
             visitingAbbr.textContent = g.v.ta;
+            homeWL.textContent = g.h.re;
+            visitingWL.textContent = g.v.re;
+
             g.seri = g.seri.replace("Series tied", "Gleichstand");
             g.seri = g.seri.replace("leads series", "führt");
             g.seri = g.seri.replace("wins series", "gewinnt");

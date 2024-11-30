@@ -11,13 +11,13 @@
     --neutral700: hsl(0, 0%, 35%);
     --neutral800: hsl(0, 0%, 20%);
 
-    --text-color: light-dark(var(--neutral800)m var(--neutral200));
+    --text-color: light-dark(var(--neutral800), var(--neutral200));
     --text-muted: var(--neutral300);
 
     --bg-color: light-dark(var(--neutral100), var(--neutral800));
     --footer-color: var(--neutral400);
     --divider-color: var(--neutral300);
-    
+
     --progress-background: light-dark(var(--neutral200), var(--neutral700));
     --progress-foreground: light-dark(var(--neutral400), var(--neutral500));
     --progress-shadow: 0 2px 5px light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.7)) inset;
@@ -347,6 +347,19 @@ TODAY
     animation: pulse 3s linear infinite;
 }
 
+#today .h-name,
+#today .v-name {
+    text-align: left;
+    flex-grow: 1;
+}
+
+#today .v-wl,
+#today .h-wl {
+    text-align: right;
+    font-weight: normal;
+    white-space: nowrap;
+}
+
 @keyframes pulse {
     0% {
         background-position: 0% 20%
@@ -428,7 +441,7 @@ TODAY
     height: 10vw;
     max-height: 80px;
     max-width: 80px;
-    margin: 5px 10px;
+    margin: 5px 15px 5px 10px;
 }
 
 .series:empty {
@@ -822,7 +835,7 @@ MEDIA QUERIES
     }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1070px) {
     body>div {
         flex-direction: column;
         align-items: center;
@@ -855,11 +868,7 @@ MEDIA QUERIES
     }
 }
 
-@media (max-width: 480px) {
-
-    #more :is(.home-team, .visiting-team) {
-        text-align: center;
-    }
+@media (max-width: 800px) {
 
     .h-name,
     .v-name {
@@ -870,6 +879,14 @@ MEDIA QUERIES
     .v-abbr {
         display: inline;
         font-size: clamp(1.2rem, 4vw, 1.5rem);
+        flex-grow: 1;
+    }
+}
+
+@media (max-width: 480px) {
+
+    #more :is(.home-team, .visiting-team) {
+        text-align: center;
     }
 
     aside {

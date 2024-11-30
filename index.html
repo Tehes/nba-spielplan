@@ -33,7 +33,7 @@
 				<div id="progress-value"></div>
 			</div>
 			<h1 class="hidden">Playoffs</h1>
-			<section id="playoffs" class="hidden"> 
+			<section id="playoffs" class="hidden">
 				<div id="western">
 					<div class="matchup" data-round="1">
 						<div class="teamA">
@@ -276,7 +276,7 @@
 					vergangene Spiele ausblenden
 				</label>
 				<label class="filter-primetime">
-					<input type="checkbox"/>
+					<input type="checkbox" />
 					Nur Prime Time Spiele
 				</label>
 			</div>
@@ -629,10 +629,16 @@
 	<template id="template-today">
 		<div class="card">
 			<div class="date"></div>
-			<div class="visiting-team"><img src="" loading="lazy" alt="" class="v-logo"><span
-					class="v-name"></span><span class="v-abbr"></span></div>
-			<div class="home-team"><img src="" loading="lazy" class="h-logo" alt=""><span class="h-name"></span><span
-					class="h-abbr"></span></div>
+			<div class="visiting-team"><img src="" loading="lazy" alt="" class="v-logo">
+				<span class="v-name"></span>
+				<span class="v-abbr"></span>
+				<span class="v-wl"></span>
+			</div>
+			<div class="home-team"><img src="" loading="lazy" class="h-logo" alt="">
+				<span class="h-name"></span>
+				<span class="h-abbr"></span>
+				<span class="h-wl"></span>
+			</div>
 			<div class="series"></div>
 		</div>
 	</template>
