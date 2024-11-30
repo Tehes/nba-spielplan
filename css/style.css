@@ -28,6 +28,8 @@
 
     --live-color: light-dark(red, hsl(0, 85%, 65%));
 
+    --transition-duration: 0.3s;
+
     --ATL: #e03a3e;
     --BKN: #000000;
     --BOS: #007a33;
@@ -155,7 +157,7 @@ h3 {
     border-radius: 10px;
     height: 20px;
     width: 0;
-    transition: width 0.5s;
+    transition: width var(--transition-duration);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -379,9 +381,9 @@ TODAY
     text-decoration: none;
     color: var(--live-color);
     border: 2px solid var(--live-color);
-    border-radius: 5px;
+    border-radius: var(--card-corners);
     padding: 5px 10px;
-    transition: all 0.3s ease;
+    transition: all var(--transition-duration) ease;
 }
 
 #today .date a:where(:hover, :focus, a:active) {
@@ -462,7 +464,7 @@ ANKER
     border: 1px solid var(--text-color);
     border-radius: var(--card-corners);
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: all var(--transition-duration) ease;
     margin-bottom: 20px;
     text-transform: uppercase;
 }
@@ -636,7 +638,7 @@ table tr td:empty:after {
 }
 
 tr {
-    transition: background-color 0.3s;
+    transition: background-color var(--transition-duration);
 }
 
 tr[data-ta]:hover {
