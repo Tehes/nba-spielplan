@@ -1,19 +1,32 @@
 :root {
-    --bg-color: hsl(0, 0%, 95%);
-    --font-color: hsl(0, 0%, 20%);
+    color-scheme: light dark;
 
-    --progress-background: hsl(0, 0%, 90%);
-    --progress-foreground: hsl(0, 0%, 70%);
-    --progress-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) inset;
+    --neutral-white: hsl(0, 0%, 100%);
+    --neutral100: hsl(0, 0%, 95%);
+    --neutral200: hsl(0, 0%, 90%);
+    --neutral300: hsl(0, 0%, 80%);
+    --neutral400: hsl(0, 0%, 70%);
+    --neutral500: hsl(0, 0%, 60%);
+    --neutral600: hsl(0, 0%, 50%);
+    --neutral700: hsl(0, 0%, 35%);
+    --neutral800: hsl(0, 0%, 20%);
 
-    --card-bg: hsl(0, 0%, 100%);
-    --card-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+    --text-color: light-dark(var(--neutral800)m var(--neutral200));
+    --text-muted: var(--neutral300);
+
+    --bg-color: light-dark(var(--neutral100), var(--neutral800));
+    --footer-color: var(--neutral400);
+    --divider-color: var(--neutral300);
+    
+    --progress-background: light-dark(var(--neutral200), var(--neutral700));
+    --progress-foreground: light-dark(var(--neutral400), var(--neutral500));
+    --progress-shadow: 0 2px 5px light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.7)) inset;
+
+    --card-bg: light-dark(var(--neutral-white), var(--neutral600));
+    --card-shadow: light-dark(rgba(99, 99, 99, 0.2), rgba(0, 0, 0, 0.2)) 0px 2px 8px 0px;
     --card-corners: 5px;
 
-    --footer-bg: hsl(0, 0%, 25%);
-    --footer-color: hsl(0, 0%, 60%);
-
-    --live-color: red;
+    --live-color: light-dark(red, hsl(0, 85%, 65%));
 
     --ATL: #e03a3e;
     --BKN: #000000;
@@ -65,7 +78,7 @@ body {
     background-color: var(--bg-color);
     margin: 0;
     padding: 0;
-    color: var(--font-color);
+    color: var(--text-color);
     font-size: 100%;
     min-height: 100vh;
     /* mobile viewport bug fix */
@@ -182,7 +195,7 @@ section {
 
 .date:empty::before {
     content: "loading";
-    color: hsl(0, 0%, 70%)
+    color: var(--text-muted);
 }
 
 main div span {
@@ -206,7 +219,7 @@ PLAYOFFS
     gap: 10px;
 }
 
-#playoffs > div {
+#playoffs>div {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -245,7 +258,7 @@ PLAYOFFS
     width: 75px;
 }
 
-#playoffs :is(.teamA, .teamB) > div {
+#playoffs :is(.teamA, .teamB)>div {
     display: flex;
     padding: 5px;
 }
@@ -281,7 +294,7 @@ PLAYOFFS
     flex: 0 0 60%;
     display: flex;
     justify-content: center;
-    color: #fff;
+    color: var(--neutral-white);
 }
 
 #playoffs .teamname:empty::before {
@@ -317,17 +330,17 @@ TODAY
     align-items: center;
     flex: 0 0 40%;
     font-size: clamp(1rem, 3vw, 1.2rem);
-    color: #fff;
+    color: var(--neutral-white);
     font-weight: 500;
     text-transform: uppercase;
-    background-color: var(--team-color, #AAA);
+    background-color: var(--team-color, var(--neutral400));
 }
 
 #today .home-team:empty,
 #today .visiting-team:empty {
     height: 10vw;
     max-height: 80px;
-    background: linear-gradient(90deg, #e5e5e5, #ccc);
+    background: linear-gradient(90deg, var(--neutral200), var(--neutral300));
     background-size: 400% 400%;
     animation: pulse 3s linear infinite;
 }
@@ -372,7 +385,7 @@ TODAY
 }
 
 #today .date a:where(:hover, :focus, a:active) {
-    color: white;
+    color: var(--neutral-white);
     background-color: var(--live-color);
     text-decoration: underline;
     cursor: pointer;
@@ -382,9 +395,11 @@ TODAY
     0% {
         border-left: 3px solid var(--live-color);
     }
+
     50% {
         border-left: 3px solid transparent;
     }
+
     100% {
         border-left: 3px solid var(--live-color);
     }
@@ -441,22 +456,22 @@ ANKER
 }
 
 .go-to-table {
-        font-size: clamp(0.8rem, 2vw, 1rem);
-        padding: 6px 10px;
-        color: var(--font-color);
-        border: 1px solid var(--font-color);
-        border-radius: var(--card-corners);
-        text-decoration: none;
-        transition: all 0.3s ease; 
-        margin-bottom: 20px;
-        text-transform: uppercase;
-    }
-    
-    .go-to-table:hover {
-        background-color: var(--font-color);
-        color: var(--bg-color);
-        cursor: pointer;
-    }
+    font-size: clamp(0.8rem, 2vw, 1rem);
+    padding: 6px 10px;
+    color: var(--text-color);
+    border: 1px solid var(--text-color);
+    border-radius: var(--card-corners);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+.go-to-table:hover {
+    background-color: var(--text-color);
+    color: var(--bg-color);
+    cursor: pointer;
+}
 
 /*
 -------------------------------------------------------------------
@@ -506,15 +521,15 @@ select {
     border: none;
     box-shadow: var(--card-shadow);
     background-color: var(--card-bg);
-    color: var(--font-color);
+    color: var(--text-color);
     font-size: inherit;
     font: inherit;
     padding: 10px 50px 10px 10px;
     border-radius: var(--card-corners);
     background-image:
-        linear-gradient(45deg, transparent 50%, var(--font-color) 50%),
-        linear-gradient(135deg, var(--font-color) 50%, transparent 50%),
-        linear-gradient(to right, var(--font-color), var(--font-color));
+        linear-gradient(45deg, transparent 50%, var(--text-color) 50%),
+        linear-gradient(135deg, var(--text-color) 50%, transparent 50%),
+        linear-gradient(to right, var(--text-color), var(--text-color));
     background-position:
         calc(100% - 20px) calc(1em + 2px),
         calc(100% - 15px) calc(1em + 2px),
@@ -542,7 +557,7 @@ input[type="checkbox"] {
     appearance: none;
     background-color: var(--card-bg);
     box-shadow: var(--card-shadow);
-    color: var(--font-color);
+    color: var(--text-color);
     cursor: pointer;
 }
 
@@ -566,7 +581,7 @@ ASIDE
 -------------------------------------------------------------------
 */
 
-aside > div {
+aside>div {
     margin-bottom: 30px;
 }
 
@@ -617,7 +632,7 @@ table tr td:empty:after {
     display: inline-block;
     vertical-align: top;
     min-height: 26px;
-    color: hsl(0, 0%, 70%);
+    color: var(--text-muted);
 }
 
 tr {
@@ -625,7 +640,7 @@ tr {
 }
 
 tr[data-ta]:hover {
-    color: #fff;
+    color: var(--neutral-white);
 }
 
 tr[data-ta="ATL"]:hover {
@@ -762,7 +777,7 @@ td:first-of-type {
 }
 
 tr:where(:nth-of-type(7), :nth-of-type(11)) {
-    border-bottom: 1px solid hsl(0, 0%, 70%)
+    border-bottom: 1px solid var(--divider-color);
 }
 
 /*
@@ -800,17 +815,6 @@ MEDIA QUERIES
 */
 
 @media (prefers-color-scheme: dark) {
-    :root {
-        --bg-color: hsl(0, 0%, 20%);
-        --font-color: hsl(0, 0%, 90%);
-        --progress-background: hsl(0, 0%, 25%);
-        --progress-foreground: hsl(0, 0%, 45%);
-        --progress-shadow: 0 2px 5px rgba(0, 0, 0, 0.6) inset;
-        --card-bg: hsl(0, 0%, 35%);
-        --card-shadow: rgba(0, 0, 0, 0.2) 0px 2px 8px 0px;
-        --live-color: hsl(0, 85%, 65%);
-    }
-
     footer img:hover {
         filter: invert(85%);
     }
@@ -878,9 +882,9 @@ MEDIA QUERIES
         border: none;
         text-decoration: underline;
     }
-    
+
     #today .date a:where(:hover, :focus, a:active) {
-        color: white;
+        color: var(--neutral-white);
         text-decoration: underline;
         background-color: transparent;
     }
