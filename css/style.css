@@ -358,6 +358,7 @@ TODAY
     text-align: right;
     font-weight: normal;
     white-space: nowrap;
+    font-size: clamp(0.9rem, 3vw, 1.2rem);
 }
 
 @keyframes pulse {
@@ -441,7 +442,7 @@ TODAY
     height: 10vw;
     max-height: 80px;
     max-width: 80px;
-    margin: 5px 15px 5px 10px;
+    margin: 5px 10px 5px 10px;
 }
 
 .series:empty {
@@ -835,7 +836,7 @@ MEDIA QUERIES
     }
 }
 
-@media (max-width: 1070px) {
+@media (max-width: 1024px) {
     body>div {
         flex-direction: column;
         align-items: center;
@@ -868,7 +869,7 @@ MEDIA QUERIES
     }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 710px) {
 
     .h-name,
     .v-name {
