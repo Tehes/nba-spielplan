@@ -869,7 +869,7 @@ MEDIA QUERIES
     }
 }
 
-@media (max-width: 710px) {
+@media (max-width: 800px) {
 
     .h-name,
     .v-name {
