@@ -139,11 +139,11 @@ function prepareGameData() {
         }
 
         // IF GAME IS TODAY NO MATTER IF FINISHED OR NOT
-        if (today.toLocaleDateString("de-DE") == game.localDate.toLocaleDateString("de-DE")) {
+        if (today.toLocaleDateString("de-DE") == game.localDate.toLocaleDateString("de-DE") && game.stt !== "PPD") {
             games.today.push(game);
         }
         // IF GAME STATUS IS FINISHED
-        else if (game.stt === "Final" || game.stt === "PPD") {
+        else if (game.stt === "Final") {
             games.finished.push(game);
         }
         // GAME IS SCHEDULED
@@ -229,7 +229,7 @@ function renderTodaysGames() {
                 link.href = `https://www.nba.com/game/${g.v.ta}-vs-${g.h.ta}-${g.gid}/play-by-play`; // Ersetze mit der gewünschten URL
                 link.textContent = "LIVE";
                 link.target = "_blank";
-            
+
                 date.appendChild(link);
                 date.classList.add("live");
             }
@@ -726,10 +726,10 @@ async function init() {
         }
     });
 
-    setInterval(() => { 
+    setInterval(() => {
         if (shouldRerender()) {
             renderCount = 0;
-            loadData(); 
+            loadData();
         }
     }, 60000);
 }
