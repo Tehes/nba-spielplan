@@ -201,7 +201,7 @@ section {
 }
 
 main div span {
-    padding: 0 6px 0 0;
+    padding: 0 8px 0 0;
 }
 
 .hidden {
@@ -358,7 +358,7 @@ TODAY
     text-align: right;
     font-weight: normal;
     white-space: nowrap;
-    font-size: clamp(0.9rem, 3vw, 1.2rem);
+    font-size: clamp(0.8rem, 3vw, 1.2rem);
 }
 
 @keyframes pulse {
