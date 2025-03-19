@@ -201,7 +201,7 @@ section {
 }
 
 main div span {
-    padding: 0 10px 0 0;
+    padding: 0 6px 0 0;
 }
 
 .hidden {
@@ -383,7 +383,7 @@ TODAY
     font-size: clamp(1rem, 4vw, 1.5rem);
     flex-grow: 1;
     font-weight: 600;
-    padding: 0 9px;
+    padding: 0 6px;
     flex: 0 0 20%;
 }
 
@@ -442,7 +442,7 @@ TODAY
     height: 10vw;
     max-height: 80px;
     max-width: 80px;
-    margin: 5px 10px 5px 10px;
+    margin: 5px 8px 5px 8px;
 }
 
 .series:empty {
