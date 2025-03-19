@@ -147,7 +147,7 @@ function prepareGameData() {
             games.finished.push(game);
         }
         // GAME IS SCHEDULED
-        else {
+        else if (game.localDate.toLocaleDateString("de-DE") > today.toLocaleDateString("de-DE")) {
             games.scheduled.push(game);
         }
 
