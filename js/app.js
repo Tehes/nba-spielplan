@@ -199,7 +199,6 @@ function renderTodaysGames() {
             const homeName = clone.querySelector(".h-name");
             const visitingName = clone.querySelector(".v-name");
             const date = clone.querySelector(".date");
-            const series = clone.querySelector(".series");
             const now = new Date();
 
             homeTeam.style.setProperty("--team-color", `var(--${g.h.ta})`);
@@ -216,17 +215,12 @@ function renderTodaysGames() {
             homeWL.textContent = g.h.re;
             visitingWL.textContent = g.v.re;
 
-            g.seri = g.seri.replace("Series tied", "Gleichstand");
-            g.seri = g.seri.replace("leads series", "führt");
-            g.seri = g.seri.replace("wins series", "gewinnt");
-            series.textContent = g.seri;
-
             if (g.stt === "Final") {
                 date.textContent = `${g.v.s}:${g.h.s}`;
             }
             else if (now >= g.localDate) {
                 const link = document.createElement("a");
-                link.href = `https://www.nba.com/game/${g.v.ta}-vs-${g.h.ta}-${g.gid}/play-by-play`; // Ersetze mit der gewünschten URL
+                link.href = `https://www.nba.com/game/${g.v.ta}-vs-${g.h.ta}-${g.gid}/play-by-play`;
                 link.textContent = "LIVE";
                 link.target = "_blank";
 
