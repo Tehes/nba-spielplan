@@ -421,14 +421,6 @@ function playoffPicture() {
 
     const conferenceIndex = ["west", "east"];
 
-    let indexesToRemove = [];
-    function removeMatchupsFromPlayoffs() {
-        for (let i = indexesToRemove.length - 1; i >= 0; i--) {
-            games.playoffs.splice(indexesToRemove[i], 1);
-        }
-        indexesToRemove = [];
-    }
-
     function getMatchups(noOfTeams, thisRound, previousRound) {
         for (let j = 0; j < conferenceIndex.length; j++) {
             for (let i = 0; i < noOfTeams / 2; i++) {
@@ -454,29 +446,40 @@ function playoffPicture() {
         }
     }
 
+    /* consumes playoff games that belong to the provided round and
+       returns once all match‑ups have been updated. Remaining games
+       (for later rounds) are kept in games.playoffs                */
     function playSeries(round) {
-        games.playoffs.forEach((g, index) => {
-            const teamNames = g.gcode.slice(-6);
+        const remainingGames = [];
 
-            for (let j = 0; j < conferenceIndex.length; j++) {
-                for (let i = 0; i < round[j].length; i++) {
-                    const matchup = round[j][i];
+        games.playoffs.forEach(g => {
+            const teamNames = g.gcode.slice(-6);
+            let consumed = false;
+
+            for (const conference of round) {
+                for (const matchup of conference) {
                     if (teamNames.includes(matchup.teamA) && teamNames.includes(matchup.teamB)) {
+                        // update matchup infos
                         matchup.series = g.seri.slice(-3);
                         matchup.leadingTeam = g.seri.slice(0, 3);
+
                         if (matchup.leadingTeam === matchup.teamB) {
                             matchup.series = matchup.series.split("").reverse().join("");
                             matchup.leadingTeamSeed = matchup.teamBSeed;
-                        }
-                        else {
+                        } else {
                             matchup.leadingTeamSeed = matchup.teamASeed;
                         }
-                        indexesToRemove.push(index);
+                        consumed = true;
+                        break; // inner loop
                     }
                 }
+                if (consumed) break;          // outer loop
             }
+
+            if (!consumed) remainingGames.push(g); // keep games for the next rounds
         });
-        removeMatchupsFromPlayoffs();
+
+        games.playoffs = remainingGames;
     }
 
     function renderMatchups(roundNr, round) {
@@ -525,6 +528,15 @@ function playoffPicture() {
 
     getMatchups(numberOfTeams, secondRound, firstRound);
     playSeries(secondRound);
+    // --- ensure correct visual order for winners of 3‑6 vs 2‑7 --------------
+    secondRound.forEach(conf => {
+        if (conf.length === 2) {
+            // swap teamA / teamB in the lower semi‑final (index 1)
+            [conf[1].teamA, conf[1].teamB] = [conf[1].teamB, conf[1].teamA];
+            [conf[1].teamASeed, conf[1].teamBSeed] = [conf[1].teamBSeed, conf[1].teamASeed];
+        }
+    });
+    // -----------------------------------------------------------------------
     renderMatchups(2, secondRound);
 
     //conference Finals
@@ -567,10 +579,8 @@ function playoffPicture() {
             else {
                 finals.leadingTeamSeed = finals.teamASeed;
             }
-            indexesToRemove.push(index);
         }
     });
-    removeMatchupsFromPlayoffs();
 
     const finalMatchupElements = document.querySelector("#finals");
     finalMatchupElements.querySelector(".teamA .score").textContent = finals.series.split("-")[0];
