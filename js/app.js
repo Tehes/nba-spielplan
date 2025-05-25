@@ -483,20 +483,64 @@ function playoffPicture() {
     }
 
     function renderMatchups(roundNr, round) {
-        const matchups = Array.isArray(round) ? round : [round];
-        const order = roundNr === 1 ? [0, 3, 2, 1] : [0, 1, 2, 3];
+        const isFinals = roundNr === 4;
+        const tmpl = document.getElementById("tmpl-matchup");
 
-        for (let j = 0; j < conferenceIndex.length; j++) {
-            const matchupElements = document.querySelectorAll(`#${conferenceIndex[j]}ern [data-round="${roundNr}"]`);
+        // Parent-Container
+        const parentWest = document.querySelector("#western");
+        const parentEast = document.querySelector("#eastern");
+        const parentFinals = document.querySelector("#finals");
 
-            for (let i = 0; i < matchupElements.length; i++) {
-                matchupElements[order[i]].querySelector(".teamA .score").textContent = matchups[j][i].series.split("-")[0];
-                matchupElements[order[i]].querySelector(".teamB .score").textContent = matchups[j][i].series.split("-")[1];
-                matchupElements[order[i]].querySelector(".teamA .teamname").textContent = matchups[j][i].teamA;
-                matchupElements[order[i]].querySelector(".teamB .teamname").textContent = matchups[j][i].teamB;
-                matchupElements[order[i]].querySelector(".teamA .teamname").style.setProperty("background-color", `var(--${matchups[j][i].teamA})`);
-                matchupElements[order[i]].querySelector(".teamB .teamname").style.setProperty("background-color", `var(--${matchups[j][i].teamB})`);
+        // Remove old matchups for this round
+        if (isFinals) {
+            parentFinals.querySelectorAll(`[data-round="4"]`).forEach(el => el.remove());
+        } else {
+            [parentWest, parentEast].forEach(p =>
+                p.querySelectorAll(`[data-round="${roundNr}"]`).forEach(el => el.remove())
+            );
+        }
+
+        // Helper to clone and fill template, simplified: just append
+        const fillClone = (parent, m) => {
+            const node = tmpl.content.firstElementChild.cloneNode(true);
+            if (roundNr === 2) {
+                node.classList.add("semi-conference-finals");
+            } else if (roundNr === 3) {
+                node.classList.add("conference-finals");
             }
+            node.dataset.round = roundNr;
+
+            node.querySelector(".teamA .score").textContent = m.series.split("-")[0];
+            node.querySelector(".teamB .score").textContent = m.series.split("-")[1];
+            node.querySelector(".teamA .teamname").textContent = m.teamA || "";
+            node.querySelector(".teamB .teamname").textContent = m.teamB || "";
+
+            // Set background color for teamA and teamB (undefined yields var(--undefined))
+            const teamANameEl = node.querySelector(".teamA .teamname");
+            teamANameEl.style.setProperty("background-color", `var(--${m.teamA})`);
+
+            const teamBNameEl = node.querySelector(".teamB .teamname");
+            teamBNameEl.style.setProperty("background-color", `var(--${m.teamB})`);
+
+            parent.appendChild(node);
+        };
+
+        if (isFinals) {
+            // Finals is a single matchup object
+            fillClone(parentFinals, round);
+            return;
+        }
+
+        // Rounds 1–3: round is [westArray, eastArray]
+        for (let confIdx = 0; confIdx < round.length; confIdx++) {
+            const matchups = round[confIdx];
+            // Now, order is always in natural order
+            const order = matchups.map((_, i) => i);
+
+            order.forEach((matchupIdx) => {
+                const parent = confIdx === 0 ? parentWest : parentEast;
+                fillClone(parent, matchups[matchupIdx]);
+            });
         }
     }
 
@@ -582,13 +626,8 @@ function playoffPicture() {
         }
     });
 
-    const finalMatchupElements = document.querySelector("#finals");
-    finalMatchupElements.querySelector(".teamA .score").textContent = finals.series.split("-")[0];
-    finalMatchupElements.querySelector(".teamB .score").textContent = finals.series.split("-")[1];
-    finalMatchupElements.querySelector(".teamA .teamname").textContent = finals.teamA;
-    finalMatchupElements.querySelector(".teamB .teamname").textContent = finals.teamB;
-    finalMatchupElements.querySelector(".teamA .teamname").style.setProperty("background-color", `var(--${finals.teamA})`);
-    finalMatchupElements.querySelector(".teamB .teamname").style.setProperty("background-color", `var(--${finals.teamB})`);
+    // Render the finals using the template-based renderer
+    renderMatchups(4, finals);
 }
 
 function handleScheduleData(json) {

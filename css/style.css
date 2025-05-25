@@ -227,7 +227,7 @@ PLAYOFFS
     justify-content: center;
     align-items: flex-start;
     flex: 0 1 32%;
-    gap: 10px
+    gap: 10px;
 }
 
 #playoffs #finals {
@@ -253,6 +253,57 @@ PLAYOFFS
 
 #playoffs .conference-finals {
     margin-inline-start: min(200px, 15vw);
+}
+
+/* -----------------------------------------------------------------
+   Flex-order mapping
+   DOM order: 4×Round-1 → 2×Round-2 → 1×Round-3
+   Visual order per conference column:
+   1-8 ▸ upper semi ▸ 4-5 ▸ conference final ▸ 3-6 ▸ lower semi ▸ 2-7
+------------------------------------------------------------------*/
+
+#playoffs :is(#western, #eastern) {
+    display: flex;
+    flex-direction: column;
+    /* order works only in column layout */
+}
+
+/* Round-1 matchups (DOM children 1–4) */
+/* 1-8 */
+#playoffs :is(#western, #eastern) .matchup:nth-child(1) {
+    order: 0;
+}
+
+/* 4-5 */
+#playoffs :is(#western, #eastern) .matchup:nth-child(2) {
+    order: 2;
+}
+
+/* 3-6 */
+#playoffs :is(#western, #eastern) .matchup:nth-child(3) {
+    order: 4;
+}
+
+/* 2-7 */
+#playoffs :is(#western, #eastern) .matchup:nth-child(4) {
+    order: 6;
+}
+
+/* Round-2 matchups (DOM children 5 & 6) */
+/* upper semi */
+#playoffs :is(#western, #eastern) .matchup:nth-child(5) {
+    order: 1;
+}
+
+/* lower semi */
+#playoffs :is(#western, #eastern) .matchup:nth-child(6) {
+    order: 5;
+}
+
+/* Round-3 matchup (DOM child 7) */
+/* conference final */
+#playoffs :is(#western, #eastern) .matchup:nth-child(7) {
+    order: 3;
 }
 
 #playoffs :is(.teamA, .teamB) {
