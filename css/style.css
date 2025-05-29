@@ -298,6 +298,24 @@ PLAYOFFS
 /* lower semi */
 #playoffs :is(#western, #eastern) .matchup:nth-child(6) {
     order: 5;
+    flex-direction: column-reverse;
+}
+
+/* Overrides for column-reverse matchups (lower semi-finals) */
+#playoffs #western .matchup:nth-child(6)>div:first-child .teamname {
+    border-radius: 0 0 var(--card-corners) 0;
+}
+
+#playoffs #western .matchup:nth-child(6)>div:last-child .teamname {
+    border-radius: 0 var(--card-corners) 0 0;
+}
+
+#playoffs #eastern .matchup:nth-child(6)>div:first-child .teamname {
+    border-radius: 0 0 0 var(--card-corners);
+}
+
+#playoffs #eastern .matchup:nth-child(6)>div:last-child .teamname {
+    border-radius: var(--card-corners) 0 0 0;
 }
 
 /* Round-3 matchup (DOM child 7) */
@@ -316,8 +334,20 @@ PLAYOFFS
     padding: 5px;
 }
 
+
 #playoffs .teamA {
     border-bottom: 1px solid var(--card-bg);
+}
+
+/* Overrides for reversed lower semi-finals border */
+#playoffs #western .matchup:nth-child(6)>.teamA {
+    border-bottom: none;
+    border-top: 1px solid var(--card-bg);
+}
+
+#playoffs #eastern .matchup:nth-child(6)>.teamA {
+    border-bottom: none;
+    border-top: 1px solid var(--card-bg);
 }
 
 #playoffs #eastern .teamA .teamname {

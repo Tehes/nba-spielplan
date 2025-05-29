@@ -572,15 +572,6 @@ function playoffPicture() {
 
     getMatchups(numberOfTeams, secondRound, firstRound);
     playSeries(secondRound);
-    // --- ensure correct visual order for winners of 3‑6 vs 2‑7 --------------
-    secondRound.forEach(conf => {
-        if (conf.length === 2) {
-            // swap teamA / teamB in the lower semi‑final (index 1)
-            [conf[1].teamA, conf[1].teamB] = [conf[1].teamB, conf[1].teamA];
-            [conf[1].teamASeed, conf[1].teamBSeed] = [conf[1].teamBSeed, conf[1].teamASeed];
-        }
-    });
-    // -----------------------------------------------------------------------
     renderMatchups(2, secondRound);
 
     //conference Finals
