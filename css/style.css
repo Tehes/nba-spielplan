@@ -239,12 +239,19 @@ PLAYOFFS
 }
 
 #playoffs .matchup {
+    --radius-first: 0 var(--card-corners) 0 0;
+    --radius-last: 0 0 var(--card-corners) 0;
     display: flex;
     flex-direction: column;
     background-color: var(--card-bg);
     border-radius: var(--card-corners);
     box-shadow: var(--card-shadow);
     min-height: 69px;
+}
+
+#playoffs #eastern .matchup {
+    --radius-first: var(--card-corners) 0 0 0;
+    --radius-last: 0 0 0 var(--card-corners);
 }
 
 #playoffs .semi-conference-finals {
@@ -295,27 +302,19 @@ PLAYOFFS
     order: 1;
 }
 
-/* lower semi */
-#playoffs :is(#western, #eastern) .matchup:nth-child(6) {
+
+/* West lower semi: swap visual order, round only left corners */
+#playoffs .matchup:nth-child(6) {
     order: 5;
     flex-direction: column-reverse;
+    --radius-first: 0 0 var(--card-corners) 0;
+    --radius-last: 0 var(--card-corners) 0 0;
 }
 
-/* Overrides for column-reverse matchups (lower semi-finals) */
-#playoffs #western .matchup:nth-child(6)>div:first-child .teamname {
-    border-radius: 0 0 var(--card-corners) 0;
-}
-
-#playoffs #western .matchup:nth-child(6)>div:last-child .teamname {
-    border-radius: 0 var(--card-corners) 0 0;
-}
-
-#playoffs #eastern .matchup:nth-child(6)>div:first-child .teamname {
-    border-radius: 0 0 0 var(--card-corners);
-}
-
-#playoffs #eastern .matchup:nth-child(6)>div:last-child .teamname {
-    border-radius: var(--card-corners) 0 0 0;
+/* East lower semi: swap visual order, round only right corners */
+#playoffs #eastern .matchup:nth-child(6) {
+    --radius-first: 0 0 0 var(--card-corners);
+    --radius-last: var(--card-corners) 0 0 0;
 }
 
 /* Round-3 matchup (DOM child 7) */
@@ -334,7 +333,6 @@ PLAYOFFS
     padding: 5px;
 }
 
-
 #playoffs .teamA {
     border-bottom: 1px solid var(--card-bg);
 }
@@ -350,21 +348,6 @@ PLAYOFFS
     border-top: 1px solid var(--card-bg);
 }
 
-#playoffs #eastern .teamA .teamname {
-    border-radius: var(--card-corners) 0 0 0;
-}
-
-#playoffs #eastern .teamB .teamname {
-    border-radius: 0 0 0 var(--card-corners);
-}
-
-#playoffs .teamA .teamname {
-    border-radius: 0 var(--card-corners) 0 0;
-}
-
-#playoffs .teamB .teamname {
-    border-radius: 0 0 var(--card-corners) 0;
-}
 
 #playoffs .score {
     flex: 0 0 40%;
@@ -382,6 +365,14 @@ PLAYOFFS
 
 #playoffs .teamname:empty::before {
     content: "TBD";
+}
+
+#playoffs .matchup>div:first-child .teamname {
+    border-radius: var(--radius-first);
+}
+
+#playoffs .matchup>div:last-child .teamname {
+    border-radius: var(--radius-last);
 }
 
 /*
