@@ -3,7 +3,7 @@ Imports
 ---------------------------------------------------------------------------------------------------*/
 
 async function fetchData(url, updateFunction, forceNetwork = false) {
-    const cacheName = 'nba-data-cache';
+    const cacheName = "nba-data-cache";
     const cache = await caches.open(cacheName);
 
     if (!forceNetwork) {
@@ -37,13 +37,12 @@ async function fetchData(url, updateFunction, forceNetwork = false) {
     }
 }
 
-
 /* --------------------------------------------------------------------------------------
 Name        Description                 Value Type              Example
-lscd        League Schedule             Array of JSON Objects	
-mscd	    Month Schedule              Array of JSON Objects	
+lscd        League Schedule             Array of JSON Objects
+mscd	    Month Schedule              Array of JSON Objects
 mon         Month                       String                  "June"
-g           Games                       Array of JSON Objects	
+g           Games                       Array of JSON Objects
 gid         Game ID                     String                  "0041500407"
 gcode	    Game Code	                String	                "20160619/CLEGSW"
 seri	    Playoff Series Summary	    String	                "CLE wins series 4-3"
@@ -52,10 +51,10 @@ an	        Arena	                    String	                "ORACLE Arena"
 ac	        Arena City	                String	                "Oakland"
 as	        Arena State	                String	                "CA"
 stt	        Game Status	                String	                "Final"
-bd	        Broadcast Information	    JSON Object	
-b	        Broadcasters	            Array of JSON Objects	
-v	        Visiting Team Information	JSON Object	
-h	        Home Team Information	    JSON Object	
+bd	        Broadcast Information	    JSON Object
+b	        Broadcasters	            Array of JSON Objects
+v	        Visiting Team Information	JSON Object
+h	        Home Team Information	    JSON Object
 tid	        Team ID	                    Integer                 1610612739
 re	        W-L Record	                String	                "16-5"
 ta	        Team Abbreviation	        String	                "CLE"
@@ -91,12 +90,14 @@ Variables
 const params = new URLSearchParams(document.location.search);
 
 const year = params.get("year") || "2024";
-const scheduleURL = `https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json`;
-/* 
+const scheduleURL =
+    `https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json`;
+/*
 In case the other json fails, here is a second url that I could implement
 https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json
 */
-const standingsURL = `https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/00_standings.json`;
+const standingsURL =
+    `https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/00_standings.json`;
 let schedule;
 let standings;
 let games = {};
@@ -108,7 +109,11 @@ let standingsWest;
 let playoffTeams;
 
 let renderCount = 0;
-let lastCheckedDay = new Date().toLocaleDateString("de-DE", { year: 'numeric', month: '2-digit', day: '2-digit' });
+let lastCheckedDay = new Date().toLocaleDateString("de-DE", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+});
 
 const templateToday = document.querySelector("#template-today");
 const templateMore = document.querySelector("#template-more");
@@ -117,37 +122,52 @@ const moreEl = document.querySelector("#more");
 const today = new Date();
 const progressValue = document.querySelector("#progress-value");
 const teamPicker = document.querySelector("select");
-const checkboxHidePastGames = document.querySelectorAll("input[type='checkbox']")[0];
-const checkboxPrimetime = document.querySelectorAll("input[type='checkbox']")[1];
+const checkboxHidePastGames =
+    document.querySelectorAll("input[type='checkbox']")[0];
+const checkboxPrimetime =
+    document.querySelectorAll("input[type='checkbox']")[1];
 
 /* --------------------------------------------------------------------------------------------------
 functions
 ---------------------------------------------------------------------------------------------------*/
 function prepareGameData() {
-    const allGames = schedule.lscd.flatMap(month => month.mscd.g);
+    const allGames = schedule.lscd.flatMap((month) => month.mscd.g);
 
-    allGames.forEach(game => {
-        game.localDate = new Date(Date.parse(game.gdtutc + "T" + game.utctm + "+00:00"));
+    allGames.forEach((game) => {
+        game.localDate = new Date(
+            Date.parse(game.gdtutc + "T" + game.utctm + "+00:00"),
+        );
 
         if (game.gdtutc === "TBD") {
             game.date = "Noch offen";
             game.time = "HH:MM";
-        }
-        else {
-            game.date = game.localDate.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
-            game.time = game.localDate.toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' });
+        } else {
+            game.date = game.localDate.toLocaleDateString("de-DE", {
+                weekday: "short",
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+            });
+            game.time = game.localDate.toLocaleTimeString("de-DE", {
+                hour: "2-digit",
+                minute: "2-digit",
+            });
         }
 
         // IF GAME IS TODAY NO MATTER IF FINISHED OR NOT
-        if (today.toLocaleDateString("de-DE") == game.localDate.toLocaleDateString("de-DE") && game.stt !== "PPD") {
+        if (
+            today.toLocaleDateString("de-DE") ==
+                game.localDate.toLocaleDateString("de-DE") && game.stt !== "PPD"
+        ) {
             games.today.push(game);
-        }
-        // IF GAME STATUS IS FINISHED
+        } // IF GAME STATUS IS FINISHED
         else if (game.stt === "Final") {
             games.finished.push(game);
-        }
-        // GAME IS SCHEDULED
-        else if (game.localDate.toLocaleDateString("de-DE") > today.toLocaleDateString("de-DE")) {
+        } // GAME IS SCHEDULED
+        else if (
+            game.localDate.toLocaleDateString("de-DE") >
+                today.toLocaleDateString("de-DE")
+        ) {
             games.scheduled.push(game);
         }
 
@@ -163,10 +183,11 @@ function prepareGameData() {
 }
 
 function setProgressBar() {
-    let AllGames = (games.today.length - 1) + (games.finished.length - 1) + (games.scheduled.length - 1);
+    let AllGames = (games.today.length - 1) + (games.finished.length - 1) +
+        (games.scheduled.length - 1);
     let progress = games.finished.length - 1;
 
-    games.today.forEach(g => {
+    games.today.forEach((g) => {
         if (g.stt === "Final") {
             progress++;
         }
@@ -184,7 +205,7 @@ function setProgressBar() {
 function renderTodaysGames() {
     todayEl.innerHTML = "";
     if (games.today.length > 0) {
-        games.today.forEach(g => {
+        games.today.forEach((g) => {
             const clone = templateToday.content.cloneNode(true);
             clone.querySelector(".card").dataset.gameCode = g.gcode;
 
@@ -217,26 +238,24 @@ function renderTodaysGames() {
 
             if (g.stt === "Final") {
                 date.textContent = `${g.v.s}:${g.h.s}`;
-            }
-            else if (now >= g.localDate) {
+            } else if (now >= g.localDate) {
                 const link = document.createElement("a");
-                link.href = `https://www.nba.com/game/${g.v.ta}-vs-${g.h.ta}-${g.gid}/play-by-play`;
+                link.href =
+                    `https://www.nba.com/game/${g.v.ta}-vs-${g.h.ta}-${g.gid}/play-by-play`;
                 link.textContent = "LIVE";
                 link.target = "_blank";
 
                 date.appendChild(link);
                 date.classList.add("live");
-            }
-            else {
+            } else {
                 date.textContent = `${g.time} Uhr`;
                 date.dataset.gameCode = g.gcode;
             }
 
             todayEl.appendChild(clone);
         });
-    }
-    else {
-        todayEl.innerHTML = "Heute finden keine Spiele statt."
+    } else {
+        todayEl.innerHTML = "Heute finden keine Spiele statt.";
     }
 }
 
@@ -248,13 +267,12 @@ function renderMoreGames() {
 
     if (checkboxHidePastGames.checked) {
         gamesToDisplay = games.scheduled;
-    }
-    else {
+    } else {
         gamesToDisplay = games.finished.concat(games.scheduled);
     }
 
     if (checkboxPrimetime.checked) {
-        gamesToDisplay = gamesToDisplay.filter(g => {
+        gamesToDisplay = gamesToDisplay.filter((g) => {
             const [hours, minutes] = g.time.split(":").map(Number);
             const gameHour = hours + minutes / 60;
 
@@ -263,7 +281,7 @@ function renderMoreGames() {
         });
     }
 
-    gamesToDisplay.forEach(g => {
+    gamesToDisplay.forEach((g) => {
         if (dateHeadline === "" || dateHeadline !== g.date) {
             dateHeadline = g.date;
 
@@ -290,8 +308,7 @@ function renderMoreGames() {
 
         if (g.stt === "Final") {
             date.textContent = `${g.v.s}:${g.h.s}`;
-        }
-        else {
+        } else {
             date.textContent = `${g.time} Uhr`;
         }
 
@@ -301,14 +318,19 @@ function renderMoreGames() {
 }
 
 function renderStandings() {
-    const rows = [standingsEast.querySelectorAll("tr:not(:first-of-type)"), standingsWest.querySelectorAll("tr:not(:first-of-type)")];
+    const rows = [
+        standingsEast.querySelectorAll("tr:not(:first-of-type)"),
+        standingsWest.querySelectorAll("tr:not(:first-of-type)"),
+    ];
 
     for (let i = 0; i < rows.length; i++) {
         rows[i].forEach((row, index) => {
             let cells = row.querySelectorAll("td");
             row.dataset.ta = conferenceStandings[i][index].ta;
             cells[1].textContent = conferenceStandings[i][index].ta;
-            cells[2].textContent = `${conferenceStandings[i][index].w}-${conferenceStandings[i][index].l}`;
+            cells[2].textContent = `${conferenceStandings[i][index].w}-${
+                conferenceStandings[i][index].l
+            }`;
             cells[3].textContent = conferenceStandings[i][index].gb;
             cells[4].textContent = conferenceStandings[i][index].str;
             cells[5].textContent = conferenceStandings[i][index].hr;
@@ -325,11 +347,15 @@ function filterTeams() {
     const selectedTeam = teamPicker.value;
 
     if (selectedTeam !== "") {
-        const otherTeams = document.querySelectorAll(`#more .card:not([data-abbr*="${selectedTeam}"])`);
+        const otherTeams = document.querySelectorAll(
+            `#more .card:not([data-abbr*="${selectedTeam}"])`,
+        );
         for (const card of otherTeams) {
             card.remove();
         }
-        const emptyHeadlines = document.querySelectorAll("#more h3:not(:has(+ .card))");
+        const emptyHeadlines = document.querySelectorAll(
+            "#more h3:not(:has(+ .card))",
+        );
         for (const emptyHeadline of emptyHeadlines) {
             emptyHeadline.remove();
         }
@@ -337,7 +363,7 @@ function filterTeams() {
 }
 
 function findLastRegularSeasonGame() {
-    const allGames = schedule.lscd.flatMap(month => month.mscd.g);
+    const allGames = schedule.lscd.flatMap((month) => month.mscd.g);
 
     // Group games by date
     const gamesByDate = allGames.reduce(function (groupedGames, game) {
@@ -363,7 +389,7 @@ function findLastRegularSeasonGame() {
 }
 
 function determinePlayInWinners() {
-    const allGames = schedule.lscd.flatMap(month => month.mscd.g);
+    const allGames = schedule.lscd.flatMap((month) => month.mscd.g);
 
     // Find the last regular season day
     const lastRegularSeasonDay = findLastRegularSeasonGame();
@@ -372,11 +398,12 @@ function determinePlayInWinners() {
     const playInGames = allGames
         .filter(function (game) {
             const gameDate = game.gdtutc.split("T")[0];
-            const isAfterRegularSeason = new Date(gameDate) > new Date(lastRegularSeasonDay);
+            const isAfterRegularSeason =
+                new Date(gameDate) > new Date(lastRegularSeasonDay);
             const isNotPlayoffGame = !game.seri; // Exclude playoff games
             return isAfterRegularSeason && isNotPlayoffGame;
         })
-        .filter(game => game && game.h && game.v); // Ensure valid games
+        .filter((game) => game && game.h && game.v); // Ensure valid games
 
     // Play-In Teams (7-10) for East and West conferences
     const eastPlayInTeams = conferenceStandings[0].slice(6, 10); // Seeds 7-10 in the East
@@ -392,16 +419,22 @@ function determinePlayInWinners() {
         const [seed7, seed8, seed9, seed10] = playInTeams;
 
         // Game 1: Seed 7 (home) vs Seed 8 → Winner is 7th Seed
-        const game1 = playInGames.find(game => game.h.tid === seed7.tid && game.v.tid === seed8.tid);
+        const game1 = playInGames.find((game) =>
+            game.h.tid === seed7.tid && game.v.tid === seed8.tid
+        );
         const winnerGame1 = getWinner(game1);
         const loserGame1 = winnerGame1.tid === seed7.tid ? seed8 : seed7;
 
         // Game 2: Seed 9 (home) vs Seed 10 → Loser is out, Winner plays next
-        const game2 = playInGames.find(game => game.h.tid === seed9.tid && game.v.tid === seed10.tid);
+        const game2 = playInGames.find((game) =>
+            game.h.tid === seed9.tid && game.v.tid === seed10.tid
+        );
         const winnerGame2 = getWinner(game2);
 
         // Game 3: Loser of Game 1 vs Winner of Game 2 → Winner is 8th Seed
-        const game3 = playInGames.find(game => game.h.tid === loserGame1.tid && game.v.tid === winnerGame2.tid);
+        const game3 = playInGames.find((game) =>
+            game.h.tid === loserGame1.tid && game.v.tid === winnerGame2.tid
+        );
         const winnerGame3 = getWinner(game3);
 
         playoffTeams[conferenceIndex].push(winnerGame1); // 7th Seed
@@ -428,18 +461,22 @@ function playoffPicture() {
                     conference: conferenceIndex[j],
                     series: "0-0",
                     leadingTeam: "",
-                    leadingTeamSeed: 0
+                    leadingTeamSeed: 0,
                 });
                 if (previousRound[j][i].series.includes("4")) {
                     Object.assign(thisRound[j][i], {
                         teamA: previousRound[j][i].leadingTeam,
-                        teamASeed: previousRound[j][i].leadingTeamSeed
+                        teamASeed: previousRound[j][i].leadingTeamSeed,
                     });
                 }
-                if (previousRound[j][numberOfTeams - 1 - i].series.includes("4")) {
+                if (
+                    previousRound[j][numberOfTeams - 1 - i].series.includes("4")
+                ) {
                     Object.assign(thisRound[j][i], {
-                        teamB: previousRound[j][numberOfTeams - 1 - i].leadingTeam,
-                        teamBSeed: previousRound[j][numberOfTeams - 1 - i].leadingTeamSeed
+                        teamB:
+                            previousRound[j][numberOfTeams - 1 - i].leadingTeam,
+                        teamBSeed: previousRound[j][numberOfTeams - 1 - i]
+                            .leadingTeamSeed,
                     });
                 }
             }
@@ -452,19 +489,23 @@ function playoffPicture() {
     function playSeries(round) {
         const remainingGames = [];
 
-        games.playoffs.forEach(g => {
+        games.playoffs.forEach((g) => {
             const teamNames = g.gcode.slice(-6);
             let consumed = false;
 
             for (const conference of round) {
                 for (const matchup of conference) {
-                    if (teamNames.includes(matchup.teamA) && teamNames.includes(matchup.teamB)) {
+                    if (
+                        teamNames.includes(matchup.teamA) &&
+                        teamNames.includes(matchup.teamB)
+                    ) {
                         // update matchup infos
                         matchup.series = g.seri.slice(-3);
                         matchup.leadingTeam = g.seri.slice(0, 3);
 
                         if (matchup.leadingTeam === matchup.teamB) {
-                            matchup.series = matchup.series.split("").reverse().join("");
+                            matchup.series = matchup.series.split("").reverse()
+                                .join("");
                             matchup.leadingTeamSeed = matchup.teamBSeed;
                         } else {
                             matchup.leadingTeamSeed = matchup.teamASeed;
@@ -473,7 +514,7 @@ function playoffPicture() {
                         break; // inner loop
                     }
                 }
-                if (consumed) break;          // outer loop
+                if (consumed) break; // outer loop
             }
 
             if (!consumed) remainingGames.push(g); // keep games for the next rounds
@@ -493,10 +534,14 @@ function playoffPicture() {
 
         // Remove old matchups for this round
         if (isFinals) {
-            parentFinals.querySelectorAll(`[data-round="4"]`).forEach(el => el.remove());
+            parentFinals.querySelectorAll(`[data-round="4"]`).forEach((el) =>
+                el.remove()
+            );
         } else {
-            [parentWest, parentEast].forEach(p =>
-                p.querySelectorAll(`[data-round="${roundNr}"]`).forEach(el => el.remove())
+            [parentWest, parentEast].forEach((p) =>
+                p.querySelectorAll(`[data-round="${roundNr}"]`).forEach((el) =>
+                    el.remove()
+                )
             );
         }
 
@@ -510,17 +555,25 @@ function playoffPicture() {
             }
             node.dataset.round = roundNr;
 
-            node.querySelector(".teamA .score").textContent = m.series.split("-")[0];
-            node.querySelector(".teamB .score").textContent = m.series.split("-")[1];
+            node.querySelector(".teamA .score").textContent =
+                m.series.split("-")[0];
+            node.querySelector(".teamB .score").textContent =
+                m.series.split("-")[1];
             node.querySelector(".teamA .teamname").textContent = m.teamA || "";
             node.querySelector(".teamB .teamname").textContent = m.teamB || "";
 
             // Set background color for teamA and teamB (undefined yields var(--undefined))
             const teamANameEl = node.querySelector(".teamA .teamname");
-            teamANameEl.style.setProperty("background-color", `var(--${m.teamA})`);
+            teamANameEl.style.setProperty(
+                "background-color",
+                `var(--${m.teamA})`,
+            );
 
             const teamBNameEl = node.querySelector(".teamB .teamname");
-            teamBNameEl.style.setProperty("background-color", `var(--${m.teamB})`);
+            teamBNameEl.style.setProperty(
+                "background-color",
+                `var(--${m.teamB})`,
+            );
 
             parent.appendChild(node);
         };
@@ -558,7 +611,7 @@ function playoffPicture() {
                 teamBSeed: playoffTeams[0].length - i,
                 series: "0-0",
                 leadingTeam: "",
-                leadingTeamSeed: 0
+                leadingTeamSeed: 0,
             });
         }
     }
@@ -586,32 +639,33 @@ function playoffPicture() {
     const finals = {
         series: "0-0",
         leadingTeam: "",
-        leadingTeamSeed: 0
+        leadingTeamSeed: 0,
     };
     if (conferenceFinals[0][0].series.includes("4")) {
         Object.assign(finals, {
             teamA: conferenceFinals[0][0].leadingTeam,
-            teamASeed: conferenceFinals[0][0].leadingTeamSeed
+            teamASeed: conferenceFinals[0][0].leadingTeamSeed,
         });
     }
     if (conferenceFinals[1][0].series.includes("4")) {
         Object.assign(finals, {
             teamB: conferenceFinals[1][0].leadingTeam,
-            teamBSeed: conferenceFinals[1][0].leadingTeamSeed
+            teamBSeed: conferenceFinals[1][0].leadingTeamSeed,
         });
     }
 
     games.playoffs.forEach((g, index) => {
         const teamNames = g.gcode.slice(-6);
 
-        if (teamNames.includes(finals.teamA) && teamNames.includes(finals.teamB)) {
+        if (
+            teamNames.includes(finals.teamA) && teamNames.includes(finals.teamB)
+        ) {
             finals.series = g.seri.slice(-3);
             finals.leadingTeam = g.seri.slice(0, 3);
             if (finals.leadingTeam === finals.teamB) {
                 finals.series = finals.series.split("").reverse().join("");
                 finals.leadingTeamSeed = finals.teamBSeed;
-            }
-            else {
+            } else {
                 finals.leadingTeamSeed = finals.teamASeed;
             }
         }
@@ -629,7 +683,7 @@ function handleScheduleData(json) {
             today: [],
             finished: [],
             scheduled: [],
-            playoffs: []
+            playoffs: [],
         };
 
         prepareGameData();
@@ -637,7 +691,9 @@ function handleScheduleData(json) {
         renderTodaysGames();
         renderMoreGames();
     } else {
-        console.log("Schedule data not available. Skipping schedule rendering.");
+        console.log(
+            "Schedule data not available. Skipping schedule rendering.",
+        );
     }
 }
 
@@ -647,10 +703,15 @@ function handleStandingsData(json) {
         playoffTeams = [[], []];
 
         conferences = standings.sta.co
-            .filter(conference => conference.val !== "Intl")
-            .map(conference => conference.di.flatMap(division => division.t));
+            .filter((conference) => conference.val !== "Intl")
+            .map((conference) =>
+                conference.di.flatMap((division) => division.t)
+            );
 
-        conferenceStandings = [conferences[1].sort((a, b) => a.see - b.see), conferences[0].sort((a, b) => a.see - b.see)];
+        conferenceStandings = [
+            conferences[1].sort((a, b) => a.see - b.see),
+            conferences[0].sort((a, b) => a.see - b.see),
+        ];
 
         standingsEast = document.querySelector("#east table");
         standingsWest = document.querySelector("#west table");
@@ -661,14 +722,20 @@ function handleStandingsData(json) {
             playoffPicture();
         }
     } else {
-        console.log("Standings data not available. Skipping standings rendering.");
+        console.log(
+            "Standings data not available. Skipping standings rendering.",
+        );
     }
 }
 
 function shouldRerender() {
     const now = new Date();
 
-    const todayString = now.toLocaleDateString("de-DE", { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const todayString = now.toLocaleDateString("de-DE", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    });
 
     if (lastCheckedDay !== todayString) {
         lastCheckedDay = todayString;
@@ -676,12 +743,13 @@ function shouldRerender() {
         return true;
     }
 
-    const gameJustWentLive = games.today.some(g => {
+    const gameJustWentLive = games.today.some((g) => {
         const gameTime = new Date(g.localDate);
         const card = document.querySelector(`[data-game-code="${g.gcode}"]`);
         const dateEl = card.querySelector(".date");
 
-        return now >= gameTime && g.stt !== "Final" && !dateEl.classList.contains("live");
+        return now >= gameTime && g.stt !== "Final" &&
+            !dateEl.classList.contains("live");
     });
 
     if (gameJustWentLive) {
@@ -693,7 +761,7 @@ function shouldRerender() {
 }
 
 function shouldReloadData() {
-    const nextGame = JSON.parse(localStorage.getItem('nba_nextScheduledGame'));
+    const nextGame = JSON.parse(localStorage.getItem("nba_nextScheduledGame"));
 
     if (nextGame) {
         const nextGameDate = new Date(nextGame.localDate);
@@ -701,10 +769,35 @@ function shouldReloadData() {
         const expectedEndTime = new Date(nextGameDate.getTime() + gameDuration);
         const now = new Date();
 
-        console.log(`Next game: ${nextGameDate.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} | Expected end: ${expectedEndTime.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} | Now: ${now.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`);
+        console.log(
+            `Next game: ${
+                nextGameDate.toLocaleString("de-DE", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                })
+            } | Expected end: ${
+                expectedEndTime.toLocaleTimeString("de-DE", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                })
+            } | Now: ${
+                now.toLocaleString("de-DE", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                })
+            }`,
+        );
 
         if (now > expectedEndTime) {
-            console.log("Next scheduled game is in the past. Data should be reloaded.");
+            console.log(
+                "Next scheduled game is in the past. Data should be reloaded.",
+            );
             return true;
         } else {
             console.log("Cache still valid.");
@@ -718,7 +811,7 @@ function shouldReloadData() {
 
 function storeNextScheduledGame() {
     const allScheduledGames = games.scheduled.concat(
-        games.today.filter(game => game.stt !== "Final")
+        games.today.filter((game) => game.stt !== "Final"),
     );
 
     if (allScheduledGames.length === 0) {
@@ -730,7 +823,7 @@ function storeNextScheduledGame() {
         return gameDate < new Date(soonest.localDate) ? game : soonest;
     });
 
-    localStorage.setItem('nba_nextScheduledGame', JSON.stringify(nextGame));
+    localStorage.setItem("nba_nextScheduledGame", JSON.stringify(nextGame));
 }
 
 async function loadData() {
@@ -745,7 +838,7 @@ async function loadData() {
 }
 
 async function init() {
-    document.addEventListener("touchstart", function () { }, false);
+    document.addEventListener("touchstart", function () {}, false);
     teamPicker.addEventListener("change", renderMoreGames, false);
     checkboxHidePastGames.addEventListener("change", renderMoreGames, false);
     checkboxPrimetime.addEventListener("change", renderMoreGames, false);
@@ -755,7 +848,7 @@ async function init() {
     });
 
     document.addEventListener("visibilitychange", function () {
-        if (document.visibilityState === 'visible') {
+        if (document.visibilityState === "visible") {
             loadData();
         }
     });
@@ -772,7 +865,7 @@ async function init() {
 public members, exposed with return statement
 ---------------------------------------------------------------------------------------------------*/
 window.app = {
-    init
+    init,
 };
 
 window.app.init();
@@ -784,9 +877,16 @@ const useServiceWorker = true; // Set to "true" if you want to register the Serv
 
 async function registerServiceWorker() {
     try {
-        const currentPath = window.location.pathname;
-        const registration = await navigator.serviceWorker.register(`${currentPath}service-worker.js`);
-        console.log("Service Worker registered with scope:", registration.scope);
+        const registration = await navigator.serviceWorker.register(
+            "./service-worker.js",
+            {
+                scope: "./",
+            },
+        );
+        console.log(
+            "Service Worker registered with scope:",
+            registration.scope,
+        );
     } catch (error) {
         console.log("Service Worker registration failed:", error);
     }
@@ -794,16 +894,16 @@ async function registerServiceWorker() {
 
 async function unregisterServiceWorkers() {
     const registrations = await navigator.serviceWorker.getRegistrations();
-    for (const registration of registrations) {
-        const success = await registration.unregister();
-        if (success) {
-            console.log("Service Worker successfully unregistered.");
-        }
-    }
+    if (registrations.length === 0) return;
+
+    await Promise.all(registrations.map((r) => r.unregister()));
+    console.log("All service workers unregistered – reloading page…");
+    // Hard reload, um garantiert ohne Cache zu starten
+    globalThis.location.reload();
 }
 
 if ("serviceWorker" in navigator) {
-    window.addEventListener("load", async () => {
+    globalThis.addEventListener("DOMContentLoaded", async () => {
         if (useServiceWorker) {
             await registerServiceWorker();
         } else {
