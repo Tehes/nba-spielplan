@@ -124,6 +124,7 @@ const progressValue = document.querySelector("#progress-value");
 const teamPicker = document.querySelector("select");
 const checkboxHidePastGames = document.querySelectorAll("input[type='checkbox']")[0];
 const checkboxPrimetime = document.querySelectorAll("input[type='checkbox']")[1];
+const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
 
 /* --------------------------------------------------------------------------------------------------
 functions
@@ -201,7 +202,7 @@ function setProgressBar() {
 }
 
 function renderTodaysGames() {
-	todayEl.innerHTML = "";
+	todayEl.replaceChildren();
 	if (games.today.length > 0) {
 		games.today.forEach((g) => {
 			const clone = templateToday.content.cloneNode(true);
@@ -236,15 +237,20 @@ function renderTodaysGames() {
 
 			if (g.stt === "Final") {
 				date.textContent = `${g.v.s}:${g.h.s}`;
-			} else if (now >= g.localDate) {
+			} else if (
+				now >= g.localDate &&
+				now < new Date(g.localDate.getTime() + GAME_MAX_DURATION_MS)
+			) {
 				const link = document.createElement("a");
 				link.href = `https://www.nba.com/game/${g.v.ta}-vs-${g.h.ta}-${g.gid}/play-by-play`;
 				link.textContent = "LIVE";
 				link.target = "_blank";
 
+				// ensure we don't accumulate multiple links/text nodes
 				date.appendChild(link);
 				date.classList.add("live");
 			} else {
+				date.classList.remove("live");
 				date.textContent = `${g.time} Uhr`;
 				date.dataset.gameCode = g.gcode;
 			}
@@ -730,17 +736,22 @@ function shouldRerender() {
 		return true;
 	}
 
-	const gameJustWentLive = games.today.some((g) => {
+	const gameTimeWindowChanged = games.today.some((g) => {
 		const gameTime = new Date(g.localDate);
+		const liveWindowEnd = new Date(gameTime.getTime() + GAME_MAX_DURATION_MS);
 		const card = document.querySelector(`[data-game-code="${g.gcode}"]`);
+		if (!card) return false;
 		const dateEl = card.querySelector(".date");
 
-		return now >= gameTime && g.stt !== "Final" &&
-			!dateEl.classList.contains("live");
+		const shouldBeLive = now >= gameTime && now < liveWindowEnd && g.stt !== "Final";
+		const isLive = dateEl.classList.contains("live");
+
+		// Rerender if we need to toggle the "live" state
+		return shouldBeLive !== isLive;
 	});
 
-	if (gameJustWentLive) {
-		console.log("A game just went live, rerender required.");
+	if (gameTimeWindowChanged) {
+		console.log("Live state changed by time window, rerender required.");
 		return true;
 	}
 	console.log("no rerendering needed");
