@@ -50,78 +50,91 @@ function statsHeaders(cookie = "") {
 }
 
 Deno.serve(async (req) => {
-	const url = new URL(req.url);
+	try {
+		const url = new URL(req.url);
 
-	if (req.method === "OPTIONS") {
-		return new Response(null, { headers: withCORS() });
-	}
-
-	// --- /nba/schedule : raw pass-through to scheduleLeagueV2_1.json ---
-	if (url.pathname === "/nba/schedule") {
-		const upstream = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json";
-		try {
-			const r = await fetch(upstream, {
-				headers: {
-					"User-Agent": STANDINGS_HEADERS["User-Agent"],
-					"Accept": "application/json, text/plain, */*",
-				},
-			});
-			const h = withCORS(new Headers());
-			h.set(
-				"content-type",
-				r.headers.get("content-type") || "application/json; charset=utf-8",
-			);
-			const body = await r.text();
-			return new Response(body, { status: r.status, headers: h });
-		} catch (e) {
-			return new Response(String(e), {
-				status: 502,
-				headers: withCORS(new Headers({ "content-type": "text/plain; charset=utf-8" })),
-			});
+		if (req.method === "OPTIONS") {
+			return new Response(null, { headers: withCORS() });
 		}
-	}
 
-	// --- /nba/standings : fetch stats.nba.com with headers; retry after cookie warmup ---
-	if (url.pathname === "/nba/standings") {
-		const STATS_URL =
-			"https://stats.nba.com/stats/leaguestandingsv3?GroupBy=conf&LeagueID=00&Season=2025-26&SeasonType=Regular%20Season&Section=overall";
-		try {
-			// 1) direct try
-			let r = await fetch(STATS_URL, { headers: statsHeaders(), redirect: "follow" });
-			let sourceNote = "upstream=stats.nba.com (direct)";
-
-			// 2) if blocked, warm up cookies and retry
-			if (!r.ok || r.status === 403) {
-				const cookie = await warmUpNbaCookie();
-				r = await fetch(STATS_URL, { headers: statsHeaders(cookie), redirect: "follow" });
-				sourceNote = `upstream=stats.nba.com (cookie warmup: ${cookie ? "yes" : "no"})`;
+		// --- /nba/schedule : raw pass-through to scheduleLeagueV2_1.json ---
+		if (url.pathname === "/nba/schedule") {
+			const upstream = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json";
+			try {
+				const r = await fetch(upstream, {
+					headers: {
+						"User-Agent": STANDINGS_HEADERS["User-Agent"],
+						"Accept": "application/json, text/plain, */*",
+					},
+				});
+				const h = withCORS(new Headers());
+				h.set(
+					"content-type",
+					r.headers.get("content-type") || "application/json; charset=utf-8",
+				);
+				const body = await r.text();
+				return new Response(body, { status: r.status, headers: h });
+			} catch (e) {
+				return new Response(String(e), {
+					status: 502,
+					headers: withCORS(new Headers({ "content-type": "text/plain; charset=utf-8" })),
+				});
 			}
-
-			const h = withCORS(new Headers());
-			h.set(
-				"content-type",
-				r.headers.get("content-type") ||
-					(r.ok ? "application/json; charset=utf-8" : "text/plain; charset=utf-8"),
-			);
-
-			if (!r.ok) {
-				const text = await r.text();
-				const diag = `status=${r.status}; ${sourceNote}\n---\n${text.substring(0, 800)}`;
-				return new Response(diag, { status: r.status, headers: h });
-			}
-
-			const body = await r.text();
-			return new Response(body, { status: 200, headers: h });
-		} catch (e) {
-			return new Response(String(e), {
-				status: 502,
-				headers: withCORS(new Headers({ "content-type": "text/plain; charset=utf-8" })),
-			});
 		}
-	}
 
-	return new Response("Not Found", {
-		status: 404,
-		headers: withCORS(new Headers({ "content-type": "text/plain; charset=utf-8" })),
-	});
+		// --- /nba/standings : fetch stats.nba.com with headers; retry after cookie warmup ---
+		if (url.pathname === "/nba/standings") {
+			const STATS_URL =
+				"https://stats.nba.com/stats/leaguestandingsv3?GroupBy=conf&LeagueID=00&Season=2025-26&SeasonType=Regular%20Season&Section=overall";
+			try {
+				// 1) direct try
+				let r = await fetch(STATS_URL, { headers: statsHeaders(), redirect: "follow" });
+				let sourceNote = "upstream=stats.nba.com (direct)";
+
+				// 2) if blocked, warm up cookies and retry
+				if (!r.ok || r.status === 403) {
+					const cookie = await warmUpNbaCookie();
+					r = await fetch(STATS_URL, {
+						headers: statsHeaders(cookie),
+						redirect: "follow",
+					});
+					sourceNote = `upstream=stats.nba.com (cookie warmup: ${cookie ? "yes" : "no"})`;
+				}
+
+				const h = withCORS(new Headers());
+				h.set(
+					"content-type",
+					r.headers.get("content-type") ||
+						(r.ok ? "application/json; charset=utf-8" : "text/plain; charset=utf-8"),
+				);
+
+				if (!r.ok) {
+					const text = await r.text();
+					const diag = `status=${r.status}; ${sourceNote}\n---\n${
+						text.substring(0, 800)
+					}`;
+					return new Response(diag, { status: r.status, headers: h });
+				}
+
+				const body = await r.text();
+				return new Response(body, { status: 200, headers: h });
+			} catch (e) {
+				return new Response(String(e), {
+					status: 502,
+					headers: withCORS(new Headers({ "content-type": "text/plain; charset=utf-8" })),
+				});
+			}
+		}
+
+		return new Response("Not Found", {
+			status: 404,
+			headers: withCORS(new Headers({ "content-type": "text/plain; charset=utf-8" })),
+		});
+	} catch (err) {
+		console.error("unhandled error:", err);
+		return new Response("Internal error: " + (err && err.message ? err.message : String(err)), {
+			status: 500,
+			headers: withCORS(new Headers({ "content-type": "text/plain; charset=utf-8" })),
+		});
+	}
 });
