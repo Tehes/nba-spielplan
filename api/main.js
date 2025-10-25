@@ -21,6 +21,22 @@ async function pullNBA(url) {
 	return await fetch(url, { headers: STANDINGS_HEADERS, redirect: "follow" });
 }
 
+async function tryFetch(urls, headerSets) {
+	let lastResp = null;
+	for (const u of urls) {
+		for (const h of headerSets) {
+			try {
+				const r = await fetch(u, { headers: h, redirect: "follow" });
+				if (r.ok) return r;
+				lastResp = r;
+			} catch (e) {
+				lastResp = new Response(String(e), { status: 502 });
+			}
+		}
+	}
+	return lastResp ?? new Response("No response", { status: 502 });
+}
+
 Deno.serve(async (req) => {
 	const url = new URL(req.url);
 	const headers = new Headers({ "Access-Control-Allow-Origin": "*" });
@@ -45,11 +61,19 @@ Deno.serve(async (req) => {
 			const PRIMARY = "https://cdn.nba.com/static/json/staticData/standingsLeagueV2.json";
 			const FALLBACK = "https://cdn.nba.com/static/json/staticData/standingsLeagueV2_1.json";
 
-			let r = await pullNBA(PRIMARY);
-			if (!r.ok) {
-				// Try the versioned backup some deployments use
-				r = await pullNBA(FALLBACK);
-			}
+			const headersFull = STANDINGS_HEADERS;
+			const headersMinimal = {
+				"User-Agent": STANDINGS_HEADERS["User-Agent"],
+				"Accept": "application/json, text/plain, */*",
+				"Accept-Language": STANDINGS_HEADERS["Accept-Language"],
+			};
+			const headersNone = {};
+
+			const r = await tryFetch([PRIMARY, FALLBACK], [
+				headersFull,
+				headersMinimal,
+				headersNone,
+			]);
 
 			const cors = new Headers({ "Access-Control-Allow-Origin": "*" });
 			cors.set(
