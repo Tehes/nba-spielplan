@@ -90,11 +90,10 @@ Variables
 const params = new URLSearchParams(document.location.search);
 
 const year = params.get("year") || "2025";
-const scheduleURL =
-	`https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json`;
+const scheduleURL = "https://nba-spielplan.tehes.deno.net/schedule";
 /*
-In case the other json fails, here is a second url that I could implement
-https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json
+if the above URL is not working, use this one:
+https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json
 */
 const standingsURL =
 	`https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/00_standings.json`;
@@ -129,6 +128,61 @@ const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
 /* --------------------------------------------------------------------------------------------------
 functions
 ---------------------------------------------------------------------------------------------------*/
+// --- Adapter: map new scheduleLeagueV2 to legacy lscd/mscd.g shape (minimal fields only)
+function adaptSchedule(json) {
+	// If it already looks like legacy (has lscd), pass through unchanged
+	if (json && Array.isArray(json.lscd)) return json;
+
+	// New format detection: leagueSchedule.gameDates[].games[]
+	const ls = json && json.leagueSchedule;
+	if (!ls || !Array.isArray(ls.gameDates)) return json; // unknown shape → passthrough
+
+	const mappedGames = ls.gameDates.flatMap((d) => d.games || []).map((g) => {
+		// derive YYYY-MM-DD and HH:MM from UTC datetime
+		const iso = g.gameDateTimeUTC || g.gameDateUTC || g.gameDateEst || null;
+		let gdtutc = "TBD", utctm = "00:00";
+		if (iso) {
+			try {
+				const dt = new Date(iso);
+				const s = dt.toISOString(); // 2025-10-02T16:00:00.000Z
+				gdtutc = s.slice(0, 10); // YYYY-MM-DD
+				utctm = s.slice(11, 16); // HH:MM
+			} catch { /* ignore invalid date */ }
+		}
+
+		const h = g.homeTeam || {};
+		const v = g.awayTeam || {};
+
+		return {
+			gid: String(g.gameId ?? ""),
+			gcode: g.gameCode ?? "",
+			gdtutc,
+			utctm,
+			stt: g.gameStatusText ??
+				(g.gameStatus === 3 ? "Final" : (g.gameStatus === 2 ? "Live" : "")),
+			seri: g.seriesText ?? "",
+			v: {
+				tid: v.teamId ?? 0,
+				ta: v.teamTricode ?? "",
+				tn: v.teamName ?? "",
+				tc: v.teamCity ?? "",
+				re: `${v.wins ?? 0}-${v.losses ?? 0}`,
+				s: v.score != null ? String(v.score) : "",
+			},
+			h: {
+				tid: h.teamId ?? 0,
+				ta: h.teamTricode ?? "",
+				tn: h.teamName ?? "",
+				tc: h.teamCity ?? "",
+				re: `${h.wins ?? 0}-${h.losses ?? 0}`,
+				s: h.score != null ? String(h.score) : "",
+			},
+		};
+	});
+
+	return { lscd: [{ mscd: { mon: "", g: mappedGames } }] };
+}
+
 function prepareGameData() {
 	const allGames = schedule.lscd.flatMap((month) => month.mscd.g);
 
@@ -406,15 +460,19 @@ function determinePlayInWinners() {
 			return isAfterRegularSeason && isNotPlayoffGame;
 		})
 		.filter((game) => game && game.h && game.v); // Ensure valid games
+	// Not enough reliable Play-In data — abort safely
+	if (!playInGames || playInGames.length < 3) return;
 
 	// Play-In Teams (7-10) for East and West conferences
 	const eastPlayInTeams = conferenceStandings[0].slice(6, 10); // Seeds 7-10 in the East
 	const westPlayInTeams = conferenceStandings[1].slice(6, 10); // Seeds 7-10 in the West
 
 	function getWinner(game) {
-		const homeScore = parseInt(game.h.s, 10); // Home team score
-		const awayScore = parseInt(game.v.s, 10); // Away team score
-		return homeScore > awayScore ? game.h : game.v; // Return the winner's full object
+		if (!game || !game.h || !game.v) return null;
+		const homeScore = parseInt(game.h.s, 10);
+		const awayScore = parseInt(game.v.s, 10);
+		if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) return null;
+		return homeScore > awayScore ? game.h : game.v; // Return the winner's team object
 	}
 
 	function playInTournament(playInTeams, conferenceIndex) {
@@ -425,6 +483,7 @@ function determinePlayInWinners() {
 			game.h.tid === seed7.tid && game.v.tid === seed8.tid
 		);
 		const winnerGame1 = getWinner(game1);
+		if (!winnerGame1) return;
 		const loserGame1 = winnerGame1.tid === seed7.tid ? seed8 : seed7;
 
 		// Game 2: Seed 9 (home) vs Seed 10 → Loser is out, Winner plays next
@@ -432,12 +491,14 @@ function determinePlayInWinners() {
 			game.h.tid === seed9.tid && game.v.tid === seed10.tid
 		);
 		const winnerGame2 = getWinner(game2);
+		if (!winnerGame2) return;
 
 		// Game 3: Loser of Game 1 vs Winner of Game 2 → Winner is 8th Seed
 		const game3 = playInGames.find((game) =>
 			game.h.tid === loserGame1.tid && game.v.tid === winnerGame2.tid
 		);
 		const winnerGame3 = getWinner(game3);
+		if (!winnerGame3) return;
 
 		playoffTeams[conferenceIndex].push(winnerGame1); // 7th Seed
 		playoffTeams[conferenceIndex].push(winnerGame3); // 8th Seed
@@ -449,6 +510,18 @@ function determinePlayInWinners() {
 }
 
 function playoffPicture() {
+	// Guard: require 8 teams per conference (6 + 2 play-in). If not complete, skip rendering.
+	if (
+		!Array.isArray(playoffTeams) || playoffTeams.length < 2 ||
+		!Array.isArray(playoffTeams[0]) || !Array.isArray(playoffTeams[1]) ||
+		playoffTeams[0].length < 8 || playoffTeams[1].length < 8
+	) {
+		console.warn("Playoff picture skipped: playoffTeams incomplete", {
+			west: playoffTeams?.[0]?.length ?? 0,
+			east: playoffTeams?.[1]?.length ?? 0,
+		});
+		return;
+	}
 	const playoffBracket = document.querySelector("#playoffs");
 	const playoffHeadline = document.querySelectorAll("h1")[0];
 	playoffHeadline.classList.remove("hidden");
@@ -671,6 +744,7 @@ function playoffPicture() {
 }
 
 function handleScheduleData(json) {
+	json = adaptSchedule(json);
 	if (json && json.lscd && json.lscd.length > 0) {
 		schedule = json;
 
@@ -712,7 +786,16 @@ function handleStandingsData(json) {
 
 		if (games.playoffs.length > 0) {
 			determinePlayInWinners();
-			playoffPicture();
+			const westCount = playoffTeams[0]?.length ?? 0;
+			const eastCount = playoffTeams[1]?.length ?? 0;
+			if (westCount >= 8 && eastCount >= 8) {
+				playoffPicture();
+			} else {
+				console.warn("Skipping playoffPicture: missing play-in winners", {
+					westCount,
+					eastCount,
+				});
+			}
 		}
 	} else {
 		console.log(
