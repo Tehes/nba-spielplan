@@ -50,7 +50,6 @@ gdte	    Game Date                   String                  "2016-06-19"
 an	        Arena	                    String	                "ORACLE Arena"
 ac	        Arena City	                String	                "Oakland"
 as	        Arena State	                String	                "CA"
-stt	        Game Status	                String	                "Final"
 bd	        Broadcast Information	    JSON Object
 b	        Broadcasters	            Array of JSON Objects
 v	        Visiting Team Information	JSON Object
@@ -63,6 +62,45 @@ tc	        Team City	                String	                "Cleveland"
 s	        Team Score	                String	                "93"
 gdtutc	    Game Date UTC	            String	                "2016-06-20"
 utctm	    UTC Time	                String	                "00:00"
+-------------------------------------------------------------------------------------- */
+
+/* --------------------------------------------------------------------------------------
+New API (scheduleLeagueV2)
+--------------------------------------------------------------------------------------
+leagueSchedule       Root object
+  gameDates[]        Array of dates; each has `games[]`
+    games[]          Array of games with rich fields
+      gameId         String            e.g. "0022500095"
+      gameCode       String            e.g. "20251024/SASNOP"
+      gameStatus     Number            1 = Scheduled, 2 = Live, 3 = Final, 4 = Postponed
+      gameStatusText String            e.g. "Final", "Final/OT", "3rd Qtr"
+      gameDateTimeUTC ISO 8601 UTC     e.g. "2025-10-25T00:00:00Z"
+      arenaName      String            e.g. "Smoothie King Center"
+      arenaCity      String            e.g. "New Orleans"
+      arenaState     String            e.g. "LA"
+
+      homeTeam       Object
+        teamId       Number            e.g. 1610612740
+        teamCity     String            e.g. "New Orleans"
+        teamName     String            e.g. "Pelicans"
+        teamTricode  String            e.g. "NOP"
+        wins         Number            current wins (pre/post game)
+        losses       Number            current losses
+        score        Number            final/live score (may be 0 or missing if not started)
+
+      awayTeam       Object
+        teamId       Number            e.g. 1610612759
+        teamCity     String            e.g. "San Antonio"
+        teamName     String            e.g. "Spurs"
+        teamTricode  String            e.g. "SAS"
+        wins         Number
+        losses       Number
+        score        Number
+
+      broadcasters   Object            nested lists (natl/home/away tv/radio/ott)
+      seriesText     String            e.g. "Neutral Site", ""
+      gameLabel      String            e.g. "Preseason", "Regular Season"
+      gameSubLabel   String            e.g. "NBA Abu Dhabi Game"
 -------------------------------------------------------------------------------------- */
 
 /* --------------------------------------------------------------------------------------
@@ -137,61 +175,46 @@ function adaptSchedule(json) {
 	const ls = json && json.leagueSchedule;
 	if (!ls || !Array.isArray(ls.gameDates)) return json; // unknown shape → passthrough
 
-	const mappedGames = ls.gameDates.flatMap((d) => d.games || []).map((g) => {
-		// derive YYYY-MM-DD and HH:MM from UTC datetime
-		const iso = g.gameDateTimeUTC || g.gameDateUTC || g.gameDateEst || null;
-		let gdtutc = "TBD", utctm = "00:00";
-		if (iso) {
-			try {
-				const dt = new Date(iso);
-				const s = dt.toISOString(); // 2025-10-02T16:00:00.000Z
-				gdtutc = s.slice(0, 10); // YYYY-MM-DD
-				utctm = s.slice(11, 16); // HH:MM
-			} catch { /* ignore invalid date */ }
-		}
-
-		const h = g.homeTeam || {};
-		const v = g.awayTeam || {};
-
-		return {
-			gid: String(g.gameId ?? ""),
-			gcode: g.gameCode ?? "",
-			gdtutc,
-			utctm,
-			stt: g.gameStatusText ??
-				(g.gameStatus === 3 ? "Final" : (g.gameStatus === 2 ? "Live" : "")),
-			seri: g.seriesText ?? "",
-			v: {
-				tid: v.teamId ?? 0,
-				ta: v.teamTricode ?? "",
-				tn: v.teamName ?? "",
-				tc: v.teamCity ?? "",
-				re: `${v.wins ?? 0}-${v.losses ?? 0}`,
-				s: v.score != null ? String(v.score) : "",
-			},
-			h: {
-				tid: h.teamId ?? 0,
-				ta: h.teamTricode ?? "",
-				tn: h.teamName ?? "",
-				tc: h.teamCity ?? "",
-				re: `${h.wins ?? 0}-${h.losses ?? 0}`,
-				s: h.score != null ? String(h.score) : "",
-			},
-		};
-	});
-
-	return { lscd: [{ mscd: { mon: "", g: mappedGames } }] };
+	return {
+		...json,
+		leagueSchedule: {
+			...ls,
+			gameDates: ls.gameDates.map((d) => ({
+				...d,
+				games: (d.games || []).map((g) => ({
+					...g,
+					gid: String(g.gameId ?? ""),
+					gcode: g.gameCode ?? "",
+					seri: g.seriesText ?? "",
+					v: {
+						tid: g.awayTeam?.teamId ?? 0,
+						ta: g.awayTeam?.teamTricode ?? "",
+						tn: g.awayTeam?.teamName ?? "",
+						tc: g.awayTeam?.teamCity ?? "",
+						re: `${g.awayTeam?.wins ?? 0}-${g.awayTeam?.losses ?? 0}`,
+						s: g.awayTeam?.score != null ? String(g.awayTeam.score) : "",
+					},
+					h: {
+						tid: g.homeTeam?.teamId ?? 0,
+						ta: g.homeTeam?.teamTricode ?? "",
+						tn: g.homeTeam?.teamName ?? "",
+						tc: g.homeTeam?.teamCity ?? "",
+						re: `${g.homeTeam?.wins ?? 0}-${g.homeTeam?.losses ?? 0}`,
+						s: g.homeTeam?.score != null ? String(g.homeTeam.score) : "",
+					},
+				})),
+			})),
+		},
+	};
 }
 
 function prepareGameData() {
-	const allGames = schedule.lscd.flatMap((month) => month.mscd.g);
+	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
 
 	allGames.forEach((game) => {
-		game.localDate = new Date(
-			Date.parse(game.gdtutc + "T" + game.utctm + "+00:00"),
-		);
+		game.localDate = new Date(game.gameDateTimeUTC);
 
-		if (game.gdtutc === "TBD") {
+		if (!iso || Number.isNaN(game.localDate.getTime())) {
 			game.date = "Noch offen";
 			game.time = "HH:MM";
 		} else {
@@ -210,11 +233,11 @@ function prepareGameData() {
 		// IF GAME IS TODAY NO MATTER IF FINISHED OR NOT
 		if (
 			today.toLocaleDateString("de-DE") ==
-				game.localDate.toLocaleDateString("de-DE") && game.stt !== "PPD"
+				game.localDate.toLocaleDateString("de-DE") && game.gameStatus !== 4 /* postponed */
 		) {
 			games.today.push(game);
 		} // IF GAME STATUS IS FINISHED
-		else if (game.stt === "Final") {
+		else if (game.gameStatus === 3) {
 			games.finished.push(game);
 		} // GAME IS SCHEDULED
 		else if (
@@ -225,7 +248,7 @@ function prepareGameData() {
 		}
 
 		// add playoff games to its own array
-		if (game.stt === "Final" && game.seri !== "") {
+		if (game.gameStatus === 3 && game.seri !== "") {
 			games.playoffs.push(game);
 		}
 	});
@@ -241,7 +264,7 @@ function setProgressBar() {
 	let progress = games.finished.length - 1;
 
 	games.today.forEach((g) => {
-		if (g.stt === "Final") {
+		if (g.gameStatus === 3) {
 			progress++;
 		}
 	});
@@ -289,7 +312,7 @@ function renderTodaysGames() {
 			homeWL.textContent = g.h.re;
 			visitingWL.textContent = g.v.re;
 
-			if (g.stt === "Final") {
+			if (g.gameStatus === 3) {
 				date.textContent = `${g.v.s}:${g.h.s}`;
 			} else if (
 				now >= g.localDate &&
@@ -363,7 +386,7 @@ function renderMoreGames() {
 		visitingAbbr.textContent = g.v.ta;
 		card.dataset.abbr = `${g.v.ta}/${g.h.ta}`;
 
-		if (g.stt === "Final") {
+		if (g.gameStatus === 3) {
 			date.textContent = `${g.v.s}:${g.h.s}`;
 		} else {
 			date.textContent = `${g.time} Uhr`;
@@ -420,11 +443,11 @@ function filterTeams() {
 }
 
 function findLastRegularSeasonGame() {
-	const allGames = schedule.lscd.flatMap((month) => month.mscd.g);
+	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
 
 	// Group games by date
 	const gamesByDate = allGames.reduce(function (groupedGames, game) {
-		const gameDate = game.gdtutc.split("T")[0]; // Extract only the date
+		const gameDate = new Date(game.gameDateTimeUTC).toISOString().slice(0, 10); // YYYY-MM-DD
 		if (!groupedGames[gameDate]) {
 			groupedGames[gameDate] = [];
 		}
@@ -446,7 +469,7 @@ function findLastRegularSeasonGame() {
 }
 
 function determinePlayInWinners() {
-	const allGames = schedule.lscd.flatMap((month) => month.mscd.g);
+	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
 
 	// Find the last regular season day
 	const lastRegularSeasonDay = findLastRegularSeasonGame();
@@ -454,7 +477,7 @@ function determinePlayInWinners() {
 	// Filter all games after the last regular season day and exclude Playoff games (with seri)
 	const playInGames = allGames
 		.filter(function (game) {
-			const gameDate = game.gdtutc.split("T")[0];
+			const gameDate = new Date(game.gameDateTimeUTC).toISOString().slice(0, 10);
 			const isAfterRegularSeason = new Date(gameDate) > new Date(lastRegularSeasonDay);
 			const isNotPlayoffGame = !game.seri; // Exclude playoff games
 			return isAfterRegularSeason && isNotPlayoffGame;
@@ -745,7 +768,7 @@ function playoffPicture() {
 
 function handleScheduleData(json) {
 	json = adaptSchedule(json);
-	if (json && json.lscd && json.lscd.length > 0) {
+	if (json?.leagueSchedule?.gameDates?.length) {
 		schedule = json;
 
 		games = {
@@ -826,7 +849,7 @@ function shouldRerender() {
 		if (!card) return false;
 		const dateEl = card.querySelector(".date");
 
-		const shouldBeLive = now >= gameTime && now < liveWindowEnd && g.stt !== "Final";
+		const shouldBeLive = now >= gameTime && now < liveWindowEnd && g.gameStatus !== 3;
 		const isLive = dateEl.classList.contains("live");
 
 		// Rerender if we need to toggle the "live" state
@@ -892,7 +915,7 @@ function shouldReloadData() {
 
 function storeNextScheduledGame() {
 	const allScheduledGames = games.scheduled.concat(
-		games.today.filter((game) => game.stt !== "Final"),
+		games.today.filter((game) => game.gameStatus !== 3),
 	);
 
 	if (allScheduledGames.length === 0) {
