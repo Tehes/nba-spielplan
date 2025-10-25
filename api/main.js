@@ -19,20 +19,25 @@ Deno.serve(async (req) => {
 		}
 
 		if (url.pathname === "/nba/standings") {
-			const res = await fetch(
-				"https://stats.nba.com/stats/leaguestandingsv3?GroupBy=conf&LeagueID=00&Season=2025-26&SeasonType=Regular%20Season&Section=overall",
-				{
-					headers: {
-						"User-Agent":
-							"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-						"Accept": "application/json, text/plain, */*",
-						"Origin": "https://www.nba.com",
-						"Referer": "https://www.nba.com/",
-					},
+			const upstream = "https://cdn.nba.com/static/json/staticData/standingsLeagueV2.json";
+			const r = await fetch(upstream, {
+				headers: {
+					"User-Agent":
+						"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+					"Accept": "application/json, text/plain, */*",
+					"Origin": "https://www.nba.com",
+					"Referer": "https://www.nba.com/",
+					"Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
 				},
+			});
+
+			const h = new Headers({ "Access-Control-Allow-Origin": "*" });
+			h.set(
+				"content-type",
+				r.headers.get("content-type") || "application/json; charset=utf-8",
 			);
-			const body = await res.text();
-			return new Response(body, { status: 200, headers });
+			const body = await r.text();
+			return new Response(body, { status: r.status, headers: h });
 		}
 
 		return new Response("Not Found", {
