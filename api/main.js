@@ -3,7 +3,7 @@ Deno.serve(async (req) => {
 	const headers = new Headers({ "Access-Control-Allow-Origin": "*" });
 
 	try {
-		if (url.pathname === "/nba/schedule") {
+		if (url.pathname === "/schedule") {
 			const res = await fetch(
 				"https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
 				{
