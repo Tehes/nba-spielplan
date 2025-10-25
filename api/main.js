@@ -84,6 +84,8 @@ Deno.serve(async (req) => {
 
 		// --- /nba/standings : fetch stats.nba.com with headers; retry after cookie warmup ---
 		if (url.pathname === "/nba/standings") {
+			const debug = url.searchParams.get("debug") === "1";
+
 			const STATS_URL =
 				"https://stats.nba.com/stats/leaguestandingsv3?GroupBy=conf&LeagueID=00&Season=2025-26&SeasonType=Regular%20Season&Section=overall";
 			try {
@@ -113,14 +115,15 @@ Deno.serve(async (req) => {
 					const diag = `status=${r.status}; ${sourceNote}\n---\n${
 						text.substring(0, 800)
 					}`;
-					return new Response(diag, { status: r.status, headers: h });
+					return new Response(diag, { status: debug ? 200 : r.status, headers: h });
 				}
 
 				const body = await r.text();
 				return new Response(body, { status: 200, headers: h });
 			} catch (e) {
-				return new Response(String(e), {
-					status: 502,
+				const msg = (e && e.message) ? e.message : String(e);
+				return new Response(`catch: ${msg}`, {
+					status: debug ? 200 : 502,
 					headers: withCORS(new Headers({ "content-type": "text/plain; charset=utf-8" })),
 				});
 			}
