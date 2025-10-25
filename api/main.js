@@ -16,25 +16,28 @@ const STANDINGS_HEADERS = {
 	"sec-ch-ua-platform": "macOS",
 };
 
-// Helper to fetch NBA CDN with consistent headers
-async function pullNBA(url) {
-	return await fetch(url, { headers: STANDINGS_HEADERS, redirect: "follow" });
-}
-
-async function tryFetch(urls, headerSets) {
-	let lastResp = null;
-	for (const u of urls) {
-		for (const h of headerSets) {
-			try {
-				const r = await fetch(u, { headers: h, redirect: "follow" });
-				if (r.ok) return r;
-				lastResp = r;
-			} catch (e) {
-				lastResp = new Response(String(e), { status: 502 });
-			}
-		}
+// Helper to warm up NBA.com and extract Akamai bot-manager cookies
+async function warmUpNbaCookie() {
+	// Hit the real standings page to obtain Akamai bot-manager cookie (ak_bmsc, sometimes bm_sv)
+	const warm = await fetch("https://www.nba.com/standings", {
+		redirect: "follow",
+		headers: {
+			"User-Agent": STANDINGS_HEADERS["User-Agent"],
+			"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+			"Accept-Language": STANDINGS_HEADERS["Accept-Language"],
+			"Upgrade-Insecure-Requests": "1",
+		},
+	});
+	// Many CDNs set multiple Set-Cookie headers; merge what we can access
+	const setCookie = warm.headers.get("set-cookie") || "";
+	// Extract ak_bmsc=...; and bm_sv=...; if present (best-effort)
+	const parts = setCookie.split(/,(?=[^;]+=)/g); // split multiple Set-Cookie
+	const cookies = [];
+	for (const p of parts) {
+		const m = p.match(/^(ak_bmsc|bm_sv|bm_mi|bm_sz|bm_svs)=([^;]+);/);
+		if (m) cookies.push(`${m[1]}=${m[2]}`);
 	}
-	return lastResp ?? new Response("No response", { status: 502 });
+	return cookies.join("; ");
 }
 
 Deno.serve(async (req) => {
@@ -58,22 +61,29 @@ Deno.serve(async (req) => {
 		}
 
 		if (url.pathname === "/nba/standings") {
-			const PRIMARY = "https://cdn.nba.com/static/json/staticData/standingsLeagueV2.json";
-			const FALLBACK = "https://cdn.nba.com/static/json/staticData/standingsLeagueV2_1.json";
+			const STATS_URL =
+				"https://stats.nba.com/stats/leaguestandingsv3?GroupBy=conf&LeagueID=00&Season=2025-26&SeasonType=Regular%20Season&Section=overall";
+			// 1) try direct (may work depending on POP/IP)
+			let r = await fetch(STATS_URL, {
+				headers: {
+					...STANDINGS_HEADERS,
+					"x-nba-stats-origin": "league",
+					"x-nba-stats-token": "true",
+				},
+				redirect: "follow",
+			});
 
-			const headersFull = STANDINGS_HEADERS;
-			const headersMinimal = {
-				"User-Agent": STANDINGS_HEADERS["User-Agent"],
-				"Accept": "application/json, text/plain, */*",
-				"Accept-Language": STANDINGS_HEADERS["Accept-Language"],
-			};
-			const headersNone = {};
-
-			const r = await tryFetch([PRIMARY, FALLBACK], [
-				headersFull,
-				headersMinimal,
-				headersNone,
-			]);
+			// 2) if blocked, warm up cookies from nba.com and retry with Cookie header
+			if (!r.ok || r.status === 403) {
+				const cookie = await warmUpNbaCookie();
+				const hdrs = new Headers({
+					...STANDINGS_HEADERS,
+					"x-nba-stats-origin": "league",
+					"x-nba-stats-token": "true",
+				});
+				if (cookie) hdrs.set("Cookie", cookie);
+				r = await fetch(STATS_URL, { headers: hdrs, redirect: "follow" });
+			}
 
 			const cors = new Headers({ "Access-Control-Allow-Origin": "*" });
 			cors.set(
