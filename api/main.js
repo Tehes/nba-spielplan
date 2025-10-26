@@ -172,7 +172,14 @@ Deno.serve(async (req) => {
 	try {
 		if (url.pathname === "/standings") {
 			// Build from schedule
-			const r = await fetch(routes["/schedule"]);
+			const r = await fetch(routes["/schedule"], {
+				headers: {
+					"User-Agent":
+						"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+					"Accept": "application/json, text/plain, */*",
+					// "Accept-Encoding": "identity", // uncomment if CDN/H2 acts up
+				},
+			});
 			if (!r.ok) return new Response(`Upstream error: ${r.status}`, { status: 502 });
 			const data = await r.json();
 			const payload = buildStandingsFromSchedule(data);
