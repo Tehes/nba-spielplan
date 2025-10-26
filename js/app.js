@@ -269,7 +269,7 @@ function renderTodaysGames() {
 				date.classList.add("live");
 			} else {
 				date.classList.remove("live");
-				date.textContent = `${g.time} Uhr`;
+				date.textContent = `${g.time}`;
 				date.dataset.gameCode = g.gameCode;
 			}
 
