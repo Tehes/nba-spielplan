@@ -38,33 +38,6 @@ async function fetchData(url, updateFunction, forceNetwork = false) {
 }
 
 /* --------------------------------------------------------------------------------------
-Name        Description                 Value Type              Example
-lscd        League Schedule             Array of JSON Objects
-mscd	    Month Schedule              Array of JSON Objects
-mon         Month                       String                  "June"
-g           Games                       Array of JSON Objects
-gid         Game ID                     String                  "0041500407"
-gcode	    Game Code	                String	                "20160619/CLEGSW"
-seri	    Playoff Series Summary	    String	                "CLE wins series 4-3"
-gdte	    Game Date                   String                  "2016-06-19"
-an	        Arena	                    String	                "ORACLE Arena"
-ac	        Arena City	                String	                "Oakland"
-as	        Arena State	                String	                "CA"
-bd	        Broadcast Information	    JSON Object
-b	        Broadcasters	            Array of JSON Objects
-v	        Visiting Team Information	JSON Object
-h	        Home Team Information	    JSON Object
-tid	        Team ID	                    Integer                 1610612739
-re	        W-L Record	                String	                "16-5"
-ta	        Team Abbreviation	        String	                "CLE"
-tn	        Team Name	                String	                "Cavaliers"
-tc	        Team City	                String	                "Cleveland"
-s	        Team Score	                String	                "93"
-gdtutc	    Game Date UTC	            String	                "2016-06-20"
-utctm	    UTC Time	                String	                "00:00"
--------------------------------------------------------------------------------------- */
-
-/* --------------------------------------------------------------------------------------
 New API (scheduleLeagueV2)
 --------------------------------------------------------------------------------------
 leagueSchedule       Root object
@@ -171,31 +144,6 @@ function prepareGameData() {
 	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
 
 	allGames.forEach((game) => {
-		// Derive legacy convenience fields on the fly (adapter-free)
-		if (!game.v || !game.h) {
-			const away = game.awayTeam || {};
-			const home = game.homeTeam || {};
-			game.v = {
-				tid: away.teamId ?? 0,
-				ta: away.teamTricode ?? "",
-				tn: away.teamName ?? "",
-				tc: away.teamCity ?? "",
-				re: `${away.wins ?? 0}-${away.losses ?? 0}`,
-				s: away.score != null ? String(away.score) : "",
-			};
-			game.h = {
-				tid: home.teamId ?? 0,
-				ta: home.teamTricode ?? "",
-				tn: home.teamName ?? "",
-				tc: home.teamCity ?? "",
-				re: `${home.wins ?? 0}-${home.losses ?? 0}`,
-				s: home.score != null ? String(home.score) : "",
-			};
-		}
-		if (!game.gid) game.gid = String(game.gameId ?? "");
-		if (!game.gcode) game.gcode = game.gameCode ?? "";
-		if (game.seri === undefined) game.seri = game.seriesText ?? "";
-
 		game.localDate = new Date(game.gameDateTimeUTC);
 
 		if (Number.isNaN(game.localDate.getTime())) {
@@ -232,7 +180,7 @@ function prepareGameData() {
 		}
 
 		// add playoff games to its own array
-		if (game.gameStatus === 3 && game.seri !== "") {
+		if (game.gameStatus === 3 && game.seriesText !== "") {
 			games.playoffs.push(game);
 		}
 	});
@@ -267,7 +215,7 @@ function renderTodaysGames() {
 	if (games.today.length > 0) {
 		games.today.forEach((g) => {
 			const clone = templateToday.content.cloneNode(true);
-			clone.querySelector(".card").dataset.gameCode = g.gcode;
+			clone.querySelector(".card").dataset.gameCode = g.gameCode;
 
 			const homeTeam = clone.querySelector(".home-team");
 			const visitingTeam = clone.querySelector(".visiting-team");
@@ -282,28 +230,29 @@ function renderTodaysGames() {
 			const date = clone.querySelector(".date");
 			const now = new Date();
 
-			homeTeam.style.setProperty("--team-color", `var(--${g.h.ta})`);
-			visitingTeam.style.setProperty("--team-color", `var(--${g.v.ta})`);
-			homeLogo.src = `img/${g.h.ta}.svg`;
+			homeTeam.style.setProperty("--team-color", `var(--${g.homeTeam.teamTricode})`);
+			visitingTeam.style.setProperty("--team-color", `var(--${g.awayTeam.teamTricode})`);
+			homeLogo.src = `img/${g.homeTeam.teamTricode}.svg`;
 			homeLogo.onerror = () => homeLogo.src = "img/no-logo.svg";
 
-			visitingLogo.src = `img/${g.v.ta}.svg`;
+			visitingLogo.src = `img/${g.awayTeam.teamTricode}.svg`;
 			visitingLogo.onerror = () => visitingLogo.src = "img/no-logo.svg";
-			homeName.textContent = `${g.h.tc} ${g.h.tn}`;
-			visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
-			homeAbbr.textContent = g.h.ta;
-			visitingAbbr.textContent = g.v.ta;
-			homeWL.textContent = g.h.re;
-			visitingWL.textContent = g.v.re;
+			homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
+			visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
+			homeAbbr.textContent = g.homeTeam.teamTricode;
+			visitingAbbr.textContent = g.awayTeam.teamTricode;
+			homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
+			visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 
 			if (g.gameStatus === 3) {
-				date.textContent = `${g.v.s}:${g.h.s}`;
+				date.textContent = `${(g.awayTeam.score ?? "")} : ${(g.homeTeam.score ?? "")}`;
 			} else if (
 				now >= g.localDate &&
 				now < new Date(g.localDate.getTime() + GAME_MAX_DURATION_MS)
 			) {
 				const link = document.createElement("a");
-				link.href = `https://www.nba.com/game/${g.v.ta}-vs-${g.h.ta}-${g.gid}/play-by-play`;
+				link.href =
+					`https://www.nba.com/game/${g.awayTeam.teamTricode}-vs-${g.homeTeam.teamTricode}-${g.gameId}/play-by-play`;
 				link.textContent = "LIVE";
 				link.target = "_blank";
 
@@ -313,7 +262,7 @@ function renderTodaysGames() {
 			} else {
 				date.classList.remove("live");
 				date.textContent = `${g.time} Uhr`;
-				date.dataset.gameCode = g.gcode;
+				date.dataset.gameCode = g.gameCode;
 			}
 
 			todayEl.appendChild(clone);
@@ -364,14 +313,14 @@ function renderMoreGames() {
 		const visitingAbbr = clone.querySelector(".v-abbr");
 		const date = clone.querySelector(".date");
 
-		homeName.textContent = `${g.h.tc} ${g.h.tn}`;
-		visitingName.textContent = `${g.v.tc} ${g.v.tn}`;
-		homeAbbr.textContent = g.h.ta;
-		visitingAbbr.textContent = g.v.ta;
-		card.dataset.abbr = `${g.v.ta}/${g.h.ta}`;
+		homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
+		visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
+		homeAbbr.textContent = g.homeTeam.teamTricode;
+		visitingAbbr.textContent = g.awayTeam.teamTricode;
+		card.dataset.abbr = `${g.awayTeam.teamTricode}/${g.homeTeam.teamTricode}`;
 
 		if (g.gameStatus === 3) {
-			date.textContent = `${g.v.s}:${g.h.s}`;
+			date.textContent = `${(g.awayTeam.score ?? "")} : ${(g.homeTeam.score ?? "")}`;
 		} else {
 			date.textContent = `${g.time} Uhr`;
 		}
@@ -475,11 +424,13 @@ function determinePlayInWinners() {
 	const westPlayInTeams = conferenceStandings[1].slice(6, 10); // Seeds 7-10 in the West
 
 	function getWinner(game) {
-		if (!game || !game.h || !game.v) return null;
-		const homeScore = parseInt(game.h.s, 10);
-		const awayScore = parseInt(game.v.s, 10);
+		if (!game || !game.homeTeam || !game.awayTeam) return null;
+		const homeScore = parseInt(game.homeTeam.score, 10);
+		const awayScore = parseInt(game.awayTeam.score, 10);
 		if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) return null;
-		return homeScore > awayScore ? game.h : game.v; // Return the winner's team object
+		return homeScore > awayScore
+			? { tid: game.homeTeam.teamId, ta: game.homeTeam.teamTricode }
+			: { tid: game.awayTeam.teamId, ta: game.awayTeam.teamTricode };
 	}
 
 	function playInTournament(playInTeams, conferenceIndex) {
@@ -487,7 +438,7 @@ function determinePlayInWinners() {
 
 		// Game 1: Seed 7 (home) vs Seed 8 → Winner is 7th Seed
 		const game1 = playInGames.find((game) =>
-			game.h.tid === seed7.tid && game.v.tid === seed8.tid
+			game.homeTeam.teamId === seed7.tid && game.awayTeam.teamId === seed8.tid
 		);
 		const winnerGame1 = getWinner(game1);
 		if (!winnerGame1) return;
@@ -495,14 +446,14 @@ function determinePlayInWinners() {
 
 		// Game 2: Seed 9 (home) vs Seed 10 → Loser is out, Winner plays next
 		const game2 = playInGames.find((game) =>
-			game.h.tid === seed9.tid && game.v.tid === seed10.tid
+			game.homeTeam.teamId === seed9.tid && game.awayTeam.teamId === seed10.tid
 		);
 		const winnerGame2 = getWinner(game2);
 		if (!winnerGame2) return;
 
 		// Game 3: Loser of Game 1 vs Winner of Game 2 → Winner is 8th Seed
 		const game3 = playInGames.find((game) =>
-			game.h.tid === loserGame1.tid && game.v.tid === winnerGame2.tid
+			game.homeTeam.teamId === loserGame1.tid && game.awayTeam.teamId === winnerGame2.tid
 		);
 		const winnerGame3 = getWinner(game3);
 		if (!winnerGame3) return;
@@ -571,7 +522,7 @@ function playoffPicture() {
 		const remainingGames = [];
 
 		games.playoffs.forEach((g) => {
-			const teamNames = g.gcode.slice(-6);
+			const teamNames = g.gameCode.slice(-6);
 			let consumed = false;
 
 			for (const conference of round) {
@@ -581,8 +532,8 @@ function playoffPicture() {
 						teamNames.includes(matchup.teamB)
 					) {
 						// update matchup infos
-						matchup.series = g.seri.slice(-3);
-						matchup.leadingTeam = g.seri.slice(0, 3);
+						matchup.series = g.seriesText.slice(-3);
+						matchup.leadingTeam = g.seriesText.slice(0, 3);
 
 						if (matchup.leadingTeam === matchup.teamB) {
 							matchup.series = matchup.series.split("").reverse()
@@ -730,13 +681,13 @@ function playoffPicture() {
 	}
 
 	games.playoffs.forEach((g) => {
-		const teamNames = g.gcode.slice(-6);
+		const teamNames = g.gameCode.slice(-6);
 
 		if (
 			teamNames.includes(finals.teamA) && teamNames.includes(finals.teamB)
 		) {
-			finals.series = g.seri.slice(-3);
-			finals.leadingTeam = g.seri.slice(0, 3);
+			finals.series = g.seriesText.slice(-3);
+			finals.leadingTeam = g.seriesText.slice(0, 3);
 			if (finals.leadingTeam === finals.teamB) {
 				finals.series = finals.series.split("").reverse().join("");
 				finals.leadingTeamSeed = finals.teamBSeed;
@@ -828,7 +779,7 @@ function shouldRerender() {
 	const gameTimeWindowChanged = games.today.some((g) => {
 		const gameTime = new Date(g.localDate);
 		const liveWindowEnd = new Date(gameTime.getTime() + GAME_MAX_DURATION_MS);
-		const card = document.querySelector(`[data-game-code="${g.gcode}"]`);
+		const card = document.querySelector(`[data-game-code="${g.gameCode}"]`);
 		if (!card) return false;
 		const dateEl = card.querySelector(".date");
 
