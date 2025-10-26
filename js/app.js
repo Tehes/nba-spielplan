@@ -191,17 +191,25 @@ function prepareGameData() {
 }
 
 function setProgressBar() {
-	const AllGames = (games.today.length - 1) + (games.finished.length - 1) +
-		(games.scheduled.length - 1);
-	let progress = games.finished.length - 1;
+	// Exclude Preseason from progress
+	const todayGames = games.today.filter((g) => g.gameLabel !== "Preseason");
+	const finishedGames = games.finished.filter((g) => g.gameLabel !== "Preseason");
+	const scheduledGames = games.scheduled.filter((g) => g.gameLabel !== "Preseason");
 
-	games.today.forEach((g) => {
+	const totalToday = Math.max(0, todayGames.length - 1);
+	const totalFinished = Math.max(0, finishedGames.length - 1);
+	const totalScheduled = Math.max(0, scheduledGames.length - 1);
+	const AllGames = totalToday + totalFinished + totalScheduled;
+
+	let progress = Math.max(0, finishedGames.length - 1);
+
+	todayGames.forEach((g) => {
 		if (g.gameStatus === 3) {
 			progress++;
 		}
 	});
 
-	const gamespercentage = parseInt(progress * 100 / AllGames);
+	const gamespercentage = AllGames > 0 ? Math.floor((progress * 100) / AllGames) : 0;
 	progressValue.style.width = `${gamespercentage}%`;
 	progressValue.textContent = `${gamespercentage}%`;
 
