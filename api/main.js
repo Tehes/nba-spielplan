@@ -50,6 +50,24 @@ const WEST_TEAMS = new Set([
 	"UTA",
 ]);
 
+// === Cache (only for Schedule!) ===
+let cachedSchedule = null;
+let cachedAt = 0;
+const CACHE_TTL_MS = 5 * 60_000; // 5 min
+
+async function getSchedule() {
+	const now = Date.now();
+	if (cachedSchedule && now - cachedAt < CACHE_TTL_MS) {
+		console.log("[cache hit] schedule");
+		return cachedSchedule;
+	}
+	console.log("[cache miss] fetching schedule");
+	const data = await fetchUpstream(SCHEDULE_URL);
+	cachedSchedule = data;
+	cachedAt = now;
+	return data;
+}
+
 // === Helper Functions ===
 async function fetchUpstream(url) {
 	const res = await fetch(url, { headers: DEFAULT_HEADERS });
@@ -80,12 +98,10 @@ async function proxyWithCors(url) {
 
 function buildStandingsFromSchedule(scheduleJson) {
 	const season = scheduleJson?.meta?.seasonYear ||
-		scheduleJson?.leagueSchedule?.seasonYear ||
-		"unknown";
+		scheduleJson?.leagueSchedule?.seasonYear || "unknown";
 	const dates = scheduleJson?.leagueSchedule?.gameDates ?? [];
 	const games = dates.flatMap((d) => d.games ?? []);
 
-	// Seed all teams from the full schedule (incl. preseason) so 0–0 teams appear at season start
 	const team = new Map();
 	const ensure = (t) => {
 		if (!t || !t.teamId) return null;
@@ -113,7 +129,6 @@ function buildStandingsFromSchedule(scheduleJson) {
 		if (g?.awayTeam) ensure(g.awayTeam);
 	}
 
-	// Completed regular-season games only
 	const done = games
 		.filter((g) => g?.gameStatus === 3 && g?.gameLabel !== "Preseason")
 		.sort((a, b) => new Date(a.gameDateTimeUTC) - new Date(b.gameDateTimeUTC));
@@ -144,7 +159,6 @@ function buildStandingsFromSchedule(scheduleJson) {
 	}
 
 	const finalize = (rows) => {
-		// Sort by winPct, wins, losses, tricode
 		rows.sort((a, b) => {
 			const ap = a.wins + a.losses ? a.wins / (a.wins + a.losses) : 0;
 			const bp = b.wins + b.losses ? b.wins / (b.wins + b.losses) : 0;
@@ -159,7 +173,6 @@ function buildStandingsFromSchedule(scheduleJson) {
 		return rows.map((r) => {
 			const gp = r.wins + r.losses;
 			const winPct = gp ? +(r.wins / gp).toFixed(3) : 0;
-			// Streak
 			let streak = 0;
 			let sChar = "";
 			for (let i = r.lastResults.length - 1; i >= 0; i--) {
@@ -202,57 +215,50 @@ Deno.serve(async (req) => {
 	const url = new URL(req.url);
 	const PATH = url.pathname;
 
-	// Handle CORS preflight
+	// CORS preflight
 	if (req.method === "OPTIONS") {
-		return new Response(null, {
-			status: 204,
-			headers: CORS_HEADERS,
-		});
+		return new Response(null, { status: 204, headers: CORS_HEADERS });
 	}
 
 	try {
+		// --- /schedule: nutzt Cache ---
 		if (PATH === "/schedule") {
-			console.log("[/schedule] proxying");
-			return proxyWithCors(SCHEDULE_URL);
+			const data = await getSchedule();
+			return respondWithCors(data, 60);
 		}
 
+		// --- /standings: baut auf gecachtem Schedule auf ---
 		if (PATH === "/standings") {
-			const data = await fetchUpstream(SCHEDULE_URL);
+			const data = await getSchedule();
 			const payload = buildStandingsFromSchedule(data);
 			console.log("[/standings] season", payload.season);
 			return respondWithCors(payload, 60);
 		}
 
-		if (PATH === "/scoreboard") {
-			console.log("[/scoreboard] proxying");
-			return proxyWithCors(SCOREBOARD_URL);
-		}
-
+		// --- /playoffbracket: nutzt gecachten Schedule nur für das Jahr ---
 		if (PATH === "/playoffbracket") {
-			const data = await fetchUpstream(SCHEDULE_URL);
+			const data = await getSchedule();
 			const seasonString = data?.leagueSchedule?.seasonYear || "2025-26";
 			const year = seasonString.split("-")[0];
 			const playoffUrl =
 				`https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=${year}&State=2`;
-			console.log("[/playoffbracket] ->", playoffUrl);
 			return proxyWithCors(playoffUrl);
+		}
+
+		// --- /scoreboard: KEIN Cache (immer live) ---
+		if (PATH === "/scoreboard") {
+			return proxyWithCors(SCOREBOARD_URL);
 		}
 
 		return new Response("Not Found", {
 			status: 404,
-			headers: {
-				...CORS_HEADERS,
-				"content-type": "text/plain; charset=utf-8",
-			},
+			headers: { ...CORS_HEADERS, "content-type": "text/plain; charset=utf-8" },
 		});
 	} catch (err) {
 		console.error("[error]", err);
 		return new Response(`Error: ${err.message}`, {
 			status: 500,
-			headers: {
-				...CORS_HEADERS,
-				"content-type": "text/plain; charset=utf-8",
-			},
+			headers: { ...CORS_HEADERS, "content-type": "text/plain; charset=utf-8" },
 		});
 	}
 });
