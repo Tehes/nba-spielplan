@@ -98,21 +98,18 @@ ar          away record                 String                  "11-9"
 /* --------------------------------------------------------------------------------------------------
 Variables
 ---------------------------------------------------------------------------------------------------*/
-const params = new URLSearchParams(document.location.search);
-
-const year = params.get("year") || "2025";
 const scheduleURL = "https://nba-spielplan.tehes.deno.net/schedule";
 /*
 if the above URL is not working, use this one:
 https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json
 */
-const standingsURL =
-	`https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/00_standings.json`;
+const standingsURL = "https://nba-spielplan.tehes.deno.net/standings";
 let schedule;
 let standings;
 let games = {};
-let conferences;
-let conferenceStandings;
+
+let eastData = [];
+let westData = [];
 
 let standingsEast;
 let standingsWest;
@@ -344,21 +341,31 @@ function renderStandings() {
 		standingsWest.querySelectorAll("tr:not(:first-of-type)"),
 	];
 
-	for (let i = 0; i < rows.length; i++) {
-		rows[i].forEach((row, index) => {
+	const dataByConf = [eastData, westData];
+
+	for (let confIdx = 0; confIdx < rows.length; confIdx++) {
+		const rowsForTable = rows[confIdx];
+		const data = dataByConf[confIdx];
+
+		rowsForTable.forEach((row, index) => {
+			const team = data[index];
+			if (!team) return;
+
 			const cells = row.querySelectorAll("td");
-			row.dataset.ta = conferenceStandings[i][index].ta;
-			cells[1].textContent = conferenceStandings[i][index].ta;
-			cells[2].textContent = `${conferenceStandings[i][index].w}-${
-				conferenceStandings[i][index].l
-			}`;
-			cells[3].textContent = conferenceStandings[i][index].gb;
-			cells[4].textContent = conferenceStandings[i][index].str;
-			cells[5].textContent = conferenceStandings[i][index].hr;
-			cells[6].textContent = conferenceStandings[i][index].ar;
-			// add seed 1 - 8 to playoff Teams
+			row.dataset.ta = team.teamTricode;
+			cells[1].textContent = team.teamTricode; // Name/abbr
+			cells[2].textContent = `${team.wins}-${team.losses}`; // W-L
+			cells[3].textContent = team.gb; // GB
+			cells[4].textContent = team.streak; // STR
+			cells[5].textContent = team.home; // Home
+			cells[6].textContent = team.away; // Away
+
+			// Seeds 1–6 are direct playoff teams
 			if (index < 6) {
-				playoffTeams[i].push(conferenceStandings[i][index]);
+				playoffTeams[confIdx].push({
+					ta: team.teamTricode,
+					tid: team.teamId,
+				});
 			}
 		});
 	}
@@ -415,21 +422,28 @@ function determinePlayInWinners() {
 	// Find the last regular season day
 	const lastRegularSeasonDay = findLastRegularSeasonGame();
 
-	// Filter all games after the last regular season day and exclude Playoff games (with seri)
+	// Filter all games after the last regular season day and exclude Playoff series games (seriesText present)
 	const playInGames = allGames
 		.filter(function (game) {
 			const gameDate = new Date(game.gameDateTimeUTC).toISOString().slice(0, 10);
 			const isAfterRegularSeason = new Date(gameDate) > new Date(lastRegularSeasonDay);
-			const isNotPlayoffGame = !game.seri; // Exclude playoff games
+			const isNotPlayoffGame = !game.seriesText; // exclude playoffs
 			return isAfterRegularSeason && isNotPlayoffGame;
 		})
-		.filter((game) => game && game.h && game.v); // Ensure valid games
+		.filter((game) => game && game.homeTeam && game.awayTeam);
+
 	// Not enough reliable Play-In data — abort safely
 	if (!playInGames || playInGames.length < 3) return;
 
-	// Play-In Teams (7-10) for East and West conferences
-	const eastPlayInTeams = conferenceStandings[0].slice(6, 10); // Seeds 7-10 in the East
-	const westPlayInTeams = conferenceStandings[1].slice(6, 10); // Seeds 7-10 in the West
+	// Play-In Teams (7-10) for East and West conferences from new standings data
+	const eastPlayInTeams = eastData.slice(6, 10).map((t) => ({
+		tid: t.teamId,
+		ta: t.teamTricode,
+	}));
+	const westPlayInTeams = westData.slice(6, 10).map((t) => ({
+		tid: t.teamId,
+		ta: t.teamTricode,
+	}));
 
 	function getWinner(game) {
 		if (!game || !game.homeTeam || !game.awayTeam) return null;
@@ -452,7 +466,7 @@ function determinePlayInWinners() {
 		if (!winnerGame1) return;
 		const loserGame1 = winnerGame1.tid === seed7.tid ? seed8 : seed7;
 
-		// Game 2: Seed 9 (home) vs Seed 10 → Loser is out, Winner plays next
+		// Game 2: Seed 9 (home) vs Seed 10 → Loser out, Winner advances
 		const game2 = playInGames.find((game) =>
 			game.homeTeam.teamId === seed9.tid && game.awayTeam.teamId === seed10.tid
 		);
@@ -471,8 +485,8 @@ function determinePlayInWinners() {
 	}
 
 	// Determine East and West Play-In winners
-	playInTournament(eastPlayInTeams, 0); // East is index 0 in playoffTeams
-	playInTournament(westPlayInTeams, 1); // West is index 1 in playoffTeams
+	playInTournament(eastPlayInTeams, 0); // East
+	playInTournament(westPlayInTeams, 1); // West
 }
 
 function playoffPicture() {
@@ -732,40 +746,36 @@ function handleScheduleData(json) {
 }
 
 function handleStandingsData(json) {
-	if (json && json.sta && json.sta.co) {
-		standings = json;
-		playoffTeams = [[], []];
+	if (!json || !Array.isArray(json.east) || !Array.isArray(json.west)) {
+		console.log("Standings data not available. Skipping standings rendering.");
+		return;
+	}
 
-		conferences = standings.sta.co
-			.filter((conference) => conference.val !== "Intl")
-			.map((conference) => conference.di.flatMap((division) => division.t));
+	standings = json;
+	playoffTeams = [[], []];
 
-		conferenceStandings = [
-			conferences[1].sort((a, b) => a.see - b.see),
-			conferences[0].sort((a, b) => a.see - b.see),
-		];
+	// Store new-format arrays directly
+	eastData = standings.east.slice(); // already sorted by your endpoint
+	westData = standings.west.slice();
 
-		standingsEast = document.querySelector("#east table");
-		standingsWest = document.querySelector("#west table");
-		renderStandings();
+	standingsEast = document.querySelector("#east table");
+	standingsWest = document.querySelector("#west table");
 
-		if (games.playoffs.length > 0) {
-			determinePlayInWinners();
-			const westCount = playoffTeams[0]?.length ?? 0;
-			const eastCount = playoffTeams[1]?.length ?? 0;
-			if (westCount >= 8 && eastCount >= 8) {
-				playoffPicture();
-			} else {
-				console.warn("Skipping playoffPicture: missing play-in winners", {
-					westCount,
-					eastCount,
-				});
-			}
+	renderStandings();
+
+	// If we already have playoff games, try to compute picture (requires seeded teams)
+	if (games.playoffs.length > 0) {
+		determinePlayInWinners();
+		const westCount = playoffTeams[0]?.length ?? 0;
+		const eastCount = playoffTeams[1]?.length ?? 0;
+		if (westCount >= 8 && eastCount >= 8) {
+			playoffPicture();
+		} else {
+			console.warn("Skipping playoffPicture: missing play-in winners", {
+				westCount,
+				eastCount,
+			});
 		}
-	} else {
-		console.log(
-			"Standings data not available. Skipping standings rendering.",
-		);
 	}
 }
 
