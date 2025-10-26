@@ -166,55 +166,39 @@ const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
 /* --------------------------------------------------------------------------------------------------
 functions
 ---------------------------------------------------------------------------------------------------*/
-// --- Adapter: map new scheduleLeagueV2 to legacy lscd/mscd.g shape (minimal fields only)
-function adaptSchedule(json) {
-	// If it already looks like legacy (has lscd), pass through unchanged
-	if (json && Array.isArray(json.lscd)) return json;
-
-	// New format detection: leagueSchedule.gameDates[].games[]
-	const ls = json && json.leagueSchedule;
-	if (!ls || !Array.isArray(ls.gameDates)) return json; // unknown shape → passthrough
-
-	return {
-		...json,
-		leagueSchedule: {
-			...ls,
-			gameDates: ls.gameDates.map((d) => ({
-				...d,
-				games: (d.games || []).map((g) => ({
-					...g,
-					gid: String(g.gameId ?? ""),
-					gcode: g.gameCode ?? "",
-					seri: g.seriesText ?? "",
-					v: {
-						tid: g.awayTeam?.teamId ?? 0,
-						ta: g.awayTeam?.teamTricode ?? "",
-						tn: g.awayTeam?.teamName ?? "",
-						tc: g.awayTeam?.teamCity ?? "",
-						re: `${g.awayTeam?.wins ?? 0}-${g.awayTeam?.losses ?? 0}`,
-						s: g.awayTeam?.score != null ? String(g.awayTeam.score) : "",
-					},
-					h: {
-						tid: g.homeTeam?.teamId ?? 0,
-						ta: g.homeTeam?.teamTricode ?? "",
-						tn: g.homeTeam?.teamName ?? "",
-						tc: g.homeTeam?.teamCity ?? "",
-						re: `${g.homeTeam?.wins ?? 0}-${g.homeTeam?.losses ?? 0}`,
-						s: g.homeTeam?.score != null ? String(g.homeTeam.score) : "",
-					},
-				})),
-			})),
-		},
-	};
-}
 
 function prepareGameData() {
 	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
 
 	allGames.forEach((game) => {
+		// Derive legacy convenience fields on the fly (adapter-free)
+		if (!game.v || !game.h) {
+			const away = game.awayTeam || {};
+			const home = game.homeTeam || {};
+			game.v = {
+				tid: away.teamId ?? 0,
+				ta: away.teamTricode ?? "",
+				tn: away.teamName ?? "",
+				tc: away.teamCity ?? "",
+				re: `${away.wins ?? 0}-${away.losses ?? 0}`,
+				s: away.score != null ? String(away.score) : "",
+			};
+			game.h = {
+				tid: home.teamId ?? 0,
+				ta: home.teamTricode ?? "",
+				tn: home.teamName ?? "",
+				tc: home.teamCity ?? "",
+				re: `${home.wins ?? 0}-${home.losses ?? 0}`,
+				s: home.score != null ? String(home.score) : "",
+			};
+		}
+		if (!game.gid) game.gid = String(game.gameId ?? "");
+		if (!game.gcode) game.gcode = game.gameCode ?? "";
+		if (game.seri === undefined) game.seri = game.seriesText ?? "";
+
 		game.localDate = new Date(game.gameDateTimeUTC);
 
-		if (!iso || Number.isNaN(game.localDate.getTime())) {
+		if (Number.isNaN(game.localDate.getTime())) {
 			game.date = "Noch offen";
 			game.time = "HH:MM";
 		} else {
@@ -767,7 +751,6 @@ function playoffPicture() {
 }
 
 function handleScheduleData(json) {
-	json = adaptSchedule(json);
 	if (json?.leagueSchedule?.gameDates?.length) {
 		schedule = json;
 
