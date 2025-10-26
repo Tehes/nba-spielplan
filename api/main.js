@@ -8,13 +8,13 @@ Deno.serve(async (req) => {
 	const PATH = pathNoSlash.toLowerCase();
 
 	// Helper: fetch & forward JSON from upstream with CORS (allows per-route header overrides)
-	async function fetchJsonWithCors(upstream, extraHeaders = {}) {
+	async function fetchJsonWithCors(upstream) {
 		const defaultHeaders = {
 			"User-Agent":
 				"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
 			"Accept": "application/json, text/plain, */*",
 		};
-		const res = await fetch(upstream, { headers: { ...defaultHeaders, ...extraHeaders } });
+		const res = await fetch(upstream, { headers: defaultHeaders });
 		const headers = new Headers(res.headers);
 		headers.set("Access-Control-Allow-Origin", "*");
 		if (!headers.has("content-type")) {
@@ -176,21 +176,17 @@ Deno.serve(async (req) => {
 
 	// --- Route table ---
 	const routes = {
-		"/schedule": {
-			url: "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
-		},
-		"/scoreboard": {
-			url: "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
-		},
-		// stats.nba.com requires NBA-site headers; otherwise returns Access Denied
-		"/playoffbracket": {
-			url: "https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=2024&State=2",
-		},
+		"/schedule": "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
+		"/scoreboard":
+			"https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
+		"/playoffbracket":
+			"https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=2024&State=2",
 	};
+
 	try {
 		// --- /standings: construct from schedule ---
 		if (PATH === "/standings") {
-			const r = await fetch(routes["/schedule"].url, {
+			const r = await fetch(routes["/schedule"], {
 				headers: {
 					"User-Agent":
 						"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
@@ -212,11 +208,10 @@ Deno.serve(async (req) => {
 			});
 		}
 
-		const routeDef = routes[PATH];
-		if (routeDef) {
-			const { url: upstream, headers: extraHeaders = {} } = routeDef;
+		const upstream = routes[PATH];
+		if (upstream) {
 			console.log("[proxy]", PATH, "->", upstream);
-			return fetchJsonWithCors(upstream, extraHeaders);
+			return fetchJsonWithCors(upstream);
 		}
 
 		return new Response("Not Found", {
