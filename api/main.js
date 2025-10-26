@@ -57,13 +57,10 @@ Deno.serve(async (req) => {
 		const dates = scheduleJson?.leagueSchedule?.gameDates ?? [];
 		const games = dates.flatMap((d) => d.games ?? []);
 
-		// Completed regular-season games only
-		const done = games
-			.filter((g) => g?.gameStatus === 3 && g?.gameLabel !== "Preseason")
-			.sort((a, b) => new Date(a.gameDateTimeUTC) - new Date(b.gameDateTimeUTC));
-
+		// Seed all teams from the full schedule (incl. preseason) so 0–0 teams appear at season start
 		const team = new Map();
 		const ensure = (t) => {
+			if (!t || !t.teamId) return null;
 			if (!team.has(t.teamId)) {
 				team.set(t.teamId, {
 					teamId: t.teamId,
@@ -82,6 +79,16 @@ Deno.serve(async (req) => {
 			}
 			return team.get(t.teamId);
 		};
+
+		for (const g of games) {
+			if (g?.homeTeam) ensure(g.homeTeam);
+			if (g?.awayTeam) ensure(g.awayTeam);
+		}
+
+		// Completed regular-season games only
+		const done = games
+			.filter((g) => g?.gameStatus === 3 && g?.gameLabel !== "Preseason")
+			.sort((a, b) => new Date(a.gameDateTimeUTC) - new Date(b.gameDateTimeUTC));
 
 		for (const g of done) {
 			const home = ensure(g.homeTeam);
