@@ -176,8 +176,41 @@ Deno.serve(async (req) => {
 			"https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
 	};
 
+	function bracketURL({ season, state = "2" }) {
+		const y = String(season).trim();
+		return `https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=${
+			encodeURIComponent(y)
+		}&State=${encodeURIComponent(state)}`;
+	}
+
 	try {
 		if (url.pathname === "/standings") {
+			if (url.pathname === "/playoffbracket") {
+				const season = url.searchParams.get("season") ||
+					new Date().getUTCFullYear().toString();
+				const state = url.searchParams.get("state") || "2"; // 2 = finished/official bracket snapshot
+				const upstream = bracketURL({ season, state });
+
+				const r = await fetch(upstream, {
+					headers: {
+						"User-Agent":
+							"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+						"Accept": "application/json, text/plain, */*",
+						"Origin": "https://www.nba.com",
+						"Referer": "https://www.nba.com/",
+					},
+				});
+				if (!r.ok) return new Response(`Upstream error: ${r.status}`, { status: 502 });
+				const headers = new Headers(r.headers);
+				headers.set("Access-Control-Allow-Origin", "*");
+				if (!headers.has("content-type")) {
+					headers.set("content-type", "application/json; charset=utf-8");
+				}
+				return new Response(r.body, {
+					status: r.status,
+					headers,
+				});
+			}
 			// Build from schedule
 			const r = await fetch(routes["/schedule"], {
 				headers: {
