@@ -38,72 +38,78 @@ async function fetchData(url, updateFunction, forceNetwork = false) {
 }
 
 /* --------------------------------------------------------------------------------------
-New API (scheduleLeagueV2)
+/schedule endpoint
 --------------------------------------------------------------------------------------
 leagueSchedule       Root object
-  gameDates[]        Array of dates; each has `games[]`
-    games[]          Array of games with rich fields
-      gameId         String            e.g. "0022500095"
-      gameCode       String            e.g. "20251024/SASNOP"
-      gameStatus     Number            1 = Scheduled, 2 = Live, 3 = Final, 4 = Postponed
-      gameStatusText String            e.g. "Final", "Final/OT", "3rd Qtr"
-      gameDateTimeUTC ISO 8601 UTC     e.g. "2025-10-25T00:00:00Z"
-      arenaName      String            e.g. "Smoothie King Center"
-      arenaCity      String            e.g. "New Orleans"
-      arenaState     String            e.g. "LA"
+  gameDates[]        	Array of dates; each has `games[]`
+    games[]          	Array of games with rich fields
+      gameId         	String            e.g. "0022500095"
+      gameCode       	String            e.g. "20251024/SASNOP"
+      gameStatus     	Number            1 = Scheduled, 2 = Live, 3 = Final, 4 = Postponed
+      gameStatusText 	String            e.g. "Final", "Final/OT", "3rd Qtr"
+      gameDateTimeUTC	ISO 8601 UTC     e.g. "2025-10-25T00:00:00Z"
+      arenaName      	String            e.g. "Smoothie King Center"
+      arenaCity      	String            e.g. "New Orleans"
+      arenaState     	String            e.g. "LA"
 
-      homeTeam       Object
-        teamId       Number            e.g. 1610612740
-        teamCity     String            e.g. "New Orleans"
-        teamName     String            e.g. "Pelicans"
-        teamTricode  String            e.g. "NOP"
-        wins         Number            current wins (pre/post game)
-        losses       Number            current losses
-        score        Number            final/live score (may be 0 or missing if not started)
+      homeTeam       	Object
+        teamId       	Number            e.g. 1610612740
+        teamCity     	String            e.g. "New Orleans"
+        teamName     	String            e.g. "Pelicans"
+        teamTricode  	String            e.g. "NOP"
+        wins         	Number            current wins (pre/post game)
+        losses       	Number            current losses
+        score        	Number            final/live score (may be 0 or missing if not started)
 
-      awayTeam       Object
-        teamId       Number            e.g. 1610612759
-        teamCity     String            e.g. "San Antonio"
-        teamName     String            e.g. "Spurs"
-        teamTricode  String            e.g. "SAS"
-        wins         Number
-        losses       Number
-        score        Number
+      awayTeam       	Object
+        teamId       	Number            e.g. 1610612759
+        teamCity     	String            e.g. "San Antonio"
+        teamName     	String            e.g. "Spurs"
+        teamTricode  	String            e.g. "SAS"
+        wins         	Number
+        losses       	Number
+        score        	Number
 
-      broadcasters   Object            nested lists (natl/home/away tv/radio/ott)
-      seriesText     String            e.g. "Neutral Site", ""
-      gameLabel      String            e.g. "Preseason"
-      gameSubLabel   String            e.g. "NBA Abu Dhabi Game"
+      broadcasters   	Object            nested lists (natl/home/away tv/radio/ott)
+      seriesText     	String            e.g. "Neutral Site", ""
+      gameLabel      	String            e.g. "Preseason"
+      gameSubLabel   	String            e.g. "NBA Abu Dhabi Game"
 -------------------------------------------------------------------------------------- */
 
 /* --------------------------------------------------------------------------------------
-tid         team ID                     Integer                 1610612738
-see         seed                        Integer                 1
-w           wins                        Integer                 29
-l           losses                      Integer                 9
-gb          games behind                Integer                 0.000
-gbd         games behind division       Integer                 0.000
-gbl         games behind league         Integer                 0.00000
-tc          team city                   String                  "Boston"
-tn          team name                   String                  "Celtics"
-ta          team abbreviation           String                  "BOS"
-str         streak                      String                  "L 1"
-l10         last 10 games               String                  "7-3"
-dr          division record             String                  "10-1"
-cr          conference record           String                  "22-6"
-hr          home record                 String                  "18-0"
-ar          away record                 String                  "11-9"
+/standings endpoint
+--------------------------------------------------------------------------------------
+Root Object
+  season       Season identifier               String      "2025-26"
+  updatedAt    Timestamp (ISO)                 String      "2025-10-26T13:43:40.638Z"
+  east[]       Eastern Conference teams        Array
+  west[]       Western Conference teams        Array
+
+Team Object (element within east[] / west[])
+  teamId       Team ID                         Number      1610612741
+  teamTricode  Abbreviation                    String      "CHI"
+  teamCity     City                            String      "Chicago"
+  teamName     Team name                       String      "Bulls"
+  wins         Wins                            Number      2
+  losses       Losses                          Number      0
+  winPct       Win percentage                  Number      1
+  gb           Games behind                    Number      0 | 1 | 1.5 | …
+  streak       Current streak                  String      "W 2" | "L 1"
+  home         Home record                     String      "1-0"
+  away         Away record                     String      "1-0"
+
+Notes
+- The arrays `east` and `west` are already sorted in order (1 → n).
+- Seeds are implicitly defined by array position (index + 1).
+- Preseason games are already excluded from these standings (calculated from schedule data).
 -------------------------------------------------------------------------------------- */
 
 /* --------------------------------------------------------------------------------------------------
 Variables
 ---------------------------------------------------------------------------------------------------*/
 const scheduleURL = "https://nba-spielplan.tehes.deno.net/schedule";
-/*
-if the above URL is not working, use this one:
-https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/${year}/league/00_full_schedule.json
-*/
 const standingsURL = "https://nba-spielplan.tehes.deno.net/standings";
+
 let schedule;
 let standings;
 let games = {};
@@ -930,7 +936,7 @@ globalThis.app.init();
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
 const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
-const serviceWorkerVersion = "2025-10-05-v1"; // Increment this version to force browsers to fetch a new service-worker.js
+const serviceWorkerVersion = "2025-10-26-v1"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {
 	try {
