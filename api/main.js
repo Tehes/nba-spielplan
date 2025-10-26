@@ -1,6 +1,12 @@
 Deno.serve(async (req) => {
 	const url = new URL(req.url);
 
+	// Normalize path: lowercase and strip trailing slash (except root) so
+	// /playoffbracket, /playoffbracket/, /PlayoffBracket all resolve the same.
+	const rawPath = url.pathname;
+	const pathNoSlash = (rawPath.endsWith("/") && rawPath !== "/") ? rawPath.slice(0, -1) : rawPath;
+	const PATH = pathNoSlash.toLowerCase();
+
 	// Helper: fetch & forward JSON from upstream with CORS
 	async function fetchJsonWithCors(upstream) {
 		const res = await fetch(upstream, {
@@ -185,7 +191,7 @@ Deno.serve(async (req) => {
 
 	try {
 		// --- /playoffbracket: proxy stats.nba.com with required headers ---
-		if (url.pathname === "/playoffbracket") {
+		if (PATH === "/playoffbracket") {
 			const season = url.searchParams.get("season") || new Date().getUTCFullYear().toString();
 			const state = url.searchParams.get("state") || "2"; // 2 = finished/official bracket snapshot
 			const upstream = bracketURL({ season, state });
@@ -205,6 +211,7 @@ Deno.serve(async (req) => {
 			if (!headers.has("content-type")) {
 				headers.set("content-type", "application/json; charset=utf-8");
 			}
+			console.log("[/playoffbracket] proxied", upstream, "->", r.status);
 			return new Response(r.body, {
 				status: r.status,
 				headers,
@@ -212,7 +219,7 @@ Deno.serve(async (req) => {
 		}
 
 		// --- /standings: construct from schedule ---
-		if (url.pathname === "/standings") {
+		if (PATH === "/standings") {
 			const r = await fetch(routes["/schedule"], {
 				headers: {
 					"User-Agent":
@@ -224,6 +231,7 @@ Deno.serve(async (req) => {
 			if (!r.ok) return new Response(`Upstream error: ${r.status}`, { status: 502 });
 			const data = await r.json();
 			const payload = buildStandingsFromSchedule(data);
+			console.log("[/standings] built standings for season", payload.season);
 			return new Response(JSON.stringify(payload), {
 				status: 200,
 				headers: {
@@ -234,8 +242,11 @@ Deno.serve(async (req) => {
 			});
 		}
 
-		const upstream = routes[url.pathname];
-		if (upstream) return fetchJsonWithCors(upstream);
+		const upstream = routes[PATH];
+		if (upstream) {
+			console.log("[proxy]", PATH, "->", upstream);
+			return fetchJsonWithCors(upstream);
+		}
 
 		return new Response("Not Found", {
 			status: 404,
