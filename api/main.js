@@ -1,15 +1,72 @@
+const TEAM_CONF = {
+	ATL: "East",
+	BOS: "East",
+	BKN: "East",
+	CHA: "East",
+	CHI: "East",
+	CLE: "East",
+	DAL: "West",
+	DEN: "West",
+	DET: "East",
+	GSW: "West",
+	HOU: "West",
+	IND: "East",
+	LAC: "West",
+	LAL: "West",
+	MEM: "West",
+	MIA: "East",
+	MIL: "East",
+	MIN: "West",
+	NOP: "West",
+	NYK: "East",
+	OKC: "West",
+	ORL: "East",
+	PHI: "East",
+	PHX: "West",
+	POR: "West",
+	SAC: "West",
+	SAS: "West",
+	TOR: "East",
+	UTA: "West",
+	WAS: "East",
+};
+
 Deno.serve(async (req) => {
 	const url = new URL(req.url);
 	const PATH = url.pathname;
 
-	// Helper: fetch & forward JSON from upstream with CORS (allows per-route header overrides)
+	// Helper: fetch schedule data
+	async function fetchSchedule() {
+		const res = await fetch(
+			"https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
+			{
+				headers: {
+					"User-Agent":
+						"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+					"Accept": "application/json, text/plain, */*",
+				},
+			},
+		);
+		if (!res.ok) throw new Error(`Upstream error: ${res.status}`);
+		return res.json();
+	}
+
+	// Helper: extract season year from schedule
+	async function getSeasonYear() {
+		const data = await fetchSchedule();
+		const seasonString = data?.leagueSchedule?.seasonYear || "2025-26";
+		return seasonString.split("-")[0];
+	}
+
+	// Helper: fetch & forward JSON from upstream with CORS
 	async function fetchJsonWithCors(upstream) {
-		const defaultHeaders = {
-			"User-Agent":
-				"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-			"Accept": "application/json, text/plain, */*",
-		};
-		const res = await fetch(upstream, { headers: defaultHeaders });
+		const res = await fetch(upstream, {
+			headers: {
+				"User-Agent":
+					"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+				"Accept": "application/json, text/plain, */*",
+			},
+		});
 		const headers = new Headers(res.headers);
 		headers.set("Access-Control-Allow-Origin", "*");
 		if (!headers.has("content-type")) {
@@ -17,39 +74,6 @@ Deno.serve(async (req) => {
 		}
 		return new Response(res.body, { status: res.status, headers });
 	}
-
-	const TEAM_CONF = {
-		ATL: "East",
-		BOS: "East",
-		BKN: "East",
-		CHA: "East",
-		CHI: "East",
-		CLE: "East",
-		DAL: "West",
-		DEN: "West",
-		DET: "East",
-		GSW: "West",
-		HOU: "West",
-		IND: "East",
-		LAC: "West",
-		LAL: "West",
-		MEM: "West",
-		MIA: "East",
-		MIL: "East",
-		MIN: "West",
-		NOP: "West",
-		NYK: "East",
-		OKC: "West",
-		ORL: "East",
-		PHI: "East",
-		PHX: "West",
-		POR: "West",
-		SAC: "West",
-		SAS: "West",
-		TOR: "East",
-		UTA: "West",
-		WAS: "East",
-	};
 
 	function buildStandingsFromSchedule(scheduleJson) {
 		const season = scheduleJson?.meta?.seasonYear || scheduleJson?.leagueSchedule?.seasonYear ||
@@ -169,28 +193,18 @@ Deno.serve(async (req) => {
 		};
 	}
 
-	// --- Route table ---
-	const routes = {
-		"/schedule": "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
-		"/scoreboard":
-			"https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
-		"/playoffbracket":
-			"https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=2024&State=2",
-	};
-
 	try {
+		// --- /schedule: fetch and proxy with CORS ---
+		if (PATH === "/schedule") {
+			console.log("[/schedule] proxying schedule");
+			return fetchJsonWithCors(
+				"https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
+			);
+		}
+
 		// --- /standings: construct from schedule ---
 		if (PATH === "/standings") {
-			const r = await fetch(routes["/schedule"], {
-				headers: {
-					"User-Agent":
-						"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-					"Accept": "application/json, text/plain, */*",
-					// "Accept-Encoding": "identity", // uncomment if CDN/H2 acts up
-				},
-			});
-			if (!r.ok) return new Response(`Upstream error: ${r.status}`, { status: 502 });
-			const data = await r.json();
+			const data = await fetchSchedule();
 			const payload = buildStandingsFromSchedule(data);
 			console.log("[/standings] built standings for season", payload.season);
 			return new Response(JSON.stringify(payload), {
@@ -203,10 +217,21 @@ Deno.serve(async (req) => {
 			});
 		}
 
-		const upstream = routes[PATH];
-		if (upstream) {
-			console.log("[proxy]", PATH, "->", upstream);
-			return fetchJsonWithCors(upstream);
+		// --- /playoffbracket: fetch with current season year ---
+		if (PATH === "/playoffbracket") {
+			const year = await getSeasonYear();
+			const playoffUrl =
+				`https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=${year}&State=2`;
+			console.log("[/playoffbracket] ->", playoffUrl);
+			return fetchJsonWithCors(playoffUrl);
+		}
+
+		// --- /scoreboard: proxy with CORS ---
+		if (PATH === "/scoreboard") {
+			console.log("[/scoreboard] proxying scoreboard");
+			return fetchJsonWithCors(
+				"https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
+			);
 		}
 
 		return new Response("Not Found", {
@@ -217,6 +242,7 @@ Deno.serve(async (req) => {
 			},
 		});
 	} catch (err) {
+		console.error("[error]", err);
 		return new Response(`Error: ${err?.message || String(err)}`, {
 			status: 500,
 			headers: {
