@@ -110,6 +110,10 @@ Variables
 const scheduleURL = "https://nba-spielplan.tehes.deno.net/schedule";
 const standingsURL = "https://nba-spielplan.tehes.deno.net/standings";
 
+const liveURL = "https://nba-spielplan.tehes.deno.net/scoreboard";
+let liveById = new Map();
+let livePoll = null;
+
 let schedule;
 let standings;
 let games = {};
@@ -143,8 +147,45 @@ const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
 functions
 ---------------------------------------------------------------------------------------------------*/
 
+/* --------------------------------------------------------------------------------------------------
+Live Scoreboard Functions
+---------------------------------------------------------------------------------------------------*/
+
+function periodLabel(p) {
+	if (!p) return "";
+	if (p <= 4) return `Q${p}`;
+	return `OT${p - 4}`;
+}
+
+function updateLive(liveJson) {
+	const arr = liveJson?.scoreboard?.games ?? [];
+	liveById = new Map(arr.map((g) => [g.gameId, g]));
+	renderTodaysGames();
+}
+
+function fetchLiveOnce() {
+	fetchData(liveURL, updateLive, true);
+}
+
+function startLivePolling() {
+	if (!livePoll) {
+		console.log("Starting live polling...");
+		fetchLiveOnce();
+		livePoll = setInterval(fetchLiveOnce, 30000); // 30 Sekunden
+	}
+}
+
+function stopLivePolling() {
+	if (livePoll) {
+		console.log("Stopping live polling");
+		clearInterval(livePoll);
+		livePoll = null;
+	}
+}
+
 function prepareGameData() {
 	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
+	const now = new Date();
 
 	allGames.forEach((game) => {
 		game.localDate = new Date(game.gameDateTimeUTC);
@@ -165,16 +206,25 @@ function prepareGameData() {
 			});
 		}
 
-		// IF GAME IS TODAY NO MATTER IF FINISHED OR NOT
+		// Treat cross‑midnight live games as "today"
+		const isLiveWindow = now >= game.localDate &&
+			now < new Date(game.localDate.getTime() + GAME_MAX_DURATION_MS) &&
+			game.gameStatus !== 3 && // not final
+			game.gameStatus !== 4; // not postponed
+
+		// IF GAME IS TODAY OR CURRENTLY LIVE (even if started yesterday), push to today
 		if (
-			today.toLocaleDateString("de-DE") ==
-				game.localDate.toLocaleDateString("de-DE") && game.gameStatus !== 4 /* postponed */
+			isLiveWindow ||
+			(
+				today.toLocaleDateString("de-DE") === game.localDate.toLocaleDateString("de-DE") &&
+				game.gameStatus !== 4 /* postponed */
+			)
 		) {
 			games.today.push(game);
 		} // IF GAME STATUS IS FINISHED
 		else if (game.gameStatus === 3) {
 			games.finished.push(game);
-		} // GAME IS SCHEDULED
+		} // GAME IS SCHEDULED (future tipoff)
 		else if (
 			game.localDate.toLocaleDateString("de-DE") >
 				today.toLocaleDateString("de-DE")
@@ -223,10 +273,13 @@ function setProgressBar() {
 
 function renderTodaysGames() {
 	todayEl.replaceChildren();
+	let hasLive = false;
+
 	if (games.today.length > 0) {
 		games.today.forEach((g) => {
 			const clone = templateToday.content.cloneNode(true);
-			clone.querySelector(".card").dataset.gameCode = g.gameCode;
+			const card = clone.querySelector(".card");
+			card.dataset.gameCode = g.gameCode;
 
 			const homeTeam = clone.querySelector(".home-team");
 			const visitingTeam = clone.querySelector(".visiting-team");
@@ -239,6 +292,7 @@ function renderTodaysGames() {
 			const homeName = clone.querySelector(".h-name");
 			const visitingName = clone.querySelector(".v-name");
 			const date = clone.querySelector(".date");
+
 			const now = new Date();
 
 			homeTeam.style.setProperty("--team-color", `var(--${g.homeTeam.teamTricode})`);
@@ -255,22 +309,44 @@ function renderTodaysGames() {
 			homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
 			visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 
+			const isLiveWindow = now >= g.localDate &&
+				now < new Date(g.localDate.getTime() + GAME_MAX_DURATION_MS);
+
 			if (g.gameStatus === 3) {
+				// FINAL
 				date.textContent = `${(g.awayTeam.score ?? "")} : ${(g.homeTeam.score ?? "")}`;
-			} else if (
-				now >= g.localDate &&
-				now < new Date(g.localDate.getTime() + GAME_MAX_DURATION_MS)
-			) {
+			} else if (isLiveWindow) {
+				hasLive = true;
+
+				// Basis: LIVE-Link
 				const link = document.createElement("a");
 				link.href =
 					`https://www.nba.com/game/${g.awayTeam.teamTricode}-vs-${g.homeTeam.teamTricode}-${g.gameId}/play-by-play`;
 				link.textContent = "LIVE";
 				link.target = "_blank";
-
-				// ensure we don't accumulate multiple links/text nodes
 				date.appendChild(link);
 				date.classList.add("live");
+
+				// Overlay: Scoreboard-Daten wenn vorhanden
+				const live = liveById.get(g.gameId);
+				if (live) {
+					const a = live.awayTeam?.score;
+					const h = live.homeTeam?.score;
+
+					if (live.gameStatus === 2) {
+						// Noch live
+						link.textContent = live.gameStatusText || "LIVE";
+						if (Number.isFinite(a) && Number.isFinite(h)) {
+							link.textContent = `${a} : ${h}`;
+						}
+					} else if (live.gameStatus === 3) {
+						// Gerade beendet
+						date.classList.remove("live");
+						date.textContent = `${a ?? ""} : ${h ?? ""}`;
+					}
+				}
 			} else {
+				// SCHEDULED
 				date.classList.remove("live");
 				date.textContent = `${g.time}`;
 				date.dataset.gameCode = g.gameCode;
@@ -280,6 +356,13 @@ function renderTodaysGames() {
 		});
 	} else {
 		todayEl.innerHTML = "Heute finden keine Spiele statt.";
+	}
+
+	// Polling zentral steuern
+	if (hasLive) {
+		startLivePolling();
+	} else {
+		stopLivePolling();
 	}
 }
 
@@ -935,7 +1018,7 @@ globalThis.app.init();
 /* --------------------------------------------------------------------------------------------------
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
-const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
+const useServiceWorker = false; // Set to "true" if you want to register the Service Worker, "false" to unregister
 const serviceWorkerVersion = "2025-10-26-v1"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {
