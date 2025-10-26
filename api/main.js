@@ -7,15 +7,14 @@ Deno.serve(async (req) => {
 	const pathNoSlash = (rawPath.endsWith("/") && rawPath !== "/") ? rawPath.slice(0, -1) : rawPath;
 	const PATH = pathNoSlash.toLowerCase();
 
-	// Helper: fetch & forward JSON from upstream with CORS
-	async function fetchJsonWithCors(upstream) {
-		const res = await fetch(upstream, {
-			headers: {
-				"User-Agent":
-					"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-				"Accept": "application/json, text/plain, */*",
-			},
-		});
+	// Helper: fetch & forward JSON from upstream with CORS (allows per-route header overrides)
+	async function fetchJsonWithCors(upstream, extraHeaders = {}) {
+		const defaultHeaders = {
+			"User-Agent":
+				"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+			"Accept": "application/json, text/plain, */*",
+		};
+		const res = await fetch(upstream, { headers: { ...defaultHeaders, ...extraHeaders } });
 		const headers = new Headers(res.headers);
 		headers.set("Access-Control-Allow-Origin", "*");
 		if (!headers.has("content-type")) {
@@ -177,50 +176,21 @@ Deno.serve(async (req) => {
 
 	// --- Route table ---
 	const routes = {
-		"/schedule": "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
-		"/scoreboard":
-			"https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
+		"/schedule": {
+			url: "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
+		},
+		"/scoreboard": {
+			url: "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
+		},
+		// stats.nba.com requires NBA-site headers; otherwise returns Access Denied
+		"/playoffbracket": {
+			url: "https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=2024&State=2",
+		},
 	};
-
-	function bracketURL({ season, state = "2" }) {
-		const y = String(season).trim();
-		return `https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=${
-			encodeURIComponent(y)
-		}&State=${encodeURIComponent(state)}`;
-	}
-
 	try {
-		// --- /playoffbracket: proxy stats.nba.com with required headers ---
-		if (PATH === "/playoffbracket") {
-			const season = url.searchParams.get("season") || new Date().getUTCFullYear().toString();
-			const state = url.searchParams.get("state") || "2"; // 2 = finished/official bracket snapshot
-			const upstream = bracketURL({ season, state });
-
-			const r = await fetch(upstream, {
-				headers: {
-					"User-Agent":
-						"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-					"Accept": "application/json, text/plain, */*",
-					"Origin": "https://www.nba.com",
-					"Referer": "https://www.nba.com/",
-				},
-			});
-			if (!r.ok) return new Response(`Upstream error: ${r.status}`, { status: 502 });
-			const headers = new Headers(r.headers);
-			headers.set("Access-Control-Allow-Origin", "*");
-			if (!headers.has("content-type")) {
-				headers.set("content-type", "application/json; charset=utf-8");
-			}
-			console.log("[/playoffbracket] proxied", upstream, "->", r.status);
-			return new Response(r.body, {
-				status: r.status,
-				headers,
-			});
-		}
-
 		// --- /standings: construct from schedule ---
 		if (PATH === "/standings") {
-			const r = await fetch(routes["/schedule"], {
+			const r = await fetch(routes["/schedule"].url, {
 				headers: {
 					"User-Agent":
 						"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
@@ -242,10 +212,11 @@ Deno.serve(async (req) => {
 			});
 		}
 
-		const upstream = routes[PATH];
-		if (upstream) {
+		const routeDef = routes[PATH];
+		if (routeDef) {
+			const { url: upstream, headers: extraHeaders = {} } = routeDef;
 			console.log("[proxy]", PATH, "->", upstream);
-			return fetchJsonWithCors(upstream);
+			return fetchJsonWithCors(upstream, extraHeaders);
 		}
 
 		return new Response("Not Found", {
