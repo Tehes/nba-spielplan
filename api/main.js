@@ -1,11 +1,6 @@
 Deno.serve(async (req) => {
 	const url = new URL(req.url);
-
-	// Normalize path: lowercase and strip trailing slash (except root) so
-	// /playoffbracket, /playoffbracket/, /PlayoffBracket all resolve the same.
-	const rawPath = url.pathname;
-	const pathNoSlash = (rawPath.endsWith("/") && rawPath !== "/") ? rawPath.slice(0, -1) : rawPath;
-	const PATH = pathNoSlash.toLowerCase();
+	const PATH = url.pathname;
 
 	// Helper: fetch & forward JSON from upstream with CORS (allows per-route header overrides)
 	async function fetchJsonWithCors(upstream) {
