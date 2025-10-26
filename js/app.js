@@ -72,7 +72,7 @@ leagueSchedule       Root object
 
       broadcasters   Object            nested lists (natl/home/away tv/radio/ott)
       seriesText     String            e.g. "Neutral Site", ""
-      gameLabel      String            e.g. "Preseason", "Regular Season"
+      gameLabel      String            e.g. "Preseason"
       gameSubLabel   String            e.g. "NBA Abu Dhabi Game"
 -------------------------------------------------------------------------------------- */
 
