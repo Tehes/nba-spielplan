@@ -130,7 +130,11 @@ function buildStandingsFromSchedule(scheduleJson) {
 	}
 
 	const done = games
-		.filter((g) => g?.gameStatus === 3 && g?.gameLabel !== "Preseason")
+		.filter((g) =>
+			g?.gameStatus === 3 &&
+			g?.gameLabel !== "Preseason" &&
+			!(g?.gameLabel === "Emirates NBA Cup" && g?.isNeutral === true)
+		)
 		.sort((a, b) => new Date(a.gameDateTimeUTC) - new Date(b.gameDateTimeUTC));
 
 	for (const g of done) {
