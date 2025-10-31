@@ -142,6 +142,7 @@ const teamPicker = document.querySelector("select");
 const checkboxHidePastGames = document.querySelectorAll("input[type='checkbox']")[0];
 const checkboxPrimetime = document.querySelectorAll("input[type='checkbox']")[1];
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
+const TOTAL_REGULAR_SEASON_GAMES = 1230;
 
 /* --------------------------------------------------------------------------------------------------
 functions
@@ -244,29 +245,17 @@ function prepareGameData() {
 }
 
 function setProgressBar() {
-	// Exclude Preseason from progress
-	const todayGames = games.today.filter((g) => g.gameLabel !== "Preseason");
-	const finishedGames = games.finished.filter((g) => g.gameLabel !== "Preseason");
-	const scheduledGames = games.scheduled.filter((g) => g.gameLabel !== "Preseason");
+	const notPre = (g) => g.gameLabel !== "Preseason";
 
-	const totalToday = Math.max(0, todayGames.length - 1);
-	const totalFinished = Math.max(0, finishedGames.length - 1);
-	const totalScheduled = Math.max(0, scheduledGames.length - 1);
-	const AllGames = totalToday + totalFinished + totalScheduled;
+	const done = (games.finished?.filter(notPre).filter((g) => g.gameStatus === 3).length ?? 0) +
+		(games.today?.filter(notPre).filter((g) => g.gameStatus === 3).length ?? 0);
 
-	let progress = Math.max(0, finishedGames.length - 1);
+	const pct = Math.floor((done * 100) / TOTAL_REGULAR_SEASON_GAMES);
 
-	todayGames.forEach((g) => {
-		if (g.gameStatus === 3) {
-			progress++;
-		}
-	});
+	progressValue.style.width = `${pct}%`;
+	progressValue.textContent = `${pct}%`;
 
-	const gamespercentage = AllGames > 0 ? Math.floor((progress * 100) / AllGames) : 0;
-	progressValue.style.width = `${gamespercentage}%`;
-	progressValue.textContent = `${gamespercentage}%`;
-
-	if (gamespercentage === 100) {
+	if (pct === 100) {
 		checkboxHidePastGames.checked = false;
 	}
 }
@@ -1018,8 +1007,8 @@ globalThis.app.init();
 /* --------------------------------------------------------------------------------------------------
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
-const useServiceWorker = false; // Set to "true" if you want to register the Service Worker, "false" to unregister
-const serviceWorkerVersion = "2025-10-26-v1"; // Increment this version to force browsers to fetch a new service-worker.js
+const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
+const serviceWorkerVersion = "2025-10-31-v1"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {
 	try {
