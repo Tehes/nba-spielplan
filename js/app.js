@@ -136,7 +136,6 @@ const templateToday = document.querySelector("#template-today");
 const templateMore = document.querySelector("#template-more");
 const todayEl = document.querySelector("#today");
 const moreEl = document.querySelector("#more");
-const today = new Date();
 const progressValue = document.querySelector("#progress-value");
 const teamPicker = document.querySelector("select");
 const checkboxHidePastGames = document.querySelectorAll("input[type='checkbox']")[0];
@@ -185,63 +184,50 @@ function stopLivePolling() {
 }
 
 function prepareGameData() {
-	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
-	const now = new Date();
+  const allGames = schedule.leagueSchedule.gameDates.flatMap(d => d.games || []);
 
-	allGames.forEach((game) => {
-		game.localDate = new Date(game.gameDateTimeUTC);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-		if (Number.isNaN(game.localDate.getTime())) {
-			game.date = "Noch offen";
-			game.time = "HH:MM";
-		} else {
-			game.date = game.localDate.toLocaleDateString("de-DE", {
-				weekday: "short",
-				day: "2-digit",
-				month: "2-digit",
-				year: "numeric",
-			});
-			game.time = game.localDate.toLocaleTimeString("de-DE", {
-				hour: "2-digit",
-				minute: "2-digit",
-			});
-		}
+  allGames.forEach(game => {
+    game.localDate = new Date(game.gameDateTimeUTC);
 
-		// Treat cross‑midnight live games as "today"
-		const isLiveWindow = now >= game.localDate &&
-			now < new Date(game.localDate.getTime() + GAME_MAX_DURATION_MS) &&
-			game.gameStatus !== 3 && // not final
-			game.gameStatus !== 4; // not postponed
+    // Format date and time for display
+    if (Number.isNaN(game.localDate.getTime())) {
+      game.date = "Noch offen";
+      game.time = "HH:MM";
+    } else {
+      game.date = game.localDate.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+      game.time = game.localDate.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+    }
 
-		// IF GAME IS TODAY OR CURRENTLY LIVE (even if started yesterday), push to today
-		if (
-			isLiveWindow ||
-			(
-				today.toLocaleDateString("de-DE") === game.localDate.toLocaleDateString("de-DE") &&
-				game.gameStatus !== 4 /* postponed */
-			)
-		) {
-			games.today.push(game);
-		} // IF GAME STATUS IS FINISHED
-		else if (game.gameStatus === 3) {
-			games.finished.push(game);
-		} // GAME IS SCHEDULED (future tipoff)
-		else if (
-			game.localDate.toLocaleDateString("de-DE") >
-				today.toLocaleDateString("de-DE")
-		) {
-			games.scheduled.push(game);
-		}
+    const isPostponed = game.gameStatus === 4;
+    const isFinal = game.gameStatus === 3;
+    const isToday = game.localDate >= todayStart && game.localDate < tomorrowStart;
 
-		// add playoff games to its own array
-		if (game.gameStatus === 3 && game.seriesText !== "") {
-			games.playoffs.push(game);
-		}
-	});
+    const isLiveWindow =
+      now >= game.localDate &&
+      now < new Date(game.localDate.getTime() + GAME_MAX_DURATION_MS) &&
+      !isFinal && !isPostponed;
 
-	games.today.sort((a, b) => a.localDate - b.localDate);
-	games.finished.sort((a, b) => a.localDate - b.localDate);
-	games.scheduled.sort((a, b) => a.localDate - b.localDate);
+    if ((isToday && !isPostponed) || isLiveWindow) {
+      games.today.push(game);
+    } else if (isFinal) {
+      games.finished.push(game);
+    } else if (game.localDate >= tomorrowStart && !isPostponed) {
+      games.scheduled.push(game);
+    }
+
+    // Playoff games
+    if (isFinal && game.seriesText !== "") {
+      games.playoffs.push(game);
+    }
+  });
+
+  games.today.sort((a, b) => a.localDate - b.localDate);
+  games.finished.sort((a, b) => a.localDate - b.localDate);
+  games.scheduled.sort((a, b) => a.localDate - b.localDate);
 }
 
 function setProgressBar() {
@@ -1008,7 +994,7 @@ globalThis.app.init();
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
 const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
-const serviceWorkerVersion = "2025-10-31-v1"; // Increment this version to force browsers to fetch a new service-worker.js
+const serviceWorkerVersion = "2025-10-31-v2"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {
 	try {
