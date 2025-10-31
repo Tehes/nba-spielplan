@@ -554,15 +554,27 @@ MORE
 }
 
 #more :is(.home-team, .visiting-team) {
-    flex: 1 0 37.5%;
+    flex: 1 0 40%;
+    display: flex;
+    justify-content: left;
+    align-items: center;
 }
 
 #more .date {
-    flex: 0 0 25%;
+    flex: 0 0 20%;
 }
 
-#more .h-wl, #more .v-wl {
+#more .h-wl,
+#more .v-wl {
     opacity: 0.5;
+}
+
+#more .h-color, #more .v-color {
+    width: 4px;
+    height: 100%;
+    padding: 0;
+    margin-right: 8px;
+    background-color: var(--team-color, var(--neutral400));
 }
 
 #options {
@@ -924,16 +936,18 @@ MEDIA QUERIES
     .v-abbr {
         display: inline;
         font-size: clamp(1.2rem, 4vw, 1.5rem);
-        flex-grow: 1;
+    }
+
+    #more :is(.home-team, .visiting-team) {
+        flex: 1 0 35%;
+    }
+
+    #more .date {
+        flex: 0 0 30%;
     }
 }
 
 @media (max-width: 480px) {
-
-    #more :is(.home-team, .visiting-team) {
-        text-align: center;
-    }
-
     aside {
         flex-wrap: wrap;
     }

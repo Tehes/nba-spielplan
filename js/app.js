@@ -379,17 +379,21 @@ function renderMoreGames() {
 		const homeName = clone.querySelector(".h-name");
 		const visitingName = clone.querySelector(".v-name");
 		const homeWL = clone.querySelector(".h-wl");
+		const homeColor = clone.querySelector(".h-color");
 		const homeAbbr = clone.querySelector(".h-abbr");
 		const visitingAbbr = clone.querySelector(".v-abbr");
 		const visitingWL = clone.querySelector(".v-wl");
+		const visitingColor = clone.querySelector(".v-color");
 		const date = clone.querySelector(".date");
 
 		homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
 		visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
 		homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
 		homeAbbr.textContent = g.homeTeam.teamTricode;
+		homeColor.style.setProperty("--team-color", `var(--${g.homeTeam.teamTricode})`);
 		visitingAbbr.textContent = g.awayTeam.teamTricode;
 		visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
+		visitingColor.style.setProperty("--team-color", `var(--${g.awayTeam.teamTricode})`);
 		card.dataset.abbr = `${g.awayTeam.teamTricode}/${g.homeTeam.teamTricode}`;
 
 		if (g.gameStatus === 3) {
@@ -998,7 +1002,7 @@ globalThis.app.init();
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
 const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
-const serviceWorkerVersion = "2025-10-31-v3"; // Increment this version to force browsers to fetch a new service-worker.js
+const serviceWorkerVersion = "2025-10-31-v4"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {
 	try {
