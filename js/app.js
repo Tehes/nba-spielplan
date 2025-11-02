@@ -184,50 +184,57 @@ function stopLivePolling() {
 }
 
 function prepareGameData() {
-  const allGames = schedule.leagueSchedule.gameDates.flatMap(d => d.games || []);
+	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
 
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+	const now = new Date();
+	const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-  allGames.forEach(game => {
-    game.localDate = new Date(game.gameDateTimeUTC);
+	allGames.forEach((game) => {
+		game.localDate = new Date(game.gameDateTimeUTC);
 
-    // Format date and time for display
-    if (Number.isNaN(game.localDate.getTime())) {
-      game.date = "Noch offen";
-      game.time = "HH:MM";
-    } else {
-      game.date = game.localDate.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
-      game.time = game.localDate.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
-    }
+		// Format date and time for display
+		if (Number.isNaN(game.localDate.getTime())) {
+			game.date = "Noch offen";
+			game.time = "HH:MM";
+		} else {
+			game.date = game.localDate.toLocaleDateString("de-DE", {
+				weekday: "short",
+				day: "2-digit",
+				month: "2-digit",
+				year: "numeric",
+			});
+			game.time = game.localDate.toLocaleTimeString("de-DE", {
+				hour: "2-digit",
+				minute: "2-digit",
+			});
+		}
 
-    const isPostponed = game.gameStatus === 4;
-    const isFinal = game.gameStatus === 3;
-    const isToday = game.localDate >= todayStart && game.localDate < tomorrowStart;
+		const isPostponed = game.gameStatus === 4;
+		const isFinal = game.gameStatus === 3;
+		const isToday = game.localDate >= todayStart && game.localDate < tomorrowStart;
 
-    const isLiveWindow =
-      now >= game.localDate &&
-      now < new Date(game.localDate.getTime() + GAME_MAX_DURATION_MS) &&
-      !isFinal && !isPostponed;
+		const isLiveWindow = now >= game.localDate &&
+			now < new Date(game.localDate.getTime() + GAME_MAX_DURATION_MS) &&
+			!isFinal && !isPostponed;
 
-    if ((isToday && !isPostponed) || isLiveWindow) {
-      games.today.push(game);
-    } else if (isFinal) {
-      games.finished.push(game);
-    } else if (game.localDate >= tomorrowStart && !isPostponed) {
-      games.scheduled.push(game);
-    }
+		if ((isToday && !isPostponed) || isLiveWindow) {
+			games.today.push(game);
+		} else if (isFinal) {
+			games.finished.push(game);
+		} else if (game.localDate >= tomorrowStart && !isPostponed) {
+			games.scheduled.push(game);
+		}
 
-    // Playoff games
-    if (isFinal && game.seriesText !== "") {
-      games.playoffs.push(game);
-    }
-  });
+		// Playoff games
+		if (isFinal && game.seriesText !== "") {
+			games.playoffs.push(game);
+		}
+	});
 
-  games.today.sort((a, b) => a.localDate - b.localDate);
-  games.finished.sort((a, b) => a.localDate - b.localDate);
-  games.scheduled.sort((a, b) => a.localDate - b.localDate);
+	games.today.sort((a, b) => a.localDate - b.localDate);
+	games.finished.sort((a, b) => a.localDate - b.localDate);
+	games.scheduled.sort((a, b) => a.localDate - b.localDate);
 }
 
 function setProgressBar() {
@@ -267,6 +274,9 @@ function renderTodaysGames() {
 			const homeName = clone.querySelector(".h-name");
 			const visitingName = clone.querySelector(".v-name");
 			const date = clone.querySelector(".date");
+			const gameLabelEl = clone.querySelector(".game-label");
+			const label = g.gameLabel || g.gameSubtype || "";
+			const subLabel = g.gameSubLabel;
 
 			const now = new Date();
 
@@ -283,6 +293,10 @@ function renderTodaysGames() {
 			visitingAbbr.textContent = g.awayTeam.teamTricode;
 			homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
 			visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
+
+			gameLabelEl.textContent = label
+				? subLabel ? `${label} – ${subLabel}` : label
+				: subLabel;
 
 			const isLiveWindow = now >= g.localDate &&
 				now < new Date(g.localDate.getTime() + GAME_MAX_DURATION_MS);
@@ -385,6 +399,9 @@ function renderMoreGames() {
 		const visitingWL = clone.querySelector(".v-wl");
 		const visitingColor = clone.querySelector(".v-color");
 		const date = clone.querySelector(".date");
+		const gameLabelEl = clone.querySelector(".game-label");
+		const label = (g.gameLabel || "").trim();
+		const subLabel = (g.gameSubLabel || "").trim();
 
 		homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
 		visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
@@ -395,6 +412,7 @@ function renderMoreGames() {
 		visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 		visitingColor.style.setProperty("--team-color", `var(--${g.awayTeam.teamTricode})`);
 		card.dataset.abbr = `${g.awayTeam.teamTricode}/${g.homeTeam.teamTricode}`;
+		gameLabelEl.textContent = label ? subLabel ? `${label} – ${subLabel}` : label : subLabel;
 
 		if (g.gameStatus === 3) {
 			date.textContent = `${(g.awayTeam.score ?? "")} : ${(g.homeTeam.score ?? "")}`;
@@ -1001,7 +1019,7 @@ globalThis.app.init();
 /* --------------------------------------------------------------------------------------------------
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
-const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
+const useServiceWorker = false; // Set to "true" if you want to register the Service Worker, "false" to unregister
 const serviceWorkerVersion = "2025-10-31-v4"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {
