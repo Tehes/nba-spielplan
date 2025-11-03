@@ -431,7 +431,7 @@ function renderStandings() {
 		standingsWest.querySelectorAll("tr:not(:first-of-type)"),
 	];
 
-	const dataByConf = [eastData, westData];
+	const dataByConf = [westData, eastData];
 
 	for (let confIdx = 0; confIdx < rows.length; confIdx++) {
 		const rowsForTable = rows[confIdx];
