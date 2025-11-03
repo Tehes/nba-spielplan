@@ -71,8 +71,7 @@ html {
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
     margin: 0;
     padding: 0;
-    /* mobile viewport bug fix */
-    height: -webkit-fill-available;
+    min-height: 100dvh;
 }
 
 body {
@@ -82,14 +81,21 @@ body {
     padding: 0;
     color: var(--text-color);
     font-size: 100%;
-    min-height: 100vh;
-    /* mobile viewport bug fix */
-    min-height: -webkit-fill-available;
-    /* will switch to 100 dvh when browser support grows */
+    min-height: inherit;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
+}
+
+@supports not (height: 100dvh) {
+    html {
+        height: -webkit-fill-available;
+    }
+
+    body {
+        min-height: -webkit-fill-available;
+    }
 }
 
 body>div {
