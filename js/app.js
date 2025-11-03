@@ -142,6 +142,7 @@ const checkboxHidePastGames = document.querySelectorAll("input[type='checkbox']"
 const checkboxPrimetime = document.querySelectorAll("input[type='checkbox']")[1];
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
 const TOTAL_REGULAR_SEASON_GAMES = 1230;
+const AUTO_REFRESH_INTERVAL_MS = 1 * 60 * 1000; // 1 minute
 
 /* --------------------------------------------------------------------------------------------------
 functions
@@ -150,13 +151,6 @@ functions
 /* --------------------------------------------------------------------------------------------------
 Live Scoreboard Functions
 ---------------------------------------------------------------------------------------------------*/
-
-function periodLabel(p) {
-	if (!p) return "";
-	if (p <= 4) return `Q${p}`;
-	return `OT${p - 4}`;
-}
-
 function updateLive(liveJson) {
 	const arr = liveJson?.scoreboard?.games ?? [];
 	liveById = new Map(arr.map((g) => [g.gameId, g]));
@@ -171,7 +165,7 @@ function startLivePolling() {
 	if (!livePoll) {
 		console.log("Starting live polling...");
 		fetchLiveOnce();
-		livePoll = setInterval(fetchLiveOnce, 30000); // 30 Sekunden
+		livePoll = setInterval(fetchLiveOnce, AUTO_REFRESH_INTERVAL_MS); // 60 seconds
 	}
 }
 
@@ -1020,7 +1014,7 @@ globalThis.app.init();
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
 const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
-const serviceWorkerVersion = "2025-11-01-v1"; // Increment this version to force browsers to fetch a new service-worker.js
+const serviceWorkerVersion = "2025-11-03-v1"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {
 	try {
