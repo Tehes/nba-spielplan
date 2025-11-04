@@ -454,6 +454,11 @@ TODAY
     font-size: clamp(0.8rem, 3vw, 1.2rem);
 }
 
+#today .h-name, 
+#today .v-name {
+    flex-grow: 1;
+}
+
 @keyframes pulse {
     0% {
         background-position: 0% 20%
