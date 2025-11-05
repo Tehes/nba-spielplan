@@ -454,7 +454,7 @@ TODAY
     font-size: clamp(0.8rem, 3vw, 1.2rem);
 }
 
-#today .h-name, 
+#today .h-name,
 #today .v-name {
     flex-grow: 1;
 }
@@ -648,31 +648,46 @@ label {
     display: flex;
     align-items: center;
     cursor: pointer;
-}
-
-input[type="checkbox"] {
-    width: 25px;
-    height: 25px;
-    margin: 5px;
-    appearance: none;
-    background-color: var(--card-bg);
-    box-shadow: var(--card-shadow);
-    color: var(--text-color);
-    cursor: pointer;
-}
-
-input[type="checkbox"]:checked {
     position: relative;
+    padding: 0 0 0 2em;
 }
 
-input[type="checkbox"]:checked::before {
-    content: "✓";
-    font-size: 180%;
-    font-weight: 600;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: inherit;
+input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 1.5em;
+    width: 1.5em;
+    background-color: var(--neutral-white);
+    border-radius: 5px;
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+label input:checked~.checkmark:after {
+    display: block;
+}
+
+label .checkmark:after {
+    left: 0.5em;
+    top: 0.15em;
+    width: 0.5em;
+    height: 1em;
+    border: solid var(--text-color);
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
 }
 
 /*
