@@ -138,11 +138,21 @@ const todayEl = document.querySelector("#today");
 const moreEl = document.querySelector("#more");
 const progressValue = document.querySelector("#progress-value");
 const teamPicker = document.querySelector("select");
-const checkboxHidePastGames = document.querySelectorAll("input[type='checkbox']")[0];
-const checkboxPrimetime = document.querySelectorAll("input[type='checkbox']")[1];
+const checkboxShowScores = document.querySelectorAll("input[type='checkbox']")[0];
+const checkboxHidePastGames = document.querySelectorAll("input[type='checkbox']")[1];
+const checkboxPrimetime = document.querySelectorAll("input[type='checkbox']")[2];
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
 const TOTAL_REGULAR_SEASON_GAMES = 1230;
 const AUTO_REFRESH_INTERVAL_MS = 1 * 60 * 1000; // 1 minute
+
+// Load saved states
+checkboxPrimetime.checked = JSON.parse(
+	localStorage.getItem("nba-spielplan_primetime") || "false",
+);
+
+checkboxShowScores.checked = JSON.parse(
+	localStorage.getItem("nba-spielplan_showScores") || "true",
+);
 
 /* --------------------------------------------------------------------------------------------------
 functions
@@ -241,10 +251,6 @@ function setProgressBar() {
 
 	progressValue.style.width = `${pct}%`;
 	progressValue.textContent = `${pct}%`;
-
-	if (pct === 100) {
-		checkboxHidePastGames.checked = false;
-	}
 }
 
 function renderTodaysGames() {
@@ -297,36 +303,46 @@ function renderTodaysGames() {
 
 			if (g.gameStatus === 3) {
 				// FINAL
-				date.textContent = `${(g.awayTeam.score ?? "")} : ${(g.homeTeam.score ?? "")}`;
+				if (checkboxShowScores.checked) {
+					date.textContent = `${(g.awayTeam.score ?? "")} : ${(g.homeTeam.score ?? "")}`;
+				} else {
+					date.textContent = "Final";
+				}
 			} else if (isLiveWindow) {
 				hasLive = true;
 
-				// Basis: LIVE-Link
-				const link = document.createElement("a");
-				link.href =
-					`https://www.nba.com/game/${g.awayTeam.teamTricode}-vs-${g.homeTeam.teamTricode}-${g.gameId}/play-by-play`;
-				link.textContent = "LIVE";
-				link.target = "_blank";
-				date.appendChild(link);
-				date.classList.add("live");
+				if (checkboxShowScores.checked) {
+					// Basis: LIVE-Link
+					const link = document.createElement("a");
+					link.href =
+						`https://www.nba.com/game/${g.awayTeam.teamTricode}-vs-${g.homeTeam.teamTricode}-${g.gameId}/play-by-play`;
+					link.textContent = "LIVE";
+					link.target = "_blank";
+					date.appendChild(link);
+					date.classList.add("live");
 
-				// Overlay: Scoreboard-Daten wenn vorhanden
-				const live = liveById.get(g.gameId);
-				if (live) {
-					const a = live.awayTeam?.score;
-					const h = live.homeTeam?.score;
+					// Overlay: Scoreboard-Daten wenn vorhanden
+					const live = liveById.get(g.gameId);
+					if (live) {
+						const a = live.awayTeam?.score;
+						const h = live.homeTeam?.score;
 
-					if (live.gameStatus === 2) {
-						// Noch live
-						link.textContent = live.gameStatusText || "LIVE";
-						if (Number.isFinite(a) && Number.isFinite(h)) {
-							link.textContent = `${a} : ${h}`;
+						if (live.gameStatus === 2) {
+							// Noch live
+							link.textContent = live.gameStatusText || "LIVE";
+							if (Number.isFinite(a) && Number.isFinite(h)) {
+								link.textContent = `${a} : ${h}`;
+							}
+						} else if (live.gameStatus === 3) {
+							// Gerade beendet
+							date.classList.remove("live");
+							date.textContent = `${a ?? ""} : ${h ?? ""}`;
 						}
-					} else if (live.gameStatus === 3) {
-						// Gerade beendet
-						date.classList.remove("live");
-						date.textContent = `${a ?? ""} : ${h ?? ""}`;
 					}
+				} else {
+					// Spoilerfrei: kein Score, kein Link
+					date.classList.remove("live");
+					date.textContent = "LIVE";
 				}
 			} else {
 				// SCHEDULED
@@ -821,6 +837,9 @@ function handleScheduleData(json) {
 		prepareGameData();
 		setProgressBar();
 		renderTodaysGames();
+		if (games.scheduled.length === 0 && checkboxHidePastGames.checked) {
+		checkboxHidePastGames.checked = false;
+	}
 		renderMoreGames();
 	} else {
 		console.log(
@@ -983,6 +1002,16 @@ function init() {
 	checkboxHidePastGames.addEventListener("change", renderMoreGames, false);
 	checkboxPrimetime.addEventListener("change", renderMoreGames, false);
 
+	checkboxPrimetime.addEventListener("change", () => {
+		localStorage.setItem("nba-spielplan_primetime", checkboxPrimetime.checked);
+		renderMoreGames();
+	});
+
+	checkboxShowScores.addEventListener("change", () => {
+		localStorage.setItem("nba-spielplan_showScores", checkboxShowScores.checked);
+		renderTodaysGames();
+	});
+
 	document.addEventListener("DOMContentLoaded", function () {
 		loadData();
 	});
@@ -1014,7 +1043,7 @@ globalThis.app.init();
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
 const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
-const serviceWorkerVersion = "2025-11-05-v1"; // Increment this version to force browsers to fetch a new service-worker.js
+const serviceWorkerVersion = "2025-11-07-v1"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {
 	try {
