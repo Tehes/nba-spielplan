@@ -303,7 +303,7 @@ function renderTodaysGames() {
 			if (g.gameStatus === 3) {
 				// FINAL
 				date.classList.remove("live");
-				date.textContent = "Final";
+				date.textContent = "Beendet";
 				if (checkboxShowScores.checked) {
 					homeScore.textContent = g.homeTeam.score ?? "";
 					visitingScore.textContent = g.awayTeam.score ?? "";
@@ -347,7 +347,7 @@ function renderTodaysGames() {
 					} else if (live.gameStatus === 3) {
 						// Just finished
 						date.classList.remove("live");
-						date.textContent = "Final";
+						date.textContent = "Beendet";
 						if (checkboxShowScores.checked) {
 							homeScore.textContent = h ?? "";
 							visitingScore.textContent = a ?? "";
@@ -402,7 +402,7 @@ function renderMoreGames() {
 			const [hours, minutes] = g.time.split(":").map(Number);
 			const gameHour = hours + minutes / 60;
 
-			// Prime-Time zwischen 18:00 und Mitternacht
+			// Primetime
 			return gameHour >= 18 && gameHour < 24;
 		});
 	}
@@ -423,11 +423,13 @@ function renderMoreGames() {
 		const homeName = clone.querySelector(".h-name");
 		const visitingName = clone.querySelector(".v-name");
 		const homeWL = clone.querySelector(".h-wl");
+		const visitingWL = clone.querySelector(".v-wl");
 		const homeColor = clone.querySelector(".h-color");
+		const visitingColor = clone.querySelector(".v-color");
 		const homeAbbr = clone.querySelector(".h-abbr");
 		const visitingAbbr = clone.querySelector(".v-abbr");
-		const visitingWL = clone.querySelector(".v-wl");
-		const visitingColor = clone.querySelector(".v-color");
+		const homeScore = clone.querySelector(".h-score");
+		const visitingScore = clone.querySelector(".v-score");
 		const date = clone.querySelector(".date");
 		const gameLabelEl = clone.querySelector(".game-label");
 		const label = (g.gameLabel || "").trim();
@@ -435,19 +437,26 @@ function renderMoreGames() {
 
 		homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
 		visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
-		homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
 		homeAbbr.textContent = g.homeTeam.teamTricode;
 		homeColor.style.setProperty("--team-color", `var(--${g.homeTeam.teamTricode})`);
 		visitingAbbr.textContent = g.awayTeam.teamTricode;
-		visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 		visitingColor.style.setProperty("--team-color", `var(--${g.awayTeam.teamTricode})`);
 		card.dataset.abbr = `${g.awayTeam.teamTricode}/${g.homeTeam.teamTricode}`;
+		date.textContent = `${g.time} Uhr`;
 		gameLabelEl.textContent = label ? subLabel ? `${label} – ${subLabel}` : label : subLabel;
 
 		if (g.gameStatus === 3) {
-			date.textContent = `${(g.awayTeam.score ?? "")} : ${(g.homeTeam.score ?? "")}`;
+			homeScore.textContent = g.homeTeam.score ?? "";
+			visitingScore.textContent = g.awayTeam.score ?? "";
+			const hNum = Number(g.homeTeam.score);
+			const aNum = Number(g.awayTeam.score);
+			if (Number.isFinite(hNum) && Number.isFinite(aNum)) {
+				homeScore.classList.toggle("lower", hNum < aNum);
+				visitingScore.classList.toggle("lower", aNum < hNum);
+			}
 		} else {
-			date.textContent = `${g.time} Uhr`;
+			homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
+			visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 		}
 
 		moreEl.appendChild(clone);
@@ -1063,7 +1072,7 @@ globalThis.app.init();
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
 const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
-const serviceWorkerVersion = "2025-11-08-v2"; // Increment this version to force browsers to fetch a new service-worker.js
+const serviceWorkerVersion = "2025-11-08-v3"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {
 	try {

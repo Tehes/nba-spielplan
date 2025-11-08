@@ -214,12 +214,16 @@ main div span {
 
 .hidden,
 .card .game-label:empty,
-.card span:empty {
+.card :where(.v-wl, .h-wl, .v-score, .h-score):empty {
     display: none;
 }
 
 .card:has(.game-label:not(:empty)) {
     flex-wrap: wrap;
+}
+
+.card .lower {
+    opacity: 0.7;
 }
 
 /*
@@ -460,11 +464,6 @@ TODAY
     font-weight: 700;
 }
 
-#today .h-score.lower,
-#today .v-score.lower {
-    opacity: 0.8;
-}
-
 #today .h-name,
 #today .v-name {
     flex-grow: 1;
@@ -596,6 +595,12 @@ MORE
 #more .v-wl {
     opacity: 0.5;
     white-space: nowrap;
+}
+
+#more .h-score,
+#more .v-score {
+    font-size: 1.4rem;
+    font-weight: 700;
 }
 
 #more .h-color,
