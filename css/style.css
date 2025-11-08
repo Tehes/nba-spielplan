@@ -212,8 +212,14 @@ main div span {
     text-wrap: balance;
 }
 
-.hidden {
+.hidden,
+.card .game-label:empty,
+.card span:empty {
     display: none;
+}
+
+.card:has(.game-label:not(:empty)) {
+    flex-wrap: wrap;
 }
 
 /*
@@ -393,14 +399,6 @@ TODAY
     gap: 20px;
 }
 
-#today .card:has(.game-label:not(:empty)) {
-    flex-wrap: wrap;
-}
-
-#today .game-label:empty {
-    display: none;
-}
-
 #today .game-label {
     background-color: var(--progress-background);
     flex: 0 0 100%;
@@ -455,10 +453,6 @@ TODAY
     font-size: clamp(0.8rem, 3vw, 1.2rem);
 }
 
-#today .v-wl:empty,
-#today .h-wl:empty {
-    display: none;
-}
 
 #today .h-score,
 #today .v-score {
@@ -466,9 +460,9 @@ TODAY
     font-weight: 700;
 }
 
-#today .h-score:empty,
-#today .v-score:empty {
-    display: none;
+#today .h-score.lower,
+#today .v-score.lower {
+    opacity: 0.8;
 }
 
 #today .h-name,
@@ -609,14 +603,6 @@ MORE
     width: 4px;
     height: 100%;
     background-color: var(--team-color, var(--neutral400));
-}
-
-#more .card:has(.game-label:not(:empty)) {
-    flex-wrap: wrap;
-}
-
-#more .game-label:empty {
-    display: none;
 }
 
 #more .game-label {

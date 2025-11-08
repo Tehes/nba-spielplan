@@ -307,6 +307,12 @@ function renderTodaysGames() {
 				if (checkboxShowScores.checked) {
 					homeScore.textContent = g.homeTeam.score ?? "";
 					visitingScore.textContent = g.awayTeam.score ?? "";
+					const hNum = Number(g.homeTeam.score);
+					const aNum = Number(g.awayTeam.score);
+					if (Number.isFinite(hNum) && Number.isFinite(aNum)) {
+						homeScore.classList.toggle("lower", hNum < aNum);
+						visitingScore.classList.toggle("lower", aNum < hNum);
+					}
 				} else {
 					homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
 					visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
@@ -345,6 +351,12 @@ function renderTodaysGames() {
 						if (checkboxShowScores.checked) {
 							homeScore.textContent = h ?? "";
 							visitingScore.textContent = a ?? "";
+							const hNum = Number(h);
+							const aNum = Number(a);
+							if (Number.isFinite(hNum) && Number.isFinite(aNum)) {
+								homeScore.classList.toggle("lower", hNum < aNum);
+								visitingScore.classList.toggle("lower", aNum < hNum);
+							}
 						} else {
 							homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
 							visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
@@ -1050,8 +1062,8 @@ globalThis.app.init();
 /* --------------------------------------------------------------------------------------------------
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
-const useServiceWorker = false; // Set to "true" if you want to register the Service Worker, "false" to unregister
-const serviceWorkerVersion = "2025-11-07-v1"; // Increment this version to force browsers to fetch a new service-worker.js
+const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
+const serviceWorkerVersion = "2025-11-08-v2"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {
 	try {
