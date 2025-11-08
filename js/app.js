@@ -268,11 +268,13 @@ function renderTodaysGames() {
 			const homeLogo = clone.querySelectorAll("img")[1];
 			const homeAbbr = clone.querySelector(".h-abbr");
 			const homeWL = clone.querySelector(".h-wl");
+			const homeName = clone.querySelector(".h-name");
+			const homeScore = clone.querySelector(".h-score");
 			const visitingAbbr = clone.querySelector(".v-abbr");
 			const visitingWL = clone.querySelector(".v-wl");
 			const visitingLogo = clone.querySelectorAll("img")[0];
-			const homeName = clone.querySelector(".h-name");
 			const visitingName = clone.querySelector(".v-name");
+			const visitingScore = clone.querySelector(".v-score");
 			const date = clone.querySelector(".date");
 			const gameLabelEl = clone.querySelector(".game-label");
 			const label = g.gameLabel || g.gameSubtype || "";
@@ -284,15 +286,12 @@ function renderTodaysGames() {
 			visitingTeam.style.setProperty("--team-color", `var(--${g.awayTeam.teamTricode})`);
 			homeLogo.src = `img/${g.homeTeam.teamTricode}.svg`;
 			homeLogo.onerror = () => homeLogo.src = "img/no-logo.svg";
-
 			visitingLogo.src = `img/${g.awayTeam.teamTricode}.svg`;
 			visitingLogo.onerror = () => visitingLogo.src = "img/no-logo.svg";
 			homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
 			visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
 			homeAbbr.textContent = g.homeTeam.teamTricode;
 			visitingAbbr.textContent = g.awayTeam.teamTricode;
-			homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
-			visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 
 			gameLabelEl.textContent = label
 				? subLabel ? `${label} – ${subLabel}` : label
@@ -303,58 +302,67 @@ function renderTodaysGames() {
 
 			if (g.gameStatus === 3) {
 				// FINAL
+				date.classList.remove("live");
+				date.textContent = "Final";
 				if (checkboxShowScores.checked) {
-					date.textContent = `${(g.awayTeam.score ?? "")} : ${(g.homeTeam.score ?? "")}`;
+					homeScore.textContent = g.homeTeam.score ?? "";
+					visitingScore.textContent = g.awayTeam.score ?? "";
 				} else {
-					date.textContent = "Final";
+					homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
+					visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 				}
 			} else if (isLiveWindow) {
+				// LIVE
 				hasLive = true;
 
-				if (checkboxShowScores.checked) {
-					// Basis: LIVE-Link
-					const link = document.createElement("a");
-					link.href =
-						`https://www.nba.com/game/${g.awayTeam.teamTricode}-vs-${g.homeTeam.teamTricode}-${g.gameId}/play-by-play`;
-					link.textContent = "LIVE";
-					link.target = "_blank";
-					date.appendChild(link);
-					date.classList.add("live");
+				date.classList.add("live");
+				const link = document.createElement("a");
+				link.href =
+					`https://www.nba.com/game/${g.awayTeam.teamTricode}-vs-${g.homeTeam.teamTricode}-${g.gameId}/play-by-play`;
+				link.target = "_blank";
+				link.textContent = "LIVE";
+				date.replaceChildren(link);
 
-					// Overlay: Scoreboard-Daten wenn vorhanden
-					const live = liveById.get(g.gameId);
-					if (live) {
-						const a = live.awayTeam?.score;
-						const h = live.homeTeam?.score;
+				// Overlay: Scoreboard data if available
+				const live = liveById.get(g.gameId);
+				if (live) {
+					const a = live.awayTeam?.score;
+					const h = live.homeTeam?.score;
 
-						if (live.gameStatus === 2) {
-							// Noch live
-							link.textContent = live.gameStatusText || "LIVE";
-							if (Number.isFinite(a) && Number.isFinite(h)) {
-								link.textContent = `${a} : ${h}`;
-							}
-						} else if (live.gameStatus === 3) {
-							// Gerade beendet
-							date.classList.remove("live");
-							date.textContent = `${a ?? ""} : ${h ?? ""}`;
+					if (live.gameStatus === 2) {
+						// Still live
+						link.textContent = live.gameStatusText || "LIVE";
+						if (
+							checkboxShowScores.checked && Number.isFinite(a) && Number.isFinite(h)
+						) {
+							homeScore.textContent = h ?? "";
+							visitingScore.textContent = a ?? "";
+						}
+					} else if (live.gameStatus === 3) {
+						// Just finished
+						date.classList.remove("live");
+						date.textContent = "Final";
+						if (checkboxShowScores.checked) {
+							homeScore.textContent = h ?? "";
+							visitingScore.textContent = a ?? "";
+						} else {
+							homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
+							visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 						}
 					}
-				} else {
-					// Spoilerfrei: kein Score, kein Link
-					date.classList.remove("live");
-					date.textContent = "LIVE";
 				}
 			} else {
 				// SCHEDULED
 				date.classList.remove("live");
-				date.textContent = `${g.time}`;
-				date.dataset.gameCode = g.gameCode;
+				date.textContent = g.time;
+				homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
+				visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 			}
 
 			todayEl.appendChild(clone);
 		});
 	} else {
-		todayEl.innerHTML = "Heute finden keine Spiele statt.";
+		todayEl.textContent = "Heute finden keine Spiele statt.";
 	}
 
 	// Polling zentral steuern
@@ -838,8 +846,8 @@ function handleScheduleData(json) {
 		setProgressBar();
 		renderTodaysGames();
 		if (games.scheduled.length === 0 && checkboxHidePastGames.checked) {
-		checkboxHidePastGames.checked = false;
-	}
+			checkboxHidePastGames.checked = false;
+		}
 		renderMoreGames();
 	} else {
 		console.log(
@@ -1042,7 +1050,7 @@ globalThis.app.init();
 /* --------------------------------------------------------------------------------------------------
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
-const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
+const useServiceWorker = false; // Set to "true" if you want to register the Service Worker, "false" to unregister
 const serviceWorkerVersion = "2025-11-07-v1"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {

@@ -426,7 +426,7 @@ TODAY
     text-transform: uppercase;
     background-color: var(--team-color, var(--neutral400));
     padding: 5px 8px;
-    gap: 8px;
+    gap: 6px;
 }
 
 #today .home-team:empty,
@@ -440,6 +440,7 @@ TODAY
 
 #today .home-team {
     border-radius: 0 var(--card-corners) var(--card-corners) 0;
+    direction: rtl;
 }
 
 #today .card:has(.game-label:not(:empty)) .home-team {
@@ -452,6 +453,22 @@ TODAY
     font-weight: normal;
     white-space: nowrap;
     font-size: clamp(0.8rem, 3vw, 1.2rem);
+}
+
+#today .v-wl:empty,
+#today .h-wl:empty {
+    display: none;
+}
+
+#today .h-score,
+#today .v-score {
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    font-weight: 700;
+}
+
+#today .h-score:empty,
+#today .v-score:empty {
+    display: none;
 }
 
 #today .h-name,
@@ -511,6 +528,10 @@ TODAY
 
 #today .live {
     animation: blink-border 2s infinite;
+}
+
+#today .card:has(.game-label:not(:empty)) .date.live {
+    border-radius: var(--card-corners) 0 0 0;
 }
 
 #today .card img {
