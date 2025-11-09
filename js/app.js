@@ -255,7 +255,9 @@ function setProgressBar() {
 
 function renderTodaysGames() {
 	todayEl.replaceChildren();
-	let hasLive = false;
+
+	const now = new Date();
+	let needsPolling = false;
 
 	if (games.today.length > 0) {
 		games.today.forEach((g) => {
@@ -266,49 +268,61 @@ function renderTodaysGames() {
 			const homeTeam = clone.querySelector(".home-team");
 			const visitingTeam = clone.querySelector(".visiting-team");
 			const homeLogo = clone.querySelectorAll("img")[1];
-			const homeAbbr = clone.querySelector(".h-abbr");
-			const homeWL = clone.querySelector(".h-wl");
-			const homeName = clone.querySelector(".h-name");
-			const homeScore = clone.querySelector(".h-score");
-			const visitingAbbr = clone.querySelector(".v-abbr");
-			const visitingWL = clone.querySelector(".v-wl");
 			const visitingLogo = clone.querySelectorAll("img")[0];
+			const homeName = clone.querySelector(".h-name");
 			const visitingName = clone.querySelector(".v-name");
+			const homeAbbr = clone.querySelector(".h-abbr");
+			const visitingAbbr = clone.querySelector(".v-abbr");
+			const homeWL = clone.querySelector(".h-wl");
+			const visitingWL = clone.querySelector(".v-wl");
+			const homeScore = clone.querySelector(".h-score");
 			const visitingScore = clone.querySelector(".v-score");
 			const date = clone.querySelector(".date");
 			const gameLabelEl = clone.querySelector(".game-label");
 			const label = g.gameLabel || g.gameSubtype || "";
 			const subLabel = g.gameSubLabel;
 
-			const now = new Date();
-
+			// Team UI
 			homeTeam.style.setProperty("--team-color", `var(--${g.homeTeam.teamTricode})`);
 			visitingTeam.style.setProperty("--team-color", `var(--${g.awayTeam.teamTricode})`);
 			homeLogo.src = `img/${g.homeTeam.teamTricode}.svg`;
-			homeLogo.onerror = () => homeLogo.src = "img/no-logo.svg";
+			homeLogo.onerror = () => (homeLogo.src = "img/no-logo.svg");
 			visitingLogo.src = `img/${g.awayTeam.teamTricode}.svg`;
-			visitingLogo.onerror = () => visitingLogo.src = "img/no-logo.svg";
+			visitingLogo.onerror = () => (visitingLogo.src = "img/no-logo.svg");
 			homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
 			visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
 			homeAbbr.textContent = g.homeTeam.teamTricode;
 			visitingAbbr.textContent = g.awayTeam.teamTricode;
 
 			gameLabelEl.textContent = label
-				? subLabel ? `${label} – ${subLabel}` : label
+				? (subLabel ? `${label} – ${subLabel}` : label)
 				: subLabel;
 
-			const isLiveWindow = now >= g.localDate &&
-				now < new Date(g.localDate.getTime() + GAME_MAX_DURATION_MS);
+			const inLiveWindow = now >= g.localDate &&
+				now < new Date(g.localDate.getTime() + GAME_MAX_DURATION_MS) &&
+				g.gameStatus !== 3;
 
-			if (g.gameStatus === 3) {
+			if (inLiveWindow) needsPolling = true;
+
+			const live = liveById.get(g.gameId);
+			const liveStatus = live?.gameStatus; // 2 live, 3 final
+
+			const isFinal = g.gameStatus === 3 || liveStatus === 3;
+			const isLive = !isFinal && (inLiveWindow || liveStatus === 2);
+
+			if (isFinal) {
 				// FINAL
 				date.classList.remove("live");
 				date.textContent = "Beendet";
 				if (checkboxShowScores.checked) {
-					homeScore.textContent = g.homeTeam.score ?? "";
-					visitingScore.textContent = g.awayTeam.score ?? "";
-					const hNum = Number(g.homeTeam.score);
-					const aNum = Number(g.awayTeam.score);
+					const liveAway = live?.awayTeam?.score;
+					const liveHome = live?.homeTeam?.score;
+					const h = Number.isFinite(liveHome) ? liveHome : g.homeTeam.score;
+					const a = Number.isFinite(liveAway) ? liveAway : g.awayTeam.score;
+					homeScore.textContent = h ?? "";
+					visitingScore.textContent = a ?? "";
+					const hNum = Number(h);
+					const aNum = Number(a);
 					if (Number.isFinite(hNum) && Number.isFinite(aNum)) {
 						homeScore.classList.toggle("lower", hNum < aNum);
 						visitingScore.classList.toggle("lower", aNum < hNum);
@@ -317,10 +331,8 @@ function renderTodaysGames() {
 					homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
 					visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 				}
-			} else if (isLiveWindow) {
+			} else if (isLive) {
 				// LIVE
-				hasLive = true;
-
 				date.classList.add("live");
 				const link = document.createElement("a");
 				link.href =
@@ -329,39 +341,17 @@ function renderTodaysGames() {
 				link.textContent = "LIVE";
 				date.replaceChildren(link);
 
-				// Overlay: Scoreboard data if available
-				const live = liveById.get(g.gameId);
-				if (live) {
-					const a = live.awayTeam?.score;
-					const h = live.homeTeam?.score;
+				const liveAway = live?.awayTeam?.score;
+				const liveHome = live?.homeTeam?.score;
 
-					if (live.gameStatus === 2) {
-						// Still live
-						link.textContent = live.gameStatusText || "LIVE";
-						if (
-							checkboxShowScores.checked && Number.isFinite(a) && Number.isFinite(h)
-						) {
-							homeScore.textContent = h ?? "";
-							visitingScore.textContent = a ?? "";
-						}
-					} else if (live.gameStatus === 3) {
-						// Just finished
-						date.classList.remove("live");
-						date.textContent = "Beendet";
-						if (checkboxShowScores.checked) {
-							homeScore.textContent = h ?? "";
-							visitingScore.textContent = a ?? "";
-							const hNum = Number(h);
-							const aNum = Number(a);
-							if (Number.isFinite(hNum) && Number.isFinite(aNum)) {
-								homeScore.classList.toggle("lower", hNum < aNum);
-								visitingScore.classList.toggle("lower", aNum < hNum);
-							}
-						} else {
-							homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
-							visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
-						}
-					}
+				if (checkboxShowScores.checked) {
+					const a = Number.isFinite(liveAway) ? liveAway : "—";
+					const h = Number.isFinite(liveHome) ? liveHome : "—";
+					homeScore.textContent = h;
+					visitingScore.textContent = a;
+				} else {
+					homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
+					visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 				}
 			} else {
 				// SCHEDULED
@@ -377,8 +367,8 @@ function renderTodaysGames() {
 		todayEl.textContent = "Heute finden keine Spiele statt.";
 	}
 
-	// Polling zentral steuern
-	if (hasLive) {
+	if (needsPolling) {
+		if (!livePoll) fetchLiveOnce();
 		startLivePolling();
 	} else {
 		stopLivePolling();
@@ -1072,7 +1062,7 @@ globalThis.app.init();
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
 const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
-const serviceWorkerVersion = "2025-11-08-v3"; // Increment this version to force browsers to fetch a new service-worker.js
+const serviceWorkerVersion = "2025-11-09-v1"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {
 	try {

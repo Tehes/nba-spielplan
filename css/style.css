@@ -498,11 +498,16 @@ TODAY
     text-decoration: none;
     color: var(--live-color);
     transition: all var(--transition-duration) ease;
+    border: 2px solid var(--live-color);
+    padding: 5px 10px;
+    border-radius: var(--card-corners);
 }
 
 #today .date a:where(:hover, :focus, :active) {
     text-decoration: underline;
     cursor: pointer;
+    color: var(--neutral-white);
+    background-color: var(--live-color);
 }
 
 @keyframes blink-border {
