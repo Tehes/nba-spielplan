@@ -943,8 +943,7 @@ function shouldReloadData() {
 
 	if (nextGame) {
 		const nextGameDate = new Date(nextGame.localDate);
-		const gameDuration = 2 * 60 * 60 * 1000; // 2 hours
-		const expectedEndTime = new Date(nextGameDate.getTime() + gameDuration);
+		const expectedEndTime = new Date(nextGameDate.getTime() + GAME_MAX_DURATION_MS);
 		const now = new Date();
 
 		console.log(
@@ -1062,7 +1061,7 @@ globalThis.app.init();
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
 const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
-const serviceWorkerVersion = "2025-11-09-v1"; // Increment this version to force browsers to fetch a new service-worker.js
+const serviceWorkerVersion = "2025-11-09-v2"; // Increment this version to force browsers to fetch a new service-worker.js
 
 async function registerServiceWorker() {
 	try {
