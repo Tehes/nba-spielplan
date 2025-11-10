@@ -121,7 +121,8 @@ function buildStandingsFromSchedule(scheduleJson) {
 				homeL: 0,
 				awayW: 0,
 				awayL: 0,
-				// Neu:
+				neutralW: 0,
+				neutralL: 0,
 				confW: 0,
 				confL: 0,
 				divW: 0,
@@ -146,7 +147,8 @@ function buildStandingsFromSchedule(scheduleJson) {
 		.filter((g) =>
 			g?.gameStatus === 3 &&
 			g?.gameLabel !== "Preseason" &&
-			!(g?.gameLabel === "Emirates NBA Cup" && g?.gameSubLabel?.toLowerCase() === "championship")
+			!(g?.gameLabel === "Emirates NBA Cup" &&
+				g?.gameSubLabel?.toLowerCase() === "championship")
 		)
 		.sort((a, b) => new Date(a.gameDateTimeUTC) - new Date(b.gameDateTimeUTC));
 
@@ -155,7 +157,10 @@ function buildStandingsFromSchedule(scheduleJson) {
 		const away = ensure(g.awayTeam);
 		const hs = Number(g.homeTeam?.score) || 0;
 		const as = Number(g.awayTeam?.score) || 0;
+		const isNeutral = Boolean(g?.isNeutral);
 		const homeWon = hs > as;
+		const winner = homeWon ? home : away;
+		const loser = homeWon ? away : home;
 
 		// Punkte für Differenz
 		home.ptsFor += hs;
@@ -163,20 +168,29 @@ function buildStandingsFromSchedule(scheduleJson) {
 		away.ptsFor += as;
 		away.ptsAgainst += hs;
 
-		// Win/Loss + Home/Away
-		if (homeWon) {
+		// Win/Loss + Home/Away/Neutral (gleiche Struktur wie bei dir)
+		if (isNeutral) {
+			// Gesamtbilanz & Streaks
+			winner.wins++;
+			loser.losses++;
+			winner.lastResults.push("W");
+			loser.lastResults.push("L");
+			// Neutral-Splits
+			winner.neutralW++;
+			loser.neutralL++;
+		} else if (homeWon) {
 			home.wins++;
-			home.homeW++;
-			home.lastResults.push("W");
 			away.losses++;
+			home.homeW++;
 			away.awayL++;
+			home.lastResults.push("W");
 			away.lastResults.push("L");
 		} else {
 			home.losses++;
-			home.homeL++;
-			home.lastResults.push("L");
 			away.wins++;
+			home.homeL++;
 			away.awayW++;
+			home.lastResults.push("L");
 			away.lastResults.push("W");
 		}
 
@@ -318,9 +332,10 @@ function buildStandingsFromSchedule(scheduleJson) {
 				streak: sChar ? `${sChar} ${streak}` : "—",
 				home: `${r.homeW}-${r.homeL}`,
 				away: `${r.awayW}-${r.awayL}`,
+				neutral: `${r.neutralW}-${r.neutralL}`,
 				conf: `${r.confW}-${r.confL}`,
 				div: `${r.divW}-${r.divL}`,
-				diff: Math.round(r.ptsFor - r.ptsAgainst),
+				diff: r.ptsFor - r.ptsAgainst,
 				isDivisionLeader: divisionLeaders.has(r.teamId),
 			};
 		});
