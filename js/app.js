@@ -1060,28 +1060,18 @@ globalThis.app.init();
 /* --------------------------------------------------------------------------------------------------
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
-const useServiceWorker = true; // Set to "true" if you want to register the Service Worker, "false" to unregister
-const serviceWorkerVersion = "2025-11-10-v2"; // Increment this version to force browsers to fetch a new service-worker.js
+const useServiceWorker = true;
+const serviceWorkerVersion = "2025-11-11-v1";
 
 async function registerServiceWorker() {
 	try {
-		// Force bypassing the HTTP cache so even Safari checks for a new
-		// service-worker.js on every load.
 		const registration = await navigator.serviceWorker.register(
 			`./service-worker.js?v=${serviceWorkerVersion}`,
-			{
-				scope: "./",
-				// updateViaCache is ignored by Safari but helps other browsers
-				updateViaCache: "none",
-			},
+			{ scope: "./", updateViaCache: "none" },
 		);
-		// Immediately ping for an update to catch fresh versions that may
-		// have been cached by the browser.
+		// watch for updates right away
 		registration.update();
-		console.log(
-			"Service Worker registered with scope:",
-			registration.scope,
-		);
+		console.log("Service Worker registered with scope:", registration.scope);
 	} catch (error) {
 		console.log("Service Worker registration failed:", error);
 	}
@@ -1089,15 +1079,33 @@ async function registerServiceWorker() {
 
 async function unregisterServiceWorkers() {
 	const registrations = await navigator.serviceWorker.getRegistrations();
-	if (registrations.length === 0) return;
+	if (registrations.length) {
+		await Promise.all(registrations.map((r) => r.unregister()));
+	}
 
-	await Promise.all(registrations.map((r) => r.unregister()));
-	console.log("All service workers unregistered – reloading page…");
-	// Hard reload to ensure starting without cache
+	// Clear caches
+	if ("caches" in globalThis) {
+		const keys = await caches.keys();
+		await Promise.all(keys.map((k) => caches.delete(k)));
+	}
+
+	console.log("All service workers & caches cleared – reloading page…");
 	globalThis.location.reload();
 }
 
 if ("serviceWorker" in navigator) {
+	// Remember if a controller existed at startup to suppress reload on first install
+	const hadControllerAtStart = !!navigator.serviceWorker.controller;
+	// Auto reload only once when a new SW takes control
+	let hasReloadedForSW = false;
+	navigator.serviceWorker.addEventListener("controllerchange", () => {
+		// Do not reload on very first install (no controller existed at start)
+		if (!hadControllerAtStart) return;
+		if (hasReloadedForSW) return;
+		hasReloadedForSW = true;
+		globalThis.location.reload();
+	});
+
 	globalThis.addEventListener("DOMContentLoaded", async () => {
 		if (useServiceWorker) {
 			await registerServiceWorker();
