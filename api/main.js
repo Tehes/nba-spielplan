@@ -2,6 +2,7 @@
 const SCHEDULE_URL = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json";
 const SCOREBOARD_URL =
 	"https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json";
+const BOXSCORE_BASE_URL = "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_";
 
 const DEFAULT_HEADERS = {
 	"User-Agent":
@@ -168,7 +169,7 @@ function buildStandingsFromSchedule(scheduleJson) {
 		away.ptsFor += as;
 		away.ptsAgainst += hs;
 
-		// Win/Loss + Home/Away/Neutral (gleiche Struktur wie bei dir)
+		// Win/Loss + Home/Away/Neutral
 		if (isNeutral) {
 			// Gesamtbilanz & Streaks
 			winner.wins++;
@@ -245,7 +246,7 @@ function buildStandingsFromSchedule(scheduleJson) {
 			if (!byDivision.has(t.div)) byDivision.set(t.div, []);
 			byDivision.get(t.div).push(t);
 		}
-		for (const rows of byDivision.values()) { // <- wichtig!
+		for (const rows of byDivision.values()) {
 			rows.sort((a, b) => {
 				const ap = a.wins + a.losses ? a.wins / (a.wins + a.losses) : 0;
 				const bp = b.wins + b.losses ? b.wins / (b.wins + b.losses) : 0;
@@ -258,7 +259,7 @@ function buildStandingsFromSchedule(scheduleJson) {
 		}
 	}
 
-	// --- Neu: Comparator mit (vereinfachten) NBA-Tie-Breakern für 2er-Gleichstand ---
+	// --- Comparator mit (vereinfachten) NBA-Tie-Breakern für 2er-Gleichstand ---
 	function compareTeams(a, b) {
 		const ap = a.wins + a.losses ? a.wins / (a.wins + a.losses) : 0;
 		const bp = b.wins + b.losses ? b.wins / (b.wins + b.losses) : 0;
@@ -391,6 +392,25 @@ Deno.serve(async (req) => {
 		// --- /scoreboard: KEIN Cache (immer live) ---
 		if (PATH === "/scoreboard") {
 			return proxyWithCors(SCOREBOARD_URL);
+		}
+
+		// --- /boxscore/:gameId: KEIN Cache (immer live) ---
+		if (PATH.startsWith("/boxscore/")) {
+			const gameId = PATH.slice("/boxscore/".length);
+
+			// einfache Validierung, damit kein Unsinn durchgeht
+			if (!/^\d{10}$/.test(gameId)) {
+				return new Response("Invalid gameId", {
+					status: 400,
+					headers: {
+						...CORS_HEADERS,
+						"content-type": "text/plain; charset=utf-8",
+					},
+				});
+			}
+
+			const boxscoreUrl = `${BOXSCORE_BASE_URL}${gameId}.json`;
+			return proxyWithCors(boxscoreUrl);
 		}
 
 		return new Response("Not Found", {
