@@ -973,8 +973,8 @@ BOXSCORE
 }
 
 #boxscore .close img {
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: auto;
 }
 
 #boxscore h3 img {
@@ -1008,10 +1008,16 @@ BOXSCORE
 
 #boxscore td:first-of-type {
     width: 25%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #boxscore tr {
     border-bottom: 1px solid var(--divider-color);
+}
+
+body:has(#boxscore:not(.hidden)) {
+    overflow-y: hidden;
 }
 
 /*
@@ -1022,6 +1028,10 @@ MEDIA QUERIES
 
 @media (prefers-color-scheme: dark) {
     footer img:hover {
+        filter: invert(85%);
+    }
+
+    #boxscore .close img {
         filter: invert(85%);
     }
 }
