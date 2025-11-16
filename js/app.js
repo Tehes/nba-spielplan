@@ -149,6 +149,7 @@ const backdropEl = document.querySelector("#backdrop");
 const boxscoreEl = document.querySelector("#boxscore");
 const boxScoreCloseBtn = boxscoreEl.querySelector(".close");
 const bsPeriodsEl = document.querySelector("#bs-periods");
+const bsTeamsEl = document.querySelector("#bs-teams");
 
 // Load saved states
 checkboxPrimetime.checked = JSON.parse(
@@ -1020,6 +1021,7 @@ function openBoxscore(gameId) {
 	const url = `${boxscoreURL}/${gameId}`;
 	fetchData(url, (json) => {
 		bsPeriodsEl.replaceChildren();
+		bsTeamsEl.replaceChildren();
 		renderBoxscore(json);
 	}, true);
 }
@@ -1036,13 +1038,13 @@ function renderBoxscore(json) {
 	}
 
 	renderBoxscorePeriods(game);
+	renderBoxscoreTeams(game);
 }
 
 function renderBoxscorePeriods(game) {
 	const home = game.homeTeam;
 	const away = game.awayTeam;
 
-	// Periodenliste (Q1 bis Q4 und evtl. OT) von einem Team
 	const periods = (home.periods && home.periods.length ? home.periods : away.periods) || [];
 
 	const table = document.createElement("table");
@@ -1107,6 +1109,123 @@ function renderBoxscorePeriods(game) {
 	bsPeriodsEl.appendChild(table);
 }
 
+function renderBoxscoreTeams(game) {
+	renderBoxscoreTeam(game.awayTeam);
+	renderBoxscoreTeam(game.homeTeam);
+}
+
+function renderBoxscoreTeam(team) {
+	const wrapper = document.createElement("section");
+	wrapper.className = "bs-team";
+
+	const title = document.createElement("h3");
+	title.className = "bs-team-title";
+
+	const teamLogo = document.createElement("img");
+	teamLogo.src = `img/${team.teamTricode}.svg`;
+	teamLogo.alt = `${team.teamCity} ${team.teamName} Logo`;
+	teamLogo.className = "bs-team-logo";
+
+	const nameSpan = document.createElement("span");
+	nameSpan.textContent = `${team.teamCity} ${team.teamName}`;
+
+	title.append(teamLogo, nameSpan);
+	wrapper.appendChild(title);
+
+	const players = (team.players || []).filter(
+		(p) => p.status === "ACTIVE" && p.played === "1",
+	);
+
+	const starters = players
+		.filter((p) => p.starter === "1")
+		.sort((a, b) => a.order - b.order);
+
+	const bench = players
+		.filter((p) => p.starter !== "1")
+		.sort((a, b) => a.order - b.order);
+
+	if (starters.length) {
+		const h4 = document.createElement("h4");
+		h4.textContent = "Starter";
+		wrapper.appendChild(h4);
+		wrapper.appendChild(buildPlayersTable(starters, team.teamTricode));
+	}
+
+	if (bench.length) {
+		const h4 = document.createElement("h4");
+		h4.textContent = "Bank";
+		wrapper.appendChild(h4);
+		wrapper.appendChild(buildPlayersTable(bench, team.teamTricode));
+	}
+
+	bsTeamsEl.appendChild(wrapper);
+}
+
+function buildPlayersTable(players, teamAbbr) {
+	const table = document.createElement("table");
+	table.className = "bs-players-table";
+
+	const tableWrapper = document.createElement("div");
+	tableWrapper.className = "bs-players-table-wrapper";
+	tableWrapper.appendChild(table);
+	const thead = document.createElement("thead");
+	const headerRow = document.createElement("tr");
+	["Spieler", "PTS", "REB", "AST", "FG", "3P", "FT"].forEach((label) => {
+		const th = document.createElement("th");
+		th.textContent = label;
+		headerRow.appendChild(th);
+	});
+	thead.appendChild(headerRow);
+	table.appendChild(thead);
+
+	const tbody = document.createElement("tbody");
+
+	players.forEach((p) => {
+		const s = p.statistics || {};
+		const tr = document.createElement("tr");
+		tr.dataset.ta = teamAbbr;
+
+		const nameTd = document.createElement("td");
+		nameTd.textContent = p.nameI || p.name || "";
+		tr.appendChild(nameTd);
+
+		const ptsTd = document.createElement("td");
+		ptsTd.textContent = s.points ?? "";
+		tr.appendChild(ptsTd);
+
+		const rebTd = document.createElement("td");
+		rebTd.textContent = s.reboundsTotal ?? "";
+		tr.appendChild(rebTd);
+
+		const astTd = document.createElement("td");
+		astTd.textContent = s.assists ?? "";
+		tr.appendChild(astTd);
+
+		const fgTd = document.createElement("td");
+		const fgMade = s.fieldGoalsMade ?? 0;
+		const fgAtt = s.fieldGoalsAttempted ?? 0;
+		fgTd.textContent = fgAtt ? `${fgMade}-${fgAtt}` : "";
+		tr.appendChild(fgTd);
+
+		const tpTd = document.createElement("td");
+		const tpm = s.threePointersMade ?? 0;
+		const tpa = s.threePointersAttempted ?? 0;
+		tpTd.textContent = tpa ? `${tpm}-${tpa}` : "";
+		tr.appendChild(tpTd);
+
+		const ftTd = document.createElement("td");
+		const ftm = s.freeThrowsMade ?? 0;
+		const fta = s.freeThrowsAttempted ?? 0;
+		ftTd.textContent = fta ? `${ftm}-${fta}` : "";
+		tr.appendChild(ftTd);
+
+		tbody.appendChild(tr);
+	});
+
+	table.appendChild(tbody);
+	return tableWrapper;
+}
+
 async function loadData() {
 	await fetchData(scheduleURL, handleScheduleData);
 	storeNextScheduledGame();
@@ -1166,8 +1285,8 @@ globalThis.app.init();
 /* --------------------------------------------------------------------------------------------------
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
-const useServiceWorker = false;
-const serviceWorkerVersion = "2025-11-16-v2";
+const useServiceWorker = true;
+const serviceWorkerVersion = "2025-11-16-v4";
 
 async function registerServiceWorker() {
 	try {

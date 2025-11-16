@@ -100,7 +100,7 @@ body {
     }
 }
 
-body>div {
+body>div:not(#backdrop):not(#boxscore) {
     display: flex;
     justify-content: center;
     column-gap: 3vw;
@@ -136,6 +136,11 @@ h2 {
 h3 {
     font-size: clamp(1rem, 3vw, 1.2rem);
     margin: 10px 0 0 0;
+}
+
+h4 {
+    margin: 15px 0 0 0;
+    text-transform: uppercase;
 }
 
 #info {
@@ -886,7 +891,7 @@ tr[data-ta="WAS"]:hover {
 th,
 td {
     text-align: left;
-    padding: 5px;
+    padding: 5px 0;
     white-space: nowrap;
 }
 
@@ -957,8 +962,6 @@ BOXSCORE
     border-radius: var(--card-corners);
     box-shadow: var(--card-shadow);
     z-index: 2000;
-    flex-direction: column;
-    align-items: stretch;
 }
 
 #boxscore .close {
@@ -974,6 +977,13 @@ BOXSCORE
     height: 24px;
 }
 
+#boxscore h3 img {
+    width: 3rem;
+    height: auto;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
 #boxscore #boxscore-content {
     margin-top: 24px;
 }
@@ -981,16 +991,27 @@ BOXSCORE
 #boxscore #bs-periods {
     padding-bottom: 15px;
     margin-bottom: 15px;
-    border-bottom: 1px solid var(--divider-color);
+}
+
+#boxscore .bs-players-table-wrapper {
+    overflow-x: auto;
+}
+
+#boxscore .bs-players-table-wrapper table {
+    min-width: 600px;
 }
 
 #boxscore td,
 #boxscore th {
-    text-align: center;
+    text-align: left;
 }
 
 #boxscore td:first-of-type {
-    width: initial;
+    width: 25%;
+}
+
+#boxscore tr {
+    border-bottom: 1px solid var(--divider-color);
 }
 
 /*
