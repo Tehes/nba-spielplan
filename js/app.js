@@ -1161,6 +1161,23 @@ function renderBoxscoreTeam(team) {
 	bsTeamsEl.appendChild(wrapper);
 }
 
+// Helper to format ISO 8601 PTxxMxxS durations to M:SS
+function formatMinutes(isoDuration) {
+	if (!isoDuration || typeof isoDuration !== "string") return "";
+
+	const match = isoDuration.match(/PT(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/);
+	if (!match) return "";
+
+	const minutes = match[1] ? parseInt(match[1], 10) : 0;
+	const secondsFloat = match[2] ? parseFloat(match[2]) : 0;
+	const totalSeconds = Math.round(minutes * 60 + secondsFloat);
+
+	const m = Math.floor(totalSeconds / 60);
+	const s = totalSeconds % 60;
+
+	return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 function buildPlayersTable(players, teamAbbr) {
 	const table = document.createElement("table");
 	table.className = "bs-players-table";
@@ -1170,7 +1187,20 @@ function buildPlayersTable(players, teamAbbr) {
 	tableWrapper.appendChild(table);
 	const thead = document.createElement("thead");
 	const headerRow = document.createElement("tr");
-	["Spieler", "PTS", "REB", "AST", "FG", "3P", "FT"].forEach((label) => {
+	[
+		"Spieler",
+		"MIN",
+		"PTS",
+		"REB",
+		"AST",
+		"STL",
+		"BLK",
+		"TOV",
+		"PF",
+		"FG",
+		"3P",
+		"FT",
+	].forEach((label) => {
 		const th = document.createElement("th");
 		th.textContent = label;
 		headerRow.appendChild(th);
@@ -1189,6 +1219,10 @@ function buildPlayersTable(players, teamAbbr) {
 		nameTd.textContent = p.nameI || p.name || "";
 		tr.appendChild(nameTd);
 
+		const minTd = document.createElement("td");
+		minTd.textContent = formatMinutes(s.minutes || s.minutesCalculated);
+		tr.appendChild(minTd);
+
 		const ptsTd = document.createElement("td");
 		ptsTd.textContent = s.points ?? "";
 		tr.appendChild(ptsTd);
@@ -1200,6 +1234,22 @@ function buildPlayersTable(players, teamAbbr) {
 		const astTd = document.createElement("td");
 		astTd.textContent = s.assists ?? "";
 		tr.appendChild(astTd);
+
+		const stlTd = document.createElement("td");
+		stlTd.textContent = s.steals ?? "";
+		tr.appendChild(stlTd);
+
+		const blkTd = document.createElement("td");
+		blkTd.textContent = s.blocks ?? "";
+		tr.appendChild(blkTd);
+
+		const tovTd = document.createElement("td");
+		tovTd.textContent = s.turnovers ?? "";
+		tr.appendChild(tovTd);
+
+		const pfTd = document.createElement("td");
+		pfTd.textContent = s.foulsPersonal ?? "";
+		tr.appendChild(pfTd);
 
 		const fgTd = document.createElement("td");
 		const fgMade = s.fieldGoalsMade ?? 0;
@@ -1286,7 +1336,7 @@ globalThis.app.init();
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-16-v4";
+const serviceWorkerVersion = "2025-11-16-v5";
 
 async function registerServiceWorker() {
 	try {
