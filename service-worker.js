@@ -1,5 +1,5 @@
 const VERSION = new URL(self.location).searchParams.get("v") || "default";
-const CACHE_NAME = `nba-spielplan-cache-${VERSION}`;
+const CACHE_NAME = `nba-spielplan-cache-${VERSION}`; // never change "-cache-" because its used in cleanup
 
 const ORIGINS = {
 	SELF: self.location.origin,

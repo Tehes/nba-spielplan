@@ -3,7 +3,7 @@ Imports
 ---------------------------------------------------------------------------------------------------*/
 
 async function fetchData(url, updateFunction, forceNetwork = false) {
-	const cacheName = "nba-data-cache";
+	const cacheName = "nba-data-cache"; // never change "-data-" because its used in cleanup
 	const cache = await caches.open(cacheName);
 
 	if (!forceNetwork) {
@@ -111,6 +111,7 @@ const scheduleURL = "https://nba-spielplan.tehes.deno.net/schedule";
 const standingsURL = "https://nba-spielplan.tehes.deno.net/standings";
 
 const liveURL = "https://nba-spielplan.tehes.deno.net/scoreboard";
+const boxscoreURL = "https://nba-spielplan.tehes.deno.net/boxscore";
 let liveById = new Map();
 let livePoll = null;
 
@@ -144,6 +145,10 @@ const checkboxPrimetime = document.querySelectorAll("input[type='checkbox']")[2]
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
 const TOTAL_REGULAR_SEASON_GAMES = 1230;
 const AUTO_REFRESH_INTERVAL_MS = 1 * 60 * 1000; // 1 minute
+const backdropEl = document.querySelector("#backdrop");
+const boxscoreEl = document.querySelector("#boxscore");
+const boxScoreCloseBtn = boxscoreEl.querySelector(".close");
+const bsPeriodsEl = document.querySelector("#bs-periods");
 
 // Load saved states
 checkboxPrimetime.checked = JSON.parse(
@@ -264,6 +269,7 @@ function renderTodaysGames() {
 			const clone = templateToday.content.cloneNode(true);
 			const card = clone.querySelector(".card");
 			card.dataset.gameCode = g.gameCode;
+			card.dataset.gameId = g.gameId;
 
 			const homeTeam = clone.querySelector(".home-team");
 			const visitingTeam = clone.querySelector(".visiting-team");
@@ -334,12 +340,7 @@ function renderTodaysGames() {
 			} else if (isLive) {
 				// LIVE
 				date.classList.add("live");
-				const link = document.createElement("a");
-				link.href =
-					`https://www.nba.com/game/${g.awayTeam.teamTricode}-vs-${g.homeTeam.teamTricode}-${g.gameId}/play-by-play`;
-				link.target = "_blank";
-				link.textContent = "LIVE";
-				date.replaceChildren(link);
+				date.textContent = "LIVE";
 
 				const liveAway = live?.awayTeam?.score;
 				const liveHome = live?.homeTeam?.score;
@@ -359,6 +360,14 @@ function renderTodaysGames() {
 				date.textContent = g.time;
 				homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
 				visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
+			}
+
+			// Attach click handler for final or live games
+			if (isFinal || isLive) {
+				card.dataset.clickable = "true";
+				card.addEventListener("click", () => {
+					openBoxscore(card.dataset.gameId);
+				});
 			}
 
 			todayEl.appendChild(clone);
@@ -1003,6 +1012,101 @@ function storeNextScheduledGame() {
 	localStorage.setItem("nba_nextScheduledGame", JSON.stringify(nextGame));
 }
 
+// Boxscore overlay helpers
+function openBoxscore(gameId) {
+	backdropEl.classList.remove("hidden");
+	boxscoreEl.classList.remove("hidden");
+
+	const url = `${boxscoreURL}/${gameId}`;
+	fetchData(url, (json) => {
+		bsPeriodsEl.replaceChildren();
+		renderBoxscore(json);
+	}, true);
+}
+
+function closeBoxscore() {
+	backdropEl.classList.add("hidden");
+	boxscoreEl.classList.add("hidden");
+}
+
+function renderBoxscore(json) {
+	const game = json && json.game;
+	if (!game) {
+		return;
+	}
+
+	renderBoxscorePeriods(game);
+}
+
+function renderBoxscorePeriods(game) {
+	const home = game.homeTeam;
+	const away = game.awayTeam;
+
+	// Periodenliste (Q1 bis Q4 und evtl. OT) von einem Team
+	const periods = (home.periods && home.periods.length ? home.periods : away.periods) || [];
+
+	const table = document.createElement("table");
+	table.className = "bs-periods-table";
+
+	const thead = document.createElement("thead");
+	const headRow = document.createElement("tr");
+
+	const teamTh = document.createElement("th");
+	teamTh.textContent = "Team";
+	headRow.appendChild(teamTh);
+
+	let overtimeIndex = 1;
+	periods.forEach((p) => {
+		const th = document.createElement("th");
+		if (p.periodType === "OVERTIME") {
+			th.textContent = `OT${overtimeIndex}`;
+			overtimeIndex++;
+		} else {
+			th.textContent = `Q${p.period}`;
+		}
+		headRow.appendChild(th);
+	});
+
+	const totalTh = document.createElement("th");
+	totalTh.textContent = "Gesamt";
+	headRow.appendChild(totalTh);
+
+	thead.appendChild(headRow);
+	table.appendChild(thead);
+
+	const tbody = document.createElement("tbody");
+
+	function addTeamRow(team) {
+		const row = document.createElement("tr");
+		const labelCell = document.createElement("td");
+		labelCell.textContent = team.teamTricode;
+		row.dataset.ta = team.teamTricode;
+		row.appendChild(labelCell);
+
+		periods.forEach((p) => {
+			const cell = document.createElement("td");
+			const periodData = team.periods &&
+				team.periods.find(
+					(tp) => tp.period === p.period && tp.periodType === p.periodType,
+				);
+			cell.textContent = periodData ? periodData.score : "";
+			row.appendChild(cell);
+		});
+
+		const totalCell = document.createElement("td");
+		totalCell.textContent = team.score ?? "";
+		row.appendChild(totalCell);
+
+		tbody.appendChild(row);
+	}
+
+	addTeamRow(away);
+	addTeamRow(home);
+
+	table.appendChild(tbody);
+	bsPeriodsEl.appendChild(table);
+}
+
 async function loadData() {
 	await fetchData(scheduleURL, handleScheduleData);
 	storeNextScheduledGame();
@@ -1015,10 +1119,12 @@ async function loadData() {
 }
 
 function init() {
+	backdropEl.addEventListener("click", closeBoxscore);
+	boxScoreCloseBtn.addEventListener("click", closeBoxscore);
 	document.addEventListener("touchstart", function () {}, false);
-	teamPicker.addEventListener("change", renderMoreGames, false);
-	checkboxHidePastGames.addEventListener("change", renderMoreGames, false);
-	checkboxPrimetime.addEventListener("change", renderMoreGames, false);
+	teamPicker.addEventListener("change", renderMoreGames);
+	checkboxHidePastGames.addEventListener("change", renderMoreGames);
+	checkboxPrimetime.addEventListener("change", renderMoreGames);
 
 	checkboxPrimetime.addEventListener("change", () => {
 		localStorage.setItem("nba-spielplan_primetime", checkboxPrimetime.checked);
@@ -1060,8 +1166,8 @@ globalThis.app.init();
 /* --------------------------------------------------------------------------------------------------
 Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
 ---------------------------------------------------------------------------------------------------*/
-const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-11-v1";
+const useServiceWorker = false;
+const serviceWorkerVersion = "2025-11-16-v2";
 
 async function registerServiceWorker() {
 	try {
@@ -1079,18 +1185,34 @@ async function registerServiceWorker() {
 
 async function unregisterServiceWorkers() {
 	const registrations = await navigator.serviceWorker.getRegistrations();
+	let changedSomething = false;
+
 	if (registrations.length) {
 		await Promise.all(registrations.map((r) => r.unregister()));
+		changedSomething = true;
 	}
 
-	// Clear caches
 	if ("caches" in globalThis) {
 		const keys = await caches.keys();
-		await Promise.all(keys.map((k) => caches.delete(k)));
+
+		// Remove only Service Worker caches:
+		// Convention:
+		//  - SW caches contain "-cache-"
+		//  - Data / app caches contain "-data-cache"
+		const swCaches = keys.filter((k) => k.includes("-cache-") && !k.includes("-data-cache"));
+
+		if (swCaches.length) {
+			await Promise.all(swCaches.map((k) => caches.delete(k)));
+			changedSomething = true;
+		}
 	}
 
-	console.log("All service workers & caches cleared – reloading page…");
-	globalThis.location.reload();
+	if (changedSomething) {
+		console.log("All service workers & SW caches cleared – reloading page…");
+		globalThis.location.reload();
+	} else {
+		console.log("No service worker or SW caches left, not reloading again.");
+	}
 }
 
 if ("serviceWorker" in navigator) {
