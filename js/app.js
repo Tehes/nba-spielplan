@@ -1338,11 +1338,13 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-17-v1";
+const serviceWorkerVersion = "2025-11-17-v2";
 
-/* Project detection */
-// GitHub Pages: user.github.io/projectname/... -> slug = "projectname", scope = /projectname/
-// - Everything else (localhost, own Domain): whole origin is scope, slug = hostname
+/* --------------------------------------------------------------------------------------------------
+ * Project detection
+ * - GitHub Pages: user.github.io/projektname/... -> slug = "projektname", scope = /projektname/
+ * - Everything else (localhost, custom domain): whole origin is one project
+ -------------------------------------------------------------------------------------------------- */
 function getProjectInfo() {
 	const url = new URL(globalThis.location.href);
 	const pathParts = url.pathname.split("/").filter(Boolean);
@@ -1354,7 +1356,7 @@ function getProjectInfo() {
 	let projectSlug;
 
 	if (isGitHubPages && pathParts.length > 0) {
-		// Example: https://tehes.github.io/nba-spielplan/
+		// Example: https://user.github.io/project/
 		const first = pathParts[0].toLowerCase();
 		projectScope = `${url.origin}/${first}/`;
 		projectSlug = first;
@@ -1364,10 +1366,17 @@ function getProjectInfo() {
 		projectSlug = hostname.replace(/[^\w-]/g, "_").toLowerCase();
 	}
 
-	return { projectScope, projectSlug };
+	const isGitHubUserRoot = isGitHubPages && pathParts.length === 0;
+
+	return { projectScope, projectSlug, isGitHubUserRoot };
 }
 
-const { projectScope: PROJECT_SCOPE, projectSlug: PROJECT_SLUG } = getProjectInfo();
+const {
+	projectScope: PROJECT_SCOPE,
+	projectSlug: PROJECT_SLUG,
+	isGitHubUserRoot,
+} = getProjectInfo();
+
 const SW_CACHE_PREFIX = `${PROJECT_SLUG}-cache-`; // SW caches: "<slug>-cache-<version>"
 
 /* Service Worker registration and cleanup */
@@ -1436,13 +1445,10 @@ async function unregisterServiceWorkers() {
 
 /* Auto reload on SW controller change and init */
 if ("serviceWorker" in navigator) {
-	// Remember if a controller existed at startup to suppress reload on first install
 	const hadControllerAtStart = !!navigator.serviceWorker.controller;
-	// Auto reload only once when a new SW takes control
 	let hasReloadedForSW = false;
 
 	navigator.serviceWorker.addEventListener("controllerchange", () => {
-		// Do not reload on very first install (no controller existed at start)
 		if (!hadControllerAtStart) return;
 		if (hasReloadedForSW) return;
 		hasReloadedForSW = true;
@@ -1450,6 +1456,14 @@ if ("serviceWorker" in navigator) {
 	});
 
 	globalThis.addEventListener("DOMContentLoaded", async () => {
+		// hard safety: never use a service worker on GitHub user root pages
+		if (isGitHubUserRoot) {
+			console.log(
+				"Service Worker disabled on GitHub user root page to avoid affecting project sites.",
+			);
+			return;
+		}
+
 		if (useServiceWorker) {
 			await registerServiceWorker();
 		} else {
