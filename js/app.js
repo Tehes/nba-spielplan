@@ -1333,20 +1333,58 @@ globalThis.app = {
 globalThis.app.init();
 
 /* --------------------------------------------------------------------------------------------------
-Service Worker configuration. Toggle 'useServiceWorker' to enable or disable the Service Worker.
----------------------------------------------------------------------------------------------------*/
+ * Service Worker configuration
+ * - useServiceWorker: enable or disable SW for this project
+ * - serviceWorkerVersion: bump to force new SW and new cache
+ -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-16-v6";
+const serviceWorkerVersion = "2025-11-17-v1";
 
+/* Project detection */
+// GitHub Pages: user.github.io/projectname/... -> slug = "projectname", scope = /projectname/
+// - Everything else (localhost, own Domain): whole origin is scope, slug = hostname
+function getProjectInfo() {
+	const url = new URL(globalThis.location.href);
+	const pathParts = url.pathname.split("/").filter(Boolean);
+	const hostname = url.hostname;
+
+	const isGitHubPages = hostname.endsWith("github.io");
+
+	let projectScope;
+	let projectSlug;
+
+	if (isGitHubPages && pathParts.length > 0) {
+		// Example: https://tehes.github.io/nba-spielplan/
+		const first = pathParts[0].toLowerCase();
+		projectScope = `${url.origin}/${first}/`;
+		projectSlug = first;
+	} else {
+		// Example: http://127.0.0.1:5500/ or https://nba-spielplan.de/
+		projectScope = `${url.origin}/`;
+		projectSlug = hostname.replace(/[^\w-]/g, "_").toLowerCase();
+	}
+
+	return { projectScope, projectSlug };
+}
+
+const { projectScope: PROJECT_SCOPE, projectSlug: PROJECT_SLUG } = getProjectInfo();
+const SW_CACHE_PREFIX = `${PROJECT_SLUG}-cache-`; // SW caches: "<slug>-cache-<version>"
+
+/* Service Worker registration and cleanup */
 async function registerServiceWorker() {
 	try {
 		const registration = await navigator.serviceWorker.register(
 			`./service-worker.js?v=${serviceWorkerVersion}`,
 			{ scope: "./", updateViaCache: "none" },
 		);
-		// watch for updates right away
+
+		// check for updates immediately
 		registration.update();
-		console.log("Service Worker registered with scope:", registration.scope);
+
+		console.log(
+			`Service Worker registered for project "${PROJECT_SLUG}" with scope:`,
+			registration.scope,
+		);
 	} catch (error) {
 		console.log("Service Worker registration failed:", error);
 	}
@@ -1357,18 +1395,26 @@ async function unregisterServiceWorkers() {
 	let changedSomething = false;
 
 	if (registrations.length) {
-		await Promise.all(registrations.map((r) => r.unregister()));
-		changedSomething = true;
+		// Only unregister SWs whose scope belongs to this project
+		const projectRegistrations = registrations.filter(
+			(r) => r.scope === PROJECT_SCOPE || r.scope.startsWith(PROJECT_SCOPE),
+		);
+
+		if (projectRegistrations.length) {
+			await Promise.all(projectRegistrations.map((r) => r.unregister()));
+			changedSomething = true;
+		}
 	}
 
 	if ("caches" in globalThis) {
 		const keys = await caches.keys();
 
-		// Remove only Service Worker caches:
-		// Convention:
-		//  - SW caches contain "-cache-"
-		//  - Data / app caches contain "-data-cache"
-		const swCaches = keys.filter((k) => k.includes("-cache-") && !k.includes("-data-cache"));
+		// Remove only Service Worker caches for this project:
+		// - SW caches start with "<slug>-cache-"
+		// - Data / app caches can use "<slug>-data-cache" and are not touched here
+		const swCaches = keys.filter(
+			(k) => k.startsWith(SW_CACHE_PREFIX) && !k.includes("-data-cache"),
+		);
 
 		if (swCaches.length) {
 			await Promise.all(swCaches.map((k) => caches.delete(k)));
@@ -1377,18 +1423,24 @@ async function unregisterServiceWorkers() {
 	}
 
 	if (changedSomething) {
-		console.log("All service workers & SW caches cleared – reloading page…");
+		console.log(
+			`Service workers and SW caches for project "${PROJECT_SLUG}" cleared. Reloading page...`,
+		);
 		globalThis.location.reload();
 	} else {
-		console.log("No service worker or SW caches left, not reloading again.");
+		console.log(
+			`No service worker or SW caches found for project "${PROJECT_SLUG}". Not reloading again.`,
+		);
 	}
 }
 
+/* Auto reload on SW controller change and init */
 if ("serviceWorker" in navigator) {
 	// Remember if a controller existed at startup to suppress reload on first install
 	const hadControllerAtStart = !!navigator.serviceWorker.controller;
 	// Auto reload only once when a new SW takes control
 	let hasReloadedForSW = false;
+
 	navigator.serviceWorker.addEventListener("controllerchange", () => {
 		// Do not reload on very first install (no controller existed at start)
 		if (!hadControllerAtStart) return;
