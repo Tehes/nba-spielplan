@@ -231,6 +231,10 @@ main div span {
     opacity: 0.7;
 }
 
+.card[data-clickable="true"]:hover {
+    cursor: pointer;
+}
+
 /*
 -------------------------------------------------------------------
 PLAYOFFS
@@ -526,10 +530,6 @@ TODAY
     height: 10vw;
     max-height: 80px;
     max-width: 80px;
-}
-
-#today .card[data-clickable="true"]:hover {
-    cursor: pointer;
 }
 
 /*
@@ -1017,7 +1017,13 @@ BOXSCORE
 }
 
 body:has(#boxscore:not(.hidden)) {
-    overflow-y: hidden;
+    overflow: hidden;
+}
+
+#boxscore #bs-teams:empty::before {
+    content: "Boxscore wird geladen …";
+    display: block;
+    text-align: center;
 }
 
 /*
