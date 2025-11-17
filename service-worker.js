@@ -56,9 +56,18 @@ self.addEventListener("fetch", (event) => {
 
 			const fetchPromise = fetch(event.request)
 				.then((networkResponse) => {
-					if (networkResponse && networkResponse.status === 200) {
+					if (!networkResponse) {
+						return networkResponse;
+					}
+
+					const isOk = networkResponse.ok;
+					const isOpaque = networkResponse.type === "opaque";
+
+					// Cache normal 200 OK responses and opaque cross origin responses (e.g. Google Fonts)
+					if (isOk || isOpaque) {
 						cache.put(event.request, networkResponse.clone());
 					}
+
 					return networkResponse;
 				})
 				.catch(() => cached || Promise.reject());
@@ -86,7 +95,7 @@ self.addEventListener("activate", (event) => {
 							return true;
 						})
 						.map((name) => caches.delete(name)),
-				),
+				)
 			),
 	);
 	self.clients.claim();

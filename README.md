@@ -21,8 +21,8 @@ your browser.
   - Displays team logos, colors, records, and automatically switches between scheduled, live, and
     final states.
   - Polls the live scoreboard every minute while at least one game is live, overlaying in-progress
-    scores and linking to the NBA play-by-play page.
-  - Allows hiding scores (records are shown instead) for spoiler-free browsing.
+    scores.
+  - Cards are now clickable and open the built-in boxscore overlay.
 
 - **More games view**
   - Lists recent results plus upcoming games, grouped by date.
@@ -46,9 +46,30 @@ your browser.
 - **Quality-of-life touches**
   - Preferences for “show scores” and “prime time only” persist in `localStorage`.
   - Data automatically refreshes when the tab becomes visible or when a new day starts.
-  - Clean typography with the Kanit font, team color variables, and responsive cards for mobile and
-    desktop.
-  - Privacy-friendly analytics via Umami.
+
+- **Boxscore overlay**
+  - Opens when clicking any live or finished game.
+  - Shows full period scoring (Q1–Q4, OT1+).
+  - Lists starters and bench with complete statlines (MIN, PTS, REB, AST, STL, BLK, TOV, PF, FG, 3P,
+    FT).
+  - Uses static HTML templates for fast client‑side rendering.
+  - Works offline if the data was previously cached.
+
+- **Lightweight & fast**
+  - Minimal bundle, no frameworks, fast loading even on slow networks.
+  - Focuses on the essentials only, avoiding the bloat of typical sports apps.
+
+- **Clear, uncluttered UI**
+  - Schedule-first design with clean typography and color‑coded teams.
+  - Optimized for quick scanning on both mobile and desktop.
+
+- **App-like experience**
+  - Can be added to the Homescreen and behaves like a native app.
+  - Auto-refreshes on day changes and tab visibility.
+
+- **Privacy-first**
+  - No ads, no third-party scripts, no trackers of any kind.
+  - Only lightweight Umami analytics, self-hosted and privacy-friendly.
 
 ---
 
@@ -61,7 +82,7 @@ endpoints:
 | ----------------- | -------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `/schedule`       | Raw league schedule from `cdn.nba.com` | Cached in-memory for 5 minutes to avoid hammering the upstream API.                        |
 | `/standings`      | Derived standings table                | Recomputed from the cached schedule so preseason and neutral tournament games are ignored. |
-| `/scoreboard`     | Live in-day scoreboard feed            | Always proxied without caching to keep scores real-time.                                   |
+| `/scoreboard`     | Live in-day scoreboard feed            | Always proxied without caching; powers the boxscore overlay and in-day score updates.      |
 | `/playoffbracket` | Official bracket JSON                  | Direct proxy so CORS headers stay permissive.                                              |
 
 The frontend consumes these endpoints via `fetchData`, which first checks the Cache API before

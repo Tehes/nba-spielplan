@@ -37,73 +37,6 @@ async function fetchData(url, updateFunction, forceNetwork = false) {
 	}
 }
 
-/* --------------------------------------------------------------------------------------
-/schedule endpoint
---------------------------------------------------------------------------------------
-leagueSchedule       Root object
-  gameDates[]        	Array of dates; each has `games[]`
-    games[]          	Array of games with rich fields
-      gameId         	String            e.g. "0022500095"
-      gameCode       	String            e.g. "20251024/SASNOP"
-      gameStatus     	Number            1 = Scheduled, 2 = Live, 3 = Final, 4 = Postponed
-      gameStatusText 	String            e.g. "Final", "Final/OT", "3rd Qtr"
-      gameDateTimeUTC	ISO 8601 UTC     e.g. "2025-10-25T00:00:00Z"
-      arenaName      	String            e.g. "Smoothie King Center"
-      arenaCity      	String            e.g. "New Orleans"
-      arenaState     	String            e.g. "LA"
-
-      homeTeam       	Object
-        teamId       	Number            e.g. 1610612740
-        teamCity     	String            e.g. "New Orleans"
-        teamName     	String            e.g. "Pelicans"
-        teamTricode  	String            e.g. "NOP"
-        wins         	Number            current wins (pre/post game)
-        losses       	Number            current losses
-        score        	Number            final/live score (may be 0 or missing if not started)
-
-      awayTeam       	Object
-        teamId       	Number            e.g. 1610612759
-        teamCity     	String            e.g. "San Antonio"
-        teamName     	String            e.g. "Spurs"
-        teamTricode  	String            e.g. "SAS"
-        wins         	Number
-        losses       	Number
-        score        	Number
-
-      broadcasters   	Object            nested lists (natl/home/away tv/radio/ott)
-      seriesText     	String            e.g. "Neutral Site", ""
-      gameLabel      	String            e.g. "Preseason"
-      gameSubLabel   	String            e.g. "NBA Abu Dhabi Game"
--------------------------------------------------------------------------------------- */
-
-/* --------------------------------------------------------------------------------------
-/standings endpoint
---------------------------------------------------------------------------------------
-Root Object
-  season       Season identifier               String      "2025-26"
-  updatedAt    Timestamp (ISO)                 String      "2025-10-26T13:43:40.638Z"
-  east[]       Eastern Conference teams        Array
-  west[]       Western Conference teams        Array
-
-Team Object (element within east[] / west[])
-  teamId       Team ID                         Number      1610612741
-  teamTricode  Abbreviation                    String      "CHI"
-  teamCity     City                            String      "Chicago"
-  teamName     Team name                       String      "Bulls"
-  wins         Wins                            Number      2
-  losses       Losses                          Number      0
-  winPct       Win percentage                  Number      1
-  gb           Games behind                    Number      0 | 1 | 1.5 | …
-  streak       Current streak                  String      "W 2" | "L 1"
-  home         Home record                     String      "1-0"
-  away         Away record                     String      "1-0"
-
-Notes
-- The arrays `east` and `west` are already sorted in order (1 → n).
-- Seeds are implicitly defined by array position (index + 1).
-- Preseason games are already excluded from these standings (calculated from schedule data).
--------------------------------------------------------------------------------------- */
-
 /* --------------------------------------------------------------------------------------------------
 Variables
 ---------------------------------------------------------------------------------------------------*/
@@ -1307,7 +1240,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-17-v3";
+const serviceWorkerVersion = "2025-11-17-v4";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
