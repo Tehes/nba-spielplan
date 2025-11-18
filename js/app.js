@@ -341,12 +341,17 @@ function renderMoreGames() {
 		});
 	}
 
+	const lastFinishedDate = games.finished.at(-1)?.date;
+
 	gamesToDisplay.forEach((g) => {
 		if (dateHeadline === "" || dateHeadline !== g.date) {
 			dateHeadline = g.date;
-
 			const h3El = document.createElement("h3");
 			const headlineText = document.createTextNode(g.date);
+			if (lastFinishedDate && lastFinishedDate === g.date) {
+				h3El.dataset.lastFinished = "true";
+				console.log("Marking last finished date:", lastFinishedDate);
+			}
 			h3El.appendChild(headlineText);
 			moreEl.appendChild(h3El);
 		}
@@ -1194,7 +1199,17 @@ function init() {
 	boxScoreCloseBtn.addEventListener("click", closeBoxscore);
 	document.addEventListener("touchstart", function () {}, false);
 	teamPicker.addEventListener("change", renderMoreGames);
-	checkboxHidePastGames.addEventListener("change", renderMoreGames);
+	checkboxHidePastGames.addEventListener("change", () => {
+		renderMoreGames();
+		if (!checkboxHidePastGames.checked) {
+			const target = moreEl.querySelector("h3[data-last-finished='true']") ||
+				moreEl.querySelector("h3");
+
+			if (target) {
+				target.scrollIntoView({ behavior: "smooth", block: "start" });
+			}
+		}
+	});
 	checkboxPrimetime.addEventListener("change", renderMoreGames);
 
 	checkboxPrimetime.addEventListener("change", () => {
@@ -1240,7 +1255,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-17-v4";
+const serviceWorkerVersion = "2025-11-18-v1";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection

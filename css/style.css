@@ -463,7 +463,7 @@ TODAY
     text-align: right;
     font-weight: normal;
     white-space: nowrap;
-    font-size: clamp(0.8rem, 3vw, 1.2rem);
+    font-size: clamp(1rem, 3vw, 1.2rem);
 }
 
 
@@ -1104,16 +1104,5 @@ MEDIA QUERIES
 
     aside div {
         flex: 1 0 100%;
-    }
-
-    #today .date a:where(:link, :visited) {
-        border: none;
-        text-decoration: underline;
-    }
-
-    #today .date a:where(:hover, :focus, a:active) {
-        color: var(--neutral-white);
-        text-decoration: underline;
-        background-color: transparent;
     }
 }
