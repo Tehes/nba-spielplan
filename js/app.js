@@ -341,17 +341,12 @@ function renderMoreGames() {
 		});
 	}
 
-	const lastFinishedDate = games.finished.at(-1)?.date;
-
 	gamesToDisplay.forEach((g) => {
 		if (dateHeadline === "" || dateHeadline !== g.date) {
 			dateHeadline = g.date;
 			const h3El = document.createElement("h3");
 			const headlineText = document.createTextNode(g.date);
-			if (lastFinishedDate && lastFinishedDate === g.date) {
-				h3El.dataset.lastFinished = "true";
-				console.log("Marking last finished date:", lastFinishedDate);
-			}
+			h3El.dataset.timestamp = g.localDate.getTime();
 			h3El.appendChild(headlineText);
 			moreEl.appendChild(h3El);
 		}
@@ -406,6 +401,33 @@ function renderMoreGames() {
 		moreEl.appendChild(clone);
 	});
 	filterTeams();
+}
+
+function scrollToLastPastHeadline() {
+	const headlines = moreEl.querySelectorAll("h3");
+	if (!headlines.length) return;
+
+	let bestHeadline = null;
+	let bestTimestamp = null;
+	const now = Date.now();
+
+	headlines.forEach((h3) => {
+		const timestamp = Number(h3.dataset.timestamp);
+		if (!timestamp) return;
+
+		// Find the latest timestamp that is still in the past
+		if (timestamp < now && (!bestTimestamp || timestamp > bestTimestamp)) {
+			bestTimestamp = timestamp;
+			bestHeadline = h3;
+		}
+	});
+
+	if (bestHeadline) {
+		bestHeadline.scrollIntoView({
+			behavior: "smooth",
+			block: "start",
+		});
+	}
 }
 
 function renderStandings() {
@@ -1202,12 +1224,7 @@ function init() {
 	checkboxHidePastGames.addEventListener("change", () => {
 		renderMoreGames();
 		if (!checkboxHidePastGames.checked) {
-			const target = moreEl.querySelector("h3[data-last-finished='true']") ||
-				moreEl.querySelector("h3");
-
-			if (target) {
-				target.scrollIntoView({ behavior: "smooth", block: "start" });
-			}
+			scrollToLastPastHeadline();
 		}
 	});
 	checkboxPrimetime.addEventListener("change", renderMoreGames);
@@ -1255,7 +1272,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-18-v1";
+const serviceWorkerVersion = "2025-11-18-v2";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
