@@ -1283,7 +1283,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-20-v1";
+const serviceWorkerVersion = "2025-11-20-v2";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
