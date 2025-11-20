@@ -538,9 +538,13 @@ ANKER
 -------------------------------------------------------------------
 */
 
-#ankerlink {
+.ankerlink {
     display: none;
     justify-content: center;
+}
+
+#more .ankerlink {
+    display: flex;
 }
 
 .go-to-table {
@@ -553,6 +557,10 @@ ANKER
     transition: all var(--transition-duration) ease;
     margin-bottom: 20px;
     text-transform: uppercase;
+}
+
+#more .go-to-table {
+    margin-top: 30px;
 }
 
 .go-to-table:hover {
@@ -1049,7 +1057,7 @@ MEDIA QUERIES
         justify-content: flex-start;
     }
 
-    #ankerlink {
+    .ankerlink {
         display: flex;
     }
 

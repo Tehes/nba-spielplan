@@ -349,6 +349,17 @@ function renderMoreGames() {
 			h3El.dataset.timestamp = g.localDate.getTime();
 			h3El.appendChild(headlineText);
 			moreEl.appendChild(h3El);
+
+			if (!checkboxHidePastGames.checked && games.scheduled[0].localDate === g.localDate) {
+				const anchorTop = document.createElement("div");
+				anchorTop.classList.add("ankerlink");
+				const anchorLink = document.createElement("a");
+				anchorLink.classList.add("go-to-table");
+				anchorLink.textContent = "zu den heutigen Spielen";
+				anchorTop.appendChild(anchorLink);
+				anchorLink.href = "#top";
+				moreEl.insertBefore(anchorTop, h3El);
+			}
 		}
 
 		const clone = templateMore.content.cloneNode(true);
@@ -1272,7 +1283,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-18-v2";
+const serviceWorkerVersion = "2025-11-20-v1";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
