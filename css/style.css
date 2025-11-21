@@ -1017,7 +1017,6 @@ BOXSCORE
 #boxscore .bs-player-name {
     margin-right: 10px;
     display: inline-block;
-    max-width: 105px;
     white-space: nowrap;
     overflow: clip;
     text-overflow: ellipsis;
@@ -1119,6 +1118,10 @@ MEDIA QUERIES
 
     #more .date {
         flex: 0 0 30%;
+    }
+
+    #boxscore .bs-player-name {
+        max-width: 105px;
     }
 }
 
