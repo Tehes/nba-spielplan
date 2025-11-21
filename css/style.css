@@ -1020,10 +1020,12 @@ BOXSCORE
     white-space: nowrap;
     overflow: clip;
     text-overflow: ellipsis;
+    line-height: 1;
 }
 
 #boxscore .bs-player-pos {
     font-size: 0.9rem;
+    line-height: 1;
     color: var(--text-muted);
 }
 
