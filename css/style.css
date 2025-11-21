@@ -1014,6 +1014,20 @@ BOXSCORE
     min-width: 600px;
 }
 
+#boxscore .bs-player-name {
+    margin-right: 10px;
+    display: inline-block;
+    max-width: 105px;
+    white-space: nowrap;
+    overflow: clip;
+    text-overflow: ellipsis;
+}
+
+#boxscore .bs-player-pos {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
 #boxscore td,
 #boxscore th {
     text-align: left;
@@ -1021,8 +1035,6 @@ BOXSCORE
 
 #boxscore td:first-of-type {
     width: 25%;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 #boxscore tr {

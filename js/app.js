@@ -1159,7 +1159,16 @@ function fillPlayersTable(tbody, players, teamAbbr) {
 		tr.dataset.ta = teamAbbr;
 
 		const nameTd = document.createElement("td");
-		nameTd.textContent = p.nameI || p.name || "";
+		const nameSpan = document.createElement("span");
+		nameSpan.classList.add("bs-player-name");
+		nameTd.appendChild(nameSpan);
+		nameSpan.textContent = p.nameI || p.name || "";
+		if (p.starter === "1") {
+			const posSpan = document.createElement("span");
+			posSpan.classList.add("bs-player-pos");
+			posSpan.textContent = p.position || "";
+			nameTd.appendChild(posSpan);
+		}
 		tr.appendChild(nameTd);
 
 		const minTd = document.createElement("td");
@@ -1283,7 +1292,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-20-v2";
+const serviceWorkerVersion = "2025-11-21-v1";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
