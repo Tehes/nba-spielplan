@@ -777,7 +777,7 @@ tr {
     transition: background-color var(--transition-duration);
 }
 
-tr:hover {
+tr:has(td):hover {
     background-color: var(--team-color, var(--neutral400));
     color: var(--neutral-white);
 }
