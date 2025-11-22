@@ -508,8 +508,8 @@ TODAY
     align-items: center;
     justify-content: center;
     font-size: clamp(1rem, 4vw, 1.5rem);
-    font-weight: 600;
-    padding: 0 6px;
+    font-weight: 500;
+    padding: 0 5px;
     flex: 0 0 20%;
     border-radius: var(--card-corners) 0 0 var(--card-corners);
 }

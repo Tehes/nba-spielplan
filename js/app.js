@@ -194,6 +194,30 @@ function setProgressBar() {
 	progressValue.textContent = `${pct}%`;
 }
 
+// Build a label for live games based on period and gameClock from live scoreboard data
+function getLiveLabel(live) {
+	if (!live) return "LIVE";
+
+	if (live.gameStatusText === "Half") {
+		return "Halbzeit";
+	}
+
+	const period = Number(live.period);
+	const clockStr = formatMinutes(live.gameClock);
+
+	if (!period || clockStr === "0:00") {
+		return "LIVE";
+	}
+
+	if (period <= 4) {
+		return `Q${period} ${clockStr}`;
+	}
+
+	const otIndex = period - 4;
+	const otLabel = otIndex === 1 ? "OT" : `OT${otIndex}`;
+	return `${otLabel} ${clockStr}`;
+}
+
 function renderTodaysGames() {
 	todayEl.replaceChildren();
 
@@ -276,7 +300,7 @@ function renderTodaysGames() {
 			} else if (isLive) {
 				// LIVE
 				date.classList.add("live");
-				date.textContent = "LIVE";
+				date.innerHTML = getLiveLabel(live);
 
 				const liveAway = live?.awayTeam?.score;
 				const liveHome = live?.homeTeam?.score;
@@ -1333,7 +1357,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-22-v6";
+const serviceWorkerVersion = "2025-11-22-v7";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
