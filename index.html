@@ -174,7 +174,7 @@
 		<aside id="tables">
 			<div>
 				<h3>Western Conference</h3>
-				<div id="east">
+				<div id="west">
 					<table class="standings">
 						<tr>
 							<th></th>
@@ -325,7 +325,7 @@
 			</div>
 			<div>
 				<h3>Eastern Conference</h3>
-				<div id="west">
+				<div id="east">
 					<table class="standings">
 						<tr>
 							<th></th>
@@ -487,6 +487,7 @@
 	<div id="boxscore" class="hidden">
 		<div class="close"><img src="img/close.svg" alt="close Icon"></div>
 		<div id="boxscore-content">
+			<h3>Viertelverlauf</h3>
 			<div id="bs-periods">
 				<table class="bs-periods-table">
 					<thead>
@@ -495,6 +496,55 @@
 					</tbody>
 				</table>
 			</div>
+			<h3>Team-Vergleich</h3>
+			<div id="bs-team-stats">
+				<h5>2 Punkte</h5>
+				<div class="stat-wrapper" data-stat="twoPointersMade">
+					<div class="bar bar-away">50%</div>
+					<div class="bar bar-home">50%</div>
+				</div>
+				<h5>3 Punkte</h5>
+				<div class="stat-wrapper" data-stat="threePointersMade">
+					<div class="bar bar-away">50%</div>
+					<div class="bar bar-home">50%</div>
+				</div>
+				<h5>Freiwürfe</h5>
+				<div class="stat-wrapper" data-stat="freeThrowsMade">
+					<div class="bar bar-away">50%</div>
+					<div class="bar bar-home">50%</div>
+				</div>
+				<h5>Rebounds</h5>
+				<div class="stat-wrapper" data-stat="reboundsTotal">
+					<div class="bar bar-away">50%</div>
+					<div class="bar bar-home">50%</div>
+				</div>
+				<h5>Assists</h5>
+				<div class="stat-wrapper" data-stat="assists">
+					<div class="bar bar-away">50%</div>
+					<div class="bar bar-home">50%</div>
+				</div>
+				<h5>Steals</h5>
+				<div class="stat-wrapper" data-stat="steals">
+					<div class="bar bar-away">50%</div>
+					<div class="bar bar-home">50%</div>
+				</div>
+				<h5>Blocks</h5>
+				<div class="stat-wrapper" data-stat="blocks">
+					<div class="bar bar-away">50%</div>
+					<div class="bar bar-home">50%</div>
+				</div>
+				<h5>Turnover</h5>
+				<div class="stat-wrapper" data-stat="turnoversTotal">
+					<div class="bar bar-away">50%</div>
+					<div class="bar bar-home">50%</div>
+				</div>
+				<h5>Fouls</h5>
+				<div class="stat-wrapper" data-stat="foulsPersonal">
+					<div class="bar bar-away">50%</div>
+					<div class="bar bar-home">50%</div>
+				</div>
+			</div>
+			<h3>Boxscore</h3>
 			<div id="bs-teams"></div>
 		</div>
 	</div>

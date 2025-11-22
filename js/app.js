@@ -82,6 +82,7 @@ const backdropEl = document.querySelector("#backdrop");
 const boxscoreEl = document.querySelector("#boxscore");
 const boxScoreCloseBtn = boxscoreEl.querySelector(".close");
 const bsPeriodsEl = document.querySelector("#bs-periods");
+const bsTeamStatsEl = document.querySelector("#bs-team-stats");
 const bsTeamsEl = document.querySelector("#bs-teams");
 const templateBsTeam = document.querySelector("#tmpl-bs-team");
 
@@ -443,8 +444,8 @@ function scrollToLastPastHeadline() {
 
 function renderStandings() {
 	const rows = [
-		standingsEast.querySelectorAll("tr:not(:first-of-type)"),
 		standingsWest.querySelectorAll("tr:not(:first-of-type)"),
+		standingsEast.querySelectorAll("tr:not(:first-of-type)"),
 	];
 
 	const dataByConf = [westData, eastData];
@@ -602,7 +603,7 @@ function playoffPicture() {
 		!Array.isArray(playoffTeams[0]) || !Array.isArray(playoffTeams[1]) ||
 		playoffTeams[0].length < 8 || playoffTeams[1].length < 8
 	) {
-		console.warn("Playoff picture skipped: playoffTeams incomplete", {
+		console.log("Playoff picture skipped: playoffTeams incomplete", {
 			west: playoffTeams?.[0]?.length ?? 0,
 			east: playoffTeams?.[1]?.length ?? 0,
 		});
@@ -880,7 +881,7 @@ function handleStandingsData(json) {
 		if (westCount >= 8 && eastCount >= 8) {
 			playoffPicture();
 		} else {
-			console.warn("Skipping playoffPicture: missing play-in winners", {
+			console.log("Skipping playoffPicture: missing play-in winners", {
 				westCount,
 				eastCount,
 			});
@@ -1015,6 +1016,14 @@ function resetBoxscoreView() {
 	thead.replaceChildren();
 	tbody.replaceChildren();
 	bsTeamsEl.replaceChildren();
+
+	if (bsTeamStatsEl) {
+		bsTeamStatsEl.querySelectorAll(".bar").forEach((bar) => {
+			bar.style.width = "50%";
+			bar.textContent = "–";
+			bar.style.backgroundColor = "";
+		});
+	}
 }
 
 function renderBoxscore(json) {
@@ -1024,8 +1033,38 @@ function renderBoxscore(json) {
 	}
 
 	renderBoxscorePeriods(game);
+	renderBoxscoreTeamStats(game);
 	renderBoxscoreTeam(game.awayTeam);
 	renderBoxscoreTeam(game.homeTeam);
+}
+
+function renderBoxscoreTeamStats(game) {
+	const homeTeam = game.homeTeam;
+	const awayTeam = game.awayTeam;
+	const homeStats = game.homeTeam?.statistics || {};
+	const awayStats = game.awayTeam?.statistics || {};
+
+	bsTeamStatsEl.querySelectorAll(".stat-wrapper").forEach((wrapper) => {
+		const key = wrapper.dataset.stat;
+		if (!key) return;
+
+		const homeBar = wrapper.querySelector(".bar-home");
+		const awayBar = wrapper.querySelector(".bar-away");
+
+		const homeValue = Number(homeStats?.[key]) || 0;
+		const awayValue = Number(awayStats?.[key]) || 0;
+
+		const total = homeValue + awayValue;
+		const homeShare = total ? Math.round((homeValue / total) * 100) : 50;
+		const awayShare = total ? 100 - homeShare : 50;
+
+		homeBar.style.setProperty("width", `${Math.min(100, Math.max(0, homeShare))}%`);
+		awayBar.style.setProperty("width", `${Math.min(100, Math.max(0, awayShare))}%`);
+		homeBar.style.setProperty("--team-color", `var(--${homeTeam.teamTricode})`);
+		awayBar.style.setProperty("--team-color", `var(--${awayTeam.teamTricode})`);
+		homeBar.textContent = `${homeShare}%`;
+		awayBar.textContent = `${awayShare}%`;
+	});
 }
 
 function renderBoxscorePeriods(game) {
@@ -1294,7 +1333,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-22-v4";
+const serviceWorkerVersion = "2025-11-22-v5";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection

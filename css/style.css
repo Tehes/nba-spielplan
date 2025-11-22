@@ -144,6 +144,12 @@ h4 {
     text-transform: uppercase;
 }
 
+h5 {
+    margin: 5px 0 0 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
 a {
     color: inherit;
 }
@@ -882,9 +888,9 @@ BOXSCORE
     margin-top: 24px;
 }
 
-#boxscore #bs-periods {
-    padding-bottom: 15px;
-    margin-bottom: 15px;
+#boxscore #bs-periods,
+#boxscore #bs-team-stats {
+    margin-bottom: 30px;
 }
 
 #boxscore .bs-players-table-wrapper {
@@ -935,6 +941,21 @@ body:has(#boxscore:not(.hidden)) {
     content: "Boxscore wird geladen …";
     display: block;
     text-align: center;
+}
+
+#boxscore .stat-wrapper {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+#boxscore .stat-wrapper .bar {
+    padding: 0 5px;
+    height: 1.5rem;
+    background-color: var(--team-color, var(--neutral500));
+    border-radius: 10px;
+    width: 50%;
+    color: var(--neutral-white);
 }
 
 /*
