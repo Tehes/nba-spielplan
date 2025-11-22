@@ -1014,19 +1014,23 @@ BOXSCORE
     min-width: 600px;
 }
 
+#boxscore .bs-player-cell {
+    display: flex;
+    align-items: baseline;
+    width: clamp(120px, 20vw, 190px);
+}
+
 #boxscore .bs-player-name {
     margin-right: 10px;
-    display: inline-block;
     white-space: nowrap;
-    overflow: clip;
+    overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1;
+    flex: 0 1 auto;
 }
 
 #boxscore .bs-player-pos {
     font-size: 0.9rem;
-    line-height: 1;
-    color: var(--text-muted);
+    flex: 0 0 auto;
 }
 
 #boxscore td,
@@ -1120,10 +1124,6 @@ MEDIA QUERIES
 
     #more .date {
         flex: 0 0 30%;
-    }
-
-    #boxscore .bs-player-name {
-        max-width: 105px;
     }
 }
 

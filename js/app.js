@@ -1159,15 +1159,18 @@ function fillPlayersTable(tbody, players, teamAbbr) {
 		tr.dataset.ta = teamAbbr;
 
 		const nameTd = document.createElement("td");
+		const playerCell = document.createElement("div");
+		playerCell.classList.add("bs-player-cell");
+		nameTd.appendChild(playerCell);
 		const nameSpan = document.createElement("span");
 		nameSpan.classList.add("bs-player-name");
-		nameTd.appendChild(nameSpan);
+		playerCell.appendChild(nameSpan);
 		nameSpan.textContent = p.nameI || p.name || "";
 		if (p.starter === "1") {
 			const posSpan = document.createElement("span");
 			posSpan.classList.add("bs-player-pos");
 			posSpan.textContent = p.position || "";
-			nameTd.appendChild(posSpan);
+			playerCell.appendChild(posSpan);
 		}
 		tr.appendChild(nameTd);
 
@@ -1291,7 +1294,7 @@ globalThis.app.init();
  * - useServiceWorker: enable or disable SW for this project
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
-const useServiceWorker = true;
+const useServiceWorker = false;
 const serviceWorkerVersion = "2025-11-21-v3";
 
 /* --------------------------------------------------------------------------------------------------
