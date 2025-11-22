@@ -1399,6 +1399,23 @@ async function unregisterServiceWorkers() {
 	}
 }
 
+async function checkForServiceWorkerUpdateOnResume() {
+	if (!useServiceWorker || isGitHubUserRoot) return;
+
+	try {
+		const registration = await navigator.serviceWorker.getRegistration(PROJECT_SCOPE);
+		if (!registration) return;
+
+		await registration.update();
+
+		if (registration.waiting) {
+			registration.waiting.postMessage({ type: "SKIP_WAITING" });
+		}
+	} catch (error) {
+		console.log("SW update check on resume failed:", error);
+	}
+}
+
 /* Auto reload on SW controller change and init */
 if ("serviceWorker" in navigator) {
 	const hadControllerAtStart = !!navigator.serviceWorker.controller;
@@ -1425,5 +1442,14 @@ if ("serviceWorker" in navigator) {
 		} else {
 			await unregisterServiceWorkers();
 		}
+	});
+
+	["visibilitychange", "pageshow"].forEach((eventName) => {
+		globalThis.addEventListener(eventName, async () => {
+			if (eventName === "visibilitychange" && document.visibilityState !== "visible") {
+				return;
+			}
+			await checkForServiceWorkerUpdateOnResume();
+		});
 	});
 }
