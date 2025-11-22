@@ -458,7 +458,7 @@ function renderStandings() {
 			if (!team) return;
 
 			const cells = row.querySelectorAll("td");
-			row.dataset.ta = team.teamTricode;
+			row.style.setProperty("--team-color", `var(--${team.teamTricode})`);
 			cells[1].textContent = team.teamTricode; // Name/abbr
 			cells[2].textContent = `${team.wins}-${team.losses}`; // W-L
 			cells[3].textContent = team.gb; // GB
@@ -1064,7 +1064,7 @@ function renderBoxscorePeriods(game) {
 		const row = document.createElement("tr");
 		const labelCell = document.createElement("td");
 		labelCell.textContent = team.teamTricode;
-		row.dataset.ta = team.teamTricode;
+		row.style.setProperty("--team-color", `var(--${team.teamTricode})`);
 		row.appendChild(labelCell);
 
 		periods.forEach((p) => {
@@ -1092,7 +1092,7 @@ function renderBoxscorePeriods(game) {
 
 function renderBoxscoreTeam(team) {
 	const section = templateBsTeam.content.firstElementChild.cloneNode(true);
-	section.dataset.ta = team.teamTricode;
+	section.style.setProperty("--team-color", `var(--${team.teamTricode})`);
 
 	const teamLogo = section.querySelector(".bs-team-logo");
 	const teamName = section.querySelector(".bs-team-name");
@@ -1124,8 +1124,8 @@ function renderBoxscoreTeam(team) {
 		.querySelector(".bs-bench-table")
 		.closest(".bs-players-table-wrapper");
 
-	fillPlayersTable(startersBody, starters, team.teamTricode);
-	fillPlayersTable(benchBody, bench, team.teamTricode);
+	fillPlayersTable(startersBody, starters);
+	fillPlayersTable(benchBody, bench);
 
 	if (!bench.length) {
 		benchTitle.remove();
@@ -1152,11 +1152,10 @@ function formatMinutes(isoDuration) {
 	return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function fillPlayersTable(tbody, players, teamAbbr) {
+function fillPlayersTable(tbody, players) {
 	players.forEach((p) => {
 		const s = p.statistics || {};
 		const tr = document.createElement("tr");
-		tr.dataset.ta = teamAbbr;
 
 		const nameTd = document.createElement("td");
 		const playerCell = document.createElement("div");
@@ -1294,8 +1293,8 @@ globalThis.app.init();
  * - useServiceWorker: enable or disable SW for this project
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
-const useServiceWorker = false;
-const serviceWorkerVersion = "2025-11-21-v3";
+const useServiceWorker = true;
+const serviceWorkerVersion = "2025-11-22-v1";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection

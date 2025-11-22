@@ -777,128 +777,9 @@ tr {
     transition: background-color var(--transition-duration);
 }
 
-tr[data-ta]:hover {
+tr:hover {
+    background-color: var(--team-color);
     color: var(--neutral-white);
-}
-
-tr[data-ta="ATL"]:hover {
-    background-color: var(--ATL);
-}
-
-tr[data-ta="BKN"]:hover {
-    background-color: var(--BKN);
-}
-
-tr[data-ta="BOS"]:hover {
-    background-color: var(--BOS);
-}
-
-tr[data-ta="CHA"]:hover {
-    background-color: var(--CHA);
-}
-
-tr[data-ta="CHI"]:hover {
-    background-color: var(--CHI);
-}
-
-tr[data-ta="CLE"]:hover {
-    background-color: var(--CLE);
-}
-
-tr[data-ta="DAL"]:hover {
-    background-color: var(--DAL);
-}
-
-tr[data-ta="DEN"]:hover {
-    background-color: var(--DEN);
-}
-
-tr[data-ta="DET"]:hover {
-    background-color: var(--DET);
-}
-
-tr[data-ta="GSW"]:hover {
-    background-color: var(--GSW);
-}
-
-tr[data-ta="HOU"]:hover {
-    background-color: var(--HOU);
-}
-
-tr[data-ta="IND"]:hover {
-    background-color: var(--IND);
-}
-
-tr[data-ta="LAC"]:hover {
-    background-color: var(--LAC);
-}
-
-tr[data-ta="LAL"]:hover {
-    background-color: var(--LAL);
-}
-
-tr[data-ta="MEM"]:hover {
-    background-color: var(--MEM);
-}
-
-tr[data-ta="MIA"]:hover {
-    background-color: var(--MIA);
-}
-
-tr[data-ta="MIL"]:hover {
-    background-color: var(--MIL);
-}
-
-tr[data-ta="MIN"]:hover {
-    background-color: var(--MIN);
-}
-
-tr[data-ta="NOP"]:hover {
-    background-color: var(--NOP);
-}
-
-tr[data-ta="NYK"]:hover {
-    background-color: var(--NYK);
-}
-
-tr[data-ta="OKC"]:hover {
-    background-color: var(--OKC);
-}
-
-tr[data-ta="ORL"]:hover {
-    background-color: var(--ORL);
-}
-
-tr[data-ta="PHI"]:hover {
-    background-color: var(--PHI);
-}
-
-tr[data-ta="PHX"]:hover {
-    background-color: var(--PHX);
-}
-
-tr[data-ta="POR"]:hover {
-    background-color: var(--POR);
-}
-
-tr[data-ta="SAC"]:hover {
-    background-color: var(--SAC);
-}
-
-tr[data-ta="SAS"]:hover {
-    background-color: var(--SAS);
-}
-
-tr[data-ta="TOR"]:hover {
-    background-color: var(--TOR);
-}
-
-tr[data-ta="UTA"]:hover {
-    background-color: var(--UTA);
-}
-
-tr[data-ta="WAS"]:hover {
-    background-color: var(--WAS);
 }
 
 th,
@@ -1021,7 +902,6 @@ BOXSCORE
 }
 
 #boxscore .bs-player-name {
-    margin-right: 10px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1029,6 +909,7 @@ BOXSCORE
 }
 
 #boxscore .bs-player-pos {
+    margin-left: 10px;
     font-size: 0.9rem;
     flex: 0 0 auto;
 }
