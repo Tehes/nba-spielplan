@@ -956,6 +956,8 @@ body:has(#boxscore:not(.hidden)) {
     border-radius: 10px;
     width: 50%;
     color: var(--neutral-white);
+    min-width: fit-content;
+    text-align: center;
 }
 
 /*
