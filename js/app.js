@@ -1335,11 +1335,44 @@ const {
 
 const SW_CACHE_PREFIX = `${PROJECT_SLUG}-cache-`; // SW caches: "<slug>-cache-<version>"
 
+async function shouldSkipServiceWorker(swUrl) {
+	try {
+		const response = await fetch(swUrl, {
+			method: "HEAD",
+			cache: "no-store",
+		});
+
+		if (response.redirected) {
+			console.log(
+				`Service Worker skipped: ${swUrl} redirects to ${response.url}. Use the canonical host for PWA features.`,
+			);
+			return true;
+		}
+
+		if (!response.ok) {
+			console.log(
+				`Service Worker skipped: ${swUrl} returned status ${response.status}.`,
+			);
+			return true;
+		}
+	} catch (error) {
+		console.log("Service Worker preflight check failed, trying to register anyway:", error);
+	}
+
+	return false;
+}
+
 /* Service Worker registration and cleanup */
 async function registerServiceWorker() {
 	try {
+		const swUrl = `./service-worker.js?v=${serviceWorkerVersion}`;
+
+		if (await shouldSkipServiceWorker(swUrl)) {
+			return;
+		}
+
 		const registration = await navigator.serviceWorker.register(
-			`./service-worker.js?v=${serviceWorkerVersion}`,
+			swUrl,
 			{ scope: "./", updateViaCache: "none" },
 		);
 
