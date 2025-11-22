@@ -778,7 +778,7 @@ tr {
 }
 
 tr:hover {
-    background-color: var(--team-color);
+    background-color: var(--team-color, var(--neutral400));
     color: var(--neutral-white);
 }
 
