@@ -954,7 +954,7 @@ body:has(#boxscore:not(.hidden)) {
 }
 
 #boxscore .stat-wrapper .bar {
-    padding: 0 5px;
+    padding: 0 10px;
     height: 1.5rem;
     background-color: var(--team-color, var(--neutral500));
     border-radius: 10px;
@@ -962,6 +962,7 @@ body:has(#boxscore:not(.hidden)) {
     color: var(--neutral-white);
     min-width: fit-content;
     text-align: center;
+    box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /*
