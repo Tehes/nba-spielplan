@@ -215,23 +215,35 @@ function setProgressBar() {
 function getLiveLabel(live) {
 	if (!live) return "LIVE";
 
-	if (live.gameStatusText === "Half") {
-		return "Halbzeit";
+	// Pregame
+	if (live.gameStatus === 1) {
+		return "in Kürze";
 	}
 
 	const period = Number(live.period);
 	const clockStr = formatMinutes(live.gameClock);
 
-	if (!period || clockStr === "0:00") {
-		return "LIVE";
+	const isOT = period > 4;
+	const otIndex = period - 4;
+	const otLabel = otIndex === 1 ? "OT" : `OT${otIndex}`;
+
+	// End of periods or OT
+	if (clockStr === "0:00") {
+		if (period === 2) {
+			return "Halbzeit";
+		}
+		if (!isOT) {
+			return `Ende Q${period}`;
+		}
+		return `Ende ${otLabel}`;
 	}
 
-	if (period <= 4) {
+	// running time of periods
+	if (!isOT) {
 		return `Q${period} ${clockStr}`;
 	}
 
-	const otIndex = period - 4;
-	const otLabel = otIndex === 1 ? "OT" : `OT${otIndex}`;
+	// running time of OT
 	return `${otLabel} ${clockStr}`;
 }
 
@@ -1375,7 +1387,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-23-v1";
+const serviceWorkerVersion = "2025-11-23-v2";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
