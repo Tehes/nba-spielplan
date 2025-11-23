@@ -1075,7 +1075,7 @@ function resetBoxscoreView() {
 		bsTeamStatsEl.querySelectorAll(".bar").forEach((bar) => {
 			bar.style.width = "50%";
 			bar.textContent = "–";
-			bar.style.backgroundColor = "";
+			bar.style.removeProperty("--team-color");
 		});
 	}
 }
@@ -1212,7 +1212,6 @@ function renderBoxscoreTeam(team) {
 
 	const startersBody = section.querySelector(".bs-starters-table tbody");
 	const benchBody = section.querySelector(".bs-bench-table tbody");
-	const benchTitle = section.querySelector(".bs-team-bench-title");
 	const benchWrapper = section
 		.querySelector(".bs-bench-table")
 		.closest(".bs-players-table-wrapper");
@@ -1221,7 +1220,6 @@ function renderBoxscoreTeam(team) {
 	fillPlayersTable(benchBody, bench);
 
 	if (!bench.length) {
-		benchTitle.remove();
 		benchWrapper.remove();
 	}
 
@@ -1391,7 +1389,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-24-v1";
+const serviceWorkerVersion = "2025-11-24-v2";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
