@@ -895,6 +895,11 @@ BOXSCORE
 
 #boxscore .bs-players-table-wrapper {
     overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.bs-players-table-wrapper+.bs-players-table-wrapper {
+    margin-top: 20px;
 }
 
 #boxscore .bs-players-table-wrapper table {
@@ -922,6 +927,10 @@ BOXSCORE
 
 #boxscore td:first-of-type {
     width: 25%;
+}
+
+.bs-players-table th:first-of-type {
+    text-align: left;
 }
 
 #boxscore tr {

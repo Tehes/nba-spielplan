@@ -1116,8 +1116,8 @@ function renderBoxscoreTeamStats(game) {
 		awayBar.style.setProperty("width", `${Math.min(100, Math.max(0, awayShare))}%`);
 		homeBar.style.setProperty("--team-color", `var(--${homeTeam.teamTricode})`);
 		awayBar.style.setProperty("--team-color", `var(--${awayTeam.teamTricode})`);
-		homeBar.textContent = `${homeShare}%`;
-		awayBar.textContent = `${awayShare}%`;
+		homeBar.textContent = `${homeValue}`;
+		awayBar.textContent = `${awayValue}`;
 	});
 }
 
@@ -1391,7 +1391,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-23-v3";
+const serviceWorkerVersion = "2025-11-24-v1";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
