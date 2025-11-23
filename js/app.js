@@ -1316,6 +1316,10 @@ function fillPlayersTable(tbody, players) {
 		ftTd.textContent = fta ? `${ftm}-${fta}` : "";
 		tr.appendChild(ftTd);
 
+		const pmlTd = document.createElement("td");
+		pmlTd.textContent = s.plusMinusPoints ?? "";
+		tr.appendChild(pmlTd);
+
 		tbody.appendChild(tr);
 	});
 }
@@ -1387,7 +1391,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-23-v2";
+const serviceWorkerVersion = "2025-11-23-v3";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection

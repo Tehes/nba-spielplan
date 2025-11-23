@@ -790,12 +790,12 @@ tr:has(td):hover {
 
 th,
 td {
-    text-align: left;
+    text-align: center;
     padding: 5px 0;
     white-space: nowrap;
 }
 
-td:first-of-type {
+.standings td:first-of-type {
     text-align: right;
     width: 8%;
     padding-right: 10px;
@@ -918,11 +918,6 @@ BOXSCORE
     margin-left: 10px;
     font-size: 0.9rem;
     flex: 0 0 auto;
-}
-
-#boxscore td,
-#boxscore th {
-    text-align: left;
 }
 
 #boxscore td:first-of-type {
