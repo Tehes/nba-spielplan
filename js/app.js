@@ -106,6 +106,23 @@ function updateLive(liveJson) {
 	const arr = liveJson?.scoreboard?.games ?? [];
 	liveById = new Map(arr.map((g) => [g.gameId, g]));
 	renderTodaysGames();
+
+	if (!boxscoreEl.classList.contains("hidden")) {
+		const gameId = boxscoreEl.dataset.gameId;
+		const liveGame = liveById.get(gameId);
+
+		if (liveGame?.gameStatus === 2) {
+			const url = `${boxscoreURL}/${gameId}`;
+			fetchData(
+				url,
+				(json) => {
+					resetBoxscoreView();
+					renderBoxscore(json);
+				},
+				true,
+			);
+		}
+	}
 }
 
 function fetchLiveOnce() {
@@ -1019,6 +1036,7 @@ function storeNextScheduledGame() {
 function openBoxscore(gameId) {
 	backdropEl.classList.remove("hidden");
 	boxscoreEl.classList.remove("hidden");
+	boxscoreEl.dataset.gameId = gameId;
 	resetBoxscoreView();
 
 	const url = `${boxscoreURL}/${gameId}`;
@@ -1357,7 +1375,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-22-v7";
+const serviceWorkerVersion = "2025-11-23-v1";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
