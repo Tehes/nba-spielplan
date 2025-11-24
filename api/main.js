@@ -3,6 +3,7 @@ const SCHEDULE_URL = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV
 const SCOREBOARD_URL =
 	"https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json";
 const BOXSCORE_BASE_URL = "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_";
+const PLAYBYPLAY_BASE_URL = "https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_";
 
 const DEFAULT_HEADERS = {
 	"User-Agent":
@@ -411,6 +412,25 @@ Deno.serve(async (req) => {
 
 			const boxscoreUrl = `${BOXSCORE_BASE_URL}${gameId}.json`;
 			return proxyWithCors(boxscoreUrl);
+		}
+
+		// --- /playbyplay/:gameId: KEIN Cache (immer live) ---
+		if (PATH.startsWith("/playbyplay/")) {
+			const gameId = PATH.slice("/playbyplay/".length);
+
+			// einfache Validierung, damit kein Unsinn durchgeht
+			if (!/^\d{10}$/.test(gameId)) {
+				return new Response("Invalid gameId", {
+					status: 400,
+					headers: {
+						...CORS_HEADERS,
+						"content-type": "text/plain; charset=utf-8",
+					},
+				});
+			}
+
+			const playbyplayUrl = `${PLAYBYPLAY_BASE_URL}${gameId}.json`;
+			return proxyWithCors(playbyplayUrl);
 		}
 
 		return new Response("Not Found", {
