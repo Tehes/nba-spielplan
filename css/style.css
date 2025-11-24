@@ -885,7 +885,7 @@ BOXSCORE
 }
 
 #boxscore #boxscore-content {
-    margin-top: 24px;
+    margin-top: 35px;
 }
 
 #boxscore #bs-periods,
@@ -965,6 +965,89 @@ body:has(#boxscore:not(.hidden)) {
     box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+#boxscore .bs-tabs {
+    display: flex;
+    border: 1px solid var(--text-color);
+    border-radius: var(--card-corners);
+    margin: 10px auto 0 auto;
+    max-width: 400px;
+}
+
+#boxscore .bs-tab {
+    flex: 0 0 50%;
+    padding: 6px 10px;
+    background-color: transparent;
+    border: none;
+    color: var(--text-color);
+    font: inherit;
+    font-size: 1rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-align: center;
+}
+
+#boxscore .bs-tab+.bs-tab {
+    border-left: 1px solid var(--text-color);
+}
+
+#boxscore .bs-tab.is-active {
+    background-color: var(--text-color);
+    color: var(--bg-color);
+}
+
+#boxscore .bs-tab-panel {
+    margin-top: 16px;
+}
+
+#boxscore .bs-tab-panel:not(.is-active) {
+    display: none;
+}
+
+#bs-playbyplay {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 15px;
+}
+
+.pbp-item {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.pbp-line {
+    width: 8px;
+    align-self: stretch;
+    background-color: var(--team-color, var(--neutral400));
+}
+
+.pbp-text {
+    flex: 1;
+    padding: 0 0 10px 0;
+    border-bottom: 1px solid var(--divider-color);
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+}
+
+.pbp-time {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    min-width: 8ch;
+}
+
+.pbp-description {
+    font-weight: 500;
+    text-wrap: balance;
+    flex: 1;
+}
+
+.pbp-score {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.5;
+}
+
 /*
 -------------------------------------------------------------------
 MEDIA QUERIES
@@ -1033,6 +1116,10 @@ MEDIA QUERIES
 
     #more .date {
         flex: 0 0 30%;
+    }
+
+    .pbp-text {
+        display: block;
     }
 }
 

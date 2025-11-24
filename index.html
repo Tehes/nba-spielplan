@@ -487,65 +487,81 @@
 	<div id="boxscore" class="hidden">
 		<div class="close"><img src="img/close.svg" alt="close Icon"></div>
 		<div id="boxscore-content">
-			<h3>Viertelverlauf</h3>
-			<div id="bs-periods">
-				<table class="bs-periods-table">
-					<thead>
-					</thead>
-					<tbody>
-					</tbody>
-				</table>
+			<div class="bs-tabs">
+				<button type="button" class="bs-tab is-active" data-target="bs-tab-boxscore">
+					Boxscore
+				</button>
+				<button type="button" class="bs-tab" data-target="bs-tab-playbyplay">
+					Play by Play
+				</button>
 			</div>
-			<h3>Team-Vergleich</h3>
-			<div id="bs-team-stats">
-				<h5>2 Punkte</h5>
-				<div class="stat-wrapper" data-stat="twoPointersMade">
-					<div class="bar bar-away">50%</div>
-					<div class="bar bar-home">50%</div>
+
+			<div id="bs-tab-boxscore" class="bs-tab-panel is-active">
+				<h3>Viertelverlauf</h3>
+				<div id="bs-periods">
+					<table class="bs-periods-table">
+						<thead>
+						</thead>
+						<tbody>
+						</tbody>
+					</table>
 				</div>
-				<h5>3 Punkte</h5>
-				<div class="stat-wrapper" data-stat="threePointersMade">
-					<div class="bar bar-away">50%</div>
-					<div class="bar bar-home">50%</div>
+				<h3>Team-Vergleich</h3>
+				<div id="bs-team-stats">
+					<h5>2 Punkte</h5>
+					<div class="stat-wrapper" data-stat="twoPointersMade">
+						<div class="bar bar-away">50%</div>
+						<div class="bar bar-home">50%</div>
+					</div>
+					<h5>3 Punkte</h5>
+					<div class="stat-wrapper" data-stat="threePointersMade">
+						<div class="bar bar-away">50%</div>
+						<div class="bar bar-home">50%</div>
+					</div>
+					<h5>Freiwürfe</h5>
+					<div class="stat-wrapper" data-stat="freeThrowsMade">
+						<div class="bar bar-away">50%</div>
+						<div class="bar bar-home">50%</div>
+					</div>
+					<h5>Rebounds</h5>
+					<div class="stat-wrapper" data-stat="reboundsTotal">
+						<div class="bar bar-away">50%</div>
+						<div class="bar bar-home">50%</div>
+					</div>
+					<h5>Assists</h5>
+					<div class="stat-wrapper" data-stat="assists">
+						<div class="bar bar-away">50%</div>
+						<div class="bar bar-home">50%</div>
+					</div>
+					<h5>Steals</h5>
+					<div class="stat-wrapper" data-stat="steals">
+						<div class="bar bar-away">50%</div>
+						<div class="bar bar-home">50%</div>
+					</div>
+					<h5>Blocks</h5>
+					<div class="stat-wrapper" data-stat="blocks">
+						<div class="bar bar-away">50%</div>
+						<div class="bar bar-home">50%</div>
+					</div>
+					<h5>Turnover</h5>
+					<div class="stat-wrapper" data-stat="turnoversTotal">
+						<div class="bar bar-away">50%</div>
+						<div class="bar bar-home">50%</div>
+					</div>
+					<h5>Fouls</h5>
+					<div class="stat-wrapper" data-stat="foulsPersonal">
+						<div class="bar bar-away">50%</div>
+						<div class="bar bar-home">50%</div>
+					</div>
 				</div>
-				<h5>Freiwürfe</h5>
-				<div class="stat-wrapper" data-stat="freeThrowsMade">
-					<div class="bar bar-away">50%</div>
-					<div class="bar bar-home">50%</div>
-				</div>
-				<h5>Rebounds</h5>
-				<div class="stat-wrapper" data-stat="reboundsTotal">
-					<div class="bar bar-away">50%</div>
-					<div class="bar bar-home">50%</div>
-				</div>
-				<h5>Assists</h5>
-				<div class="stat-wrapper" data-stat="assists">
-					<div class="bar bar-away">50%</div>
-					<div class="bar bar-home">50%</div>
-				</div>
-				<h5>Steals</h5>
-				<div class="stat-wrapper" data-stat="steals">
-					<div class="bar bar-away">50%</div>
-					<div class="bar bar-home">50%</div>
-				</div>
-				<h5>Blocks</h5>
-				<div class="stat-wrapper" data-stat="blocks">
-					<div class="bar bar-away">50%</div>
-					<div class="bar bar-home">50%</div>
-				</div>
-				<h5>Turnover</h5>
-				<div class="stat-wrapper" data-stat="turnoversTotal">
-					<div class="bar bar-away">50%</div>
-					<div class="bar bar-home">50%</div>
-				</div>
-				<h5>Fouls</h5>
-				<div class="stat-wrapper" data-stat="foulsPersonal">
-					<div class="bar bar-away">50%</div>
-					<div class="bar bar-home">50%</div>
-				</div>
+				<h3>Boxscore</h3>
+				<div id="bs-teams"></div>
 			</div>
-			<h3>Boxscore</h3>
-			<div id="bs-teams"></div>
+		</div>
+
+		<div id="bs-tab-playbyplay" class="bs-tab-panel">
+			<div id="bs-playbyplay">
+			</div>
 		</div>
 	</div>
 
@@ -641,6 +657,16 @@
 				</table>
 			</div>
 		</section>
+	</template>
+	<template id="tmpl-pbp-item">
+		<div class="pbp-item">
+			<div class=" pbp-line"></div>
+			<div class="pbp-text">
+				<div class="pbp-time"></div>
+				<div class="pbp-description"></div>
+				<div class="pbp-score"></div>
+			</div>
+		</div>
 	</template>
 	<script type="module" src="./js/app.js"></script>
 </body>

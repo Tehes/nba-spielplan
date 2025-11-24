@@ -45,6 +45,7 @@ const standingsURL = "https://nba-spielplan.tehes.deno.net/standings";
 
 const liveURL = "https://nba-spielplan.tehes.deno.net/scoreboard";
 const boxscoreURL = "https://nba-spielplan.tehes.deno.net/boxscore";
+const playByPlayURL = "https://nba-spielplan.tehes.deno.net/playbyplay";
 let liveById = new Map();
 let livePoll = null;
 
@@ -85,6 +86,9 @@ const bsPeriodsEl = document.querySelector("#bs-periods");
 const bsTeamStatsEl = document.querySelector("#bs-team-stats");
 const bsTeamsEl = document.querySelector("#bs-teams");
 const templateBsTeam = document.querySelector("#tmpl-bs-team");
+const boxscore = document.getElementById("boxscore");
+const tabs = boxscore.querySelectorAll(".bs-tab");
+const panels = boxscore.querySelectorAll(".bs-tab-panel");
 
 // Load saved states
 checkboxPrimetime.checked = JSON.parse(
@@ -112,12 +116,21 @@ function updateLive(liveJson) {
 		const liveGame = liveById.get(gameId);
 
 		if (liveGame?.gameStatus === 2) {
-			const url = `${boxscoreURL}/${gameId}`;
+			const bsUrl = `${boxscoreURL}/${gameId}`;
 			fetchData(
-				url,
+				bsUrl,
 				(json) => {
 					resetBoxscoreView();
 					renderBoxscore(json);
+				},
+				true,
+			);
+
+			const pbpUrl = `${playByPlayURL}/${gameId}`;
+			fetchData(
+				pbpUrl,
+				(pbpJson) => {
+					renderPlayByPlay(pbpJson);
 				},
 				true,
 			);
@@ -1051,9 +1064,14 @@ function openBoxscore(gameId) {
 	boxscoreEl.dataset.gameId = gameId;
 	resetBoxscoreView();
 
-	const url = `${boxscoreURL}/${gameId}`;
-	fetchData(url, (json) => {
+	const bsUrl = `${boxscoreURL}/${gameId}`;
+	fetchData(bsUrl, (json) => {
 		renderBoxscore(json);
+	}, true);
+
+	const pbpUrl = `${playByPlayURL}/${gameId}`;
+	fetchData(pbpUrl, (pbpJson) => {
+		renderPlayByPlay(pbpJson);
 	}, true);
 }
 
@@ -1090,6 +1108,53 @@ function renderBoxscore(json) {
 	renderBoxscoreTeamStats(game);
 	renderBoxscoreTeam(game.awayTeam);
 	renderBoxscoreTeam(game.homeTeam);
+}
+
+function renderPlayByPlay(json) {
+	const game = json && json.game;
+	const actions = game.actions || [];
+	const panel = document.querySelector("#bs-playbyplay");
+	const template = document.getElementById("tmpl-pbp-item");
+
+	panel.replaceChildren();
+
+	if (!actions.length) {
+		return;
+	}
+
+	actions.forEach((action) => {
+		const item = template.content.firstElementChild.cloneNode(true);
+
+		if (action.teamTricode) {
+			item.style.setProperty("--team-color", `var(--${action.teamTricode})`);
+		}
+
+		const timeEl = item.querySelector(".pbp-time");
+		const descEl = item.querySelector(".pbp-description");
+		const scoreEl = item.querySelector(".pbp-score");
+
+		const clock = formatMinutes(action.clock);
+		const period = Number(action.period);
+		let periodLabel = "";
+
+		if (period <= 4) {
+			periodLabel = `Q${period}`;
+		} else {
+			const otIndex = period - 4;
+			periodLabel = otIndex === 1 ? "OT" : `OT${otIndex}`;
+		}
+
+		const timeLabel = `${periodLabel} - ${clock}`;
+		timeEl.textContent = timeLabel;
+		descEl.textContent = action.description || "";
+
+		// show score only if made shot
+		if (action.shotResult === "Made") {
+			scoreEl.textContent = `${action.scoreAway} - ${action.scoreHome}`;
+		}
+
+		panel.appendChild(item);
+	});
 }
 
 function renderBoxscoreTeamStats(game) {
@@ -1333,9 +1398,25 @@ async function loadData() {
 	}
 }
 
+function switchTab(tab) {
+	const targetId = tab.dataset.target;
+
+	tabs.forEach((t) => {
+		t.classList.toggle("is-active", t === tab);
+	});
+
+	panels.forEach((panel) => {
+		const isTarget = panel.id === targetId;
+		panel.classList.toggle("is-active", isTarget);
+	});
+}
+
 function init() {
 	backdropEl.addEventListener("click", closeBoxscore);
 	boxScoreCloseBtn.addEventListener("click", closeBoxscore);
+	tabs.forEach((tab) => {
+		tab.addEventListener("click", () => switchTab(tab));
+	});
 	document.addEventListener("touchstart", function () {}, false);
 	teamPicker.addEventListener("change", renderMoreGames);
 	checkboxHidePastGames.addEventListener("change", () => {
@@ -1389,7 +1470,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-24-v3";
+const serviceWorkerVersion = "2025-11-25-v1";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
