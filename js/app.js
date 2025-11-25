@@ -1529,12 +1529,12 @@ globalThis.app.init();
 
 /* --------------------------------------------------------------------------------------------------
  * Service Worker configuration
- * - useServiceWorker: enable or disable SW for this project
- * - serviceWorkerVersion: bump to force new SW and new cache
+ * - USE_SERVICE_WORKER: enable or disable SW for this project
+ * - SERVICE_WORKER_VERSION: bump to force new SW and new cache
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
-const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-25-v4";
+const USE_SERVICE_WORKER = true;
+const SERVICE_WORKER_VERSION = "2025-11-25-v5";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
@@ -1606,7 +1606,7 @@ async function shouldSkipServiceWorker(swUrl) {
 /* Service Worker registration and cleanup */
 async function registerServiceWorker() {
 	try {
-		const swUrl = `./service-worker.js?v=${serviceWorkerVersion}`;
+		const swUrl = `./service-worker.js?v=${SERVICE_WORKER_VERSION}`;
 
 		if (await shouldSkipServiceWorker(swUrl)) {
 			return;
@@ -1699,7 +1699,7 @@ if ("serviceWorker" in navigator) {
 			return;
 		}
 
-		if (useServiceWorker) {
+		if (USE_SERVICE_WORKER) {
 			await registerServiceWorker();
 		} else {
 			await unregisterServiceWorkers();
