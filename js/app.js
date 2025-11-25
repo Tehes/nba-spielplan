@@ -4,10 +4,10 @@ Imports
 
 async function fetchData(url, updateFunction, forceNetwork = false) {
 	const cacheName = "nba-data-cache"; // never change "-data-" because its used in cleanup
-	const cache = await caches.open(cacheName);
 	const isCoreData = coreCacheUrls.has(url);
+	const cache = isCoreData ? await caches.open(cacheName) : null;
 
-	if (!forceNetwork) {
+	if (!forceNetwork && cache) {
 		const cachedResponse = await cache.match(url);
 		if (cachedResponse) {
 			const cachedJson = await cachedResponse.json();
@@ -28,10 +28,12 @@ async function fetchData(url, updateFunction, forceNetwork = false) {
 	try {
 		const networkResponse = await fetch(url);
 		if (networkResponse.ok) {
-			const clonedResponse = networkResponse.clone();
+			const clonedResponse = isCoreData ? networkResponse.clone() : null;
 			const json = await networkResponse.json();
 			console.log("Fresh data fetched:", json);
-			cache.put(url, clonedResponse);
+			if (cache && clonedResponse) {
+				cache.put(url, clonedResponse);
+			}
 			updateFunction(json);
 		} else {
 			throw new Error(`Network error! Status: ${networkResponse.status}`);
@@ -175,6 +177,22 @@ function stopLivePolling() {
 	}
 }
 
+function getGameState(game, live, now = new Date()) {
+	const start = game?.localDate instanceof Date ? game.localDate : new Date(game?.localDate);
+	const startMs = start?.getTime?.() ?? NaN;
+	const hasValidStart = Number.isFinite(startMs);
+	const isPostponed = game?.gameStatus === 4;
+	const isFinal = game?.gameStatus === 3 || live?.gameStatus === 3;
+	const inLiveWindow = hasValidStart &&
+		!isFinal &&
+		!isPostponed &&
+		now.getTime() >= startMs &&
+		now.getTime() < startMs + GAME_MAX_DURATION_MS;
+	const isLive = !isFinal && !isPostponed && (live?.gameStatus === 2 || inLiveWindow);
+
+	return { isPostponed, isFinal, isLive, inLiveWindow };
+}
+
 function prepareGameData() {
 	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
 
@@ -202,15 +220,11 @@ function prepareGameData() {
 			});
 		}
 
-		const isPostponed = game.gameStatus === 4;
-		const isFinal = game.gameStatus === 3;
+		const live = liveById.get(game.gameId);
+		const { isPostponed, isFinal, isLive } = getGameState(game, live, now);
 		const isToday = game.localDate >= todayStart && game.localDate < tomorrowStart;
 
-		const isLiveWindow = now >= game.localDate &&
-			now < new Date(game.localDate.getTime() + GAME_MAX_DURATION_MS) &&
-			!isFinal && !isPostponed;
-
-		if ((isToday && !isPostponed) || isLiveWindow) {
+		if ((isToday && !isPostponed) || isLive) {
 			games.today.push(game);
 		} else if (isFinal) {
 			games.finished.push(game);
@@ -285,6 +299,8 @@ function renderTodaysGames() {
 
 	if (games.today.length > 0) {
 		games.today.forEach((g) => {
+			const live = liveById.get(g.gameId);
+			const { isFinal, isLive } = getGameState(g, live, now);
 			const clone = templateToday.content.cloneNode(true);
 			const card = clone.querySelector(".card");
 			card.dataset.gameCode = g.gameCode;
@@ -323,17 +339,7 @@ function renderTodaysGames() {
 				? (subLabel ? `${label} – ${subLabel}` : label)
 				: subLabel;
 
-			const inLiveWindow = now >= g.localDate &&
-				now < new Date(g.localDate.getTime() + GAME_MAX_DURATION_MS) &&
-				g.gameStatus !== 3;
-
-			if (inLiveWindow) needsPolling = true;
-
-			const live = liveById.get(g.gameId);
-			const liveStatus = live?.gameStatus; // 2 live, 3 final
-
-			const isFinal = g.gameStatus === 3 || liveStatus === 3;
-			const isLive = !isFinal && (inLiveWindow || liveStatus === 2);
+			if (isLive) needsPolling = true;
 
 			if (isFinal) {
 				// FINAL
@@ -434,7 +440,7 @@ function renderMoreGames() {
 			h3El.appendChild(headlineText);
 			moreEl.appendChild(h3El);
 
-			if (!checkboxHidePastGames.checked && games.scheduled[0].localDate === g.localDate) {
+			if (!checkboxHidePastGames.checked && games.scheduled[0]?.localDate === g.localDate) {
 				const anchorTop = document.createElement("div");
 				anchorTop.classList.add("ankerlink");
 				const anchorLink = document.createElement("a");
@@ -988,17 +994,16 @@ function shouldRerender() {
 	}
 
 	const gameTimeWindowChanged = games.today.some((g) => {
-		const gameTime = new Date(g.localDate);
-		const liveWindowEnd = new Date(gameTime.getTime() + GAME_MAX_DURATION_MS);
 		const card = document.querySelector(`[data-game-code="${g.gameCode}"]`);
 		if (!card) return false;
 		const dateEl = card.querySelector(".date");
 
-		const shouldBeLive = now >= gameTime && now < liveWindowEnd && g.gameStatus !== 3;
-		const isLive = dateEl.classList.contains("live");
+		const live = liveById.get(g.gameId);
+		const { isLive } = getGameState(g, live, now);
+		const isLiveClass = dateEl.classList.contains("live");
 
 		// Rerender if we need to toggle the "live" state
-		return shouldBeLive !== isLive;
+		return isLive !== isLiveClass;
 	});
 
 	if (gameTimeWindowChanged) {
@@ -1171,10 +1176,6 @@ function renderPlayByPlay(json) {
 	});
 
 	filtered.forEach((action) => {
-		if (checkboxPlayByPlayMadeShots.checked && action.shotResult !== "Made") {
-			return;
-		}
-
 		const item = template.content.firstElementChild.cloneNode(true);
 
 		if (action.teamTricode) {
@@ -1478,7 +1479,6 @@ function init() {
 			scrollToLastPastHeadline();
 		}
 	});
-	checkboxPrimetime.addEventListener("change", renderMoreGames);
 
 	checkboxPrimetime.addEventListener("change", () => {
 		localStorage.setItem("nba-spielplan_primetime", checkboxPrimetime.checked);
