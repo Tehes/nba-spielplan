@@ -1531,9 +1531,11 @@ globalThis.app.init();
  * Service Worker configuration
  * - useServiceWorker: enable or disable SW for this project
  * - serviceWorkerVersion: bump to force new SW and new cache
+ * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-25-v3";
+const serviceWorkerVersion = "2025-11-25-v4";
+const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
@@ -1671,33 +1673,21 @@ async function unregisterServiceWorkers() {
 	}
 }
 
-async function checkForServiceWorkerUpdateOnResume() {
-	if (!useServiceWorker || isGitHubUserRoot) return;
-
-	try {
-		const registration = await navigator.serviceWorker.getRegistration(PROJECT_SCOPE);
-		if (!registration) return;
-
-		await registration.update();
-
-		if (registration.waiting) {
-			registration.waiting.postMessage({ type: "SKIP_WAITING" });
-		}
-	} catch (error) {
-		console.log("SW update check on resume failed:", error);
-	}
-}
-
 /* Auto reload on SW controller change and init */
 if ("serviceWorker" in navigator) {
 	const hadControllerAtStart = !!navigator.serviceWorker.controller;
-	let hasReloadedForSW = false;
+	let hasHandledControllerChange = false;
 
 	navigator.serviceWorker.addEventListener("controllerchange", () => {
 		if (!hadControllerAtStart) return;
-		if (hasReloadedForSW) return;
-		hasReloadedForSW = true;
-		globalThis.location.reload();
+		if (hasHandledControllerChange) return;
+		hasHandledControllerChange = true;
+
+		if (AUTO_RELOAD_ON_SW_UPDATE) {
+			globalThis.location.reload();
+		} else {
+			console.log("Service Worker updated; auto reload disabled.");
+		}
 	});
 
 	globalThis.addEventListener("DOMContentLoaded", async () => {
@@ -1714,14 +1704,5 @@ if ("serviceWorker" in navigator) {
 		} else {
 			await unregisterServiceWorkers();
 		}
-	});
-
-	["visibilitychange", "pageshow"].forEach((eventName) => {
-		globalThis.addEventListener(eventName, async () => {
-			if (eventName === "visibilitychange" && document.visibilityState !== "visible") {
-				return;
-			}
-			await checkForServiceWorkerUpdateOnResume();
-		});
 	});
 }
