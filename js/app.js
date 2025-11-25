@@ -87,17 +87,17 @@ const teamPicker = document.querySelector("select");
 const checkboxShowScores = document.querySelector(".show-scores input");
 const checkboxHidePastGames = document.querySelector(".hide-older-games input");
 const checkboxPrimetime = document.querySelector(".filter-primetime input");
-const checkboxPlayByPlayMadeShots = document.querySelector("#bs-tab-playbyplay label input");
+const checkboxPlayByPlayMadeShots = document.querySelector("#game-tab-playbyplay label input");
 const backdropEl = document.querySelector("#backdrop");
-const boxscoreEl = document.querySelector("#boxscore");
-const boxScoreCloseBtn = boxscoreEl.querySelector(".close");
+const gameOverlayEl = document.querySelector("#game-overlay");
+const gameOverlayCloseBtn = gameOverlayEl.querySelector(".close");
 const bsPeriodsEl = document.querySelector("#bs-periods");
 const bsTeamStatsEl = document.querySelector("#bs-team-stats");
 const bsTeamsEl = document.querySelector("#bs-teams");
 const templateBsTeam = document.querySelector("#tmpl-bs-team");
-const boxscore = document.getElementById("boxscore");
-const tabs = boxscore.querySelectorAll(".bs-tab");
-const panels = boxscore.querySelectorAll(".bs-tab-panel");
+const gameOverlay = document.getElementById("game-overlay");
+const gameTabs = gameOverlay.querySelectorAll(".game-tab");
+const gamePanels = gameOverlay.querySelectorAll(".game-tab-panel");
 
 // Constants
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
@@ -126,8 +126,8 @@ function updateLive(liveJson) {
 	liveById = new Map(arr.map((g) => [g.gameId, g]));
 	renderTodaysGames();
 
-	if (!boxscoreEl.classList.contains("hidden")) {
-		const gameId = boxscoreEl.dataset.gameId;
+	if (!gameOverlayEl.classList.contains("hidden")) {
+		const gameId = gameOverlayEl.dataset.gameId;
 		const liveGame = liveById.get(gameId);
 
 		if (liveGame?.gameStatus === 2) {
@@ -135,7 +135,7 @@ function updateLive(liveJson) {
 			fetchData(
 				bsUrl,
 				(json) => {
-					resetBoxscoreView();
+					resetGameOverlayView();
 					currentBoxscore = json;
 					renderBoxscore(json);
 				},
@@ -385,7 +385,7 @@ function renderTodaysGames() {
 			if (isFinal || isLive) {
 				card.dataset.clickable = "true";
 				card.addEventListener("click", () => {
-					openBoxscore(g.gameId);
+					openGameOverlay(g.gameId);
 				});
 			}
 
@@ -486,7 +486,7 @@ function renderMoreGames() {
 			card.dataset.gameId = g.gameId;
 			card.dataset.clickable = "true";
 			card.addEventListener("click", () => {
-				openBoxscore(g.gameId);
+				openGameOverlay(g.gameId);
 			});
 		} else {
 			homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
@@ -1074,12 +1074,12 @@ function storeNextScheduledGame() {
 	localStorage.setItem("nba_nextScheduledGame", JSON.stringify(nextGame));
 }
 
-// Boxscore overlay helpers
-function openBoxscore(gameId) {
+// Game overlay helpers
+function openGameOverlay(gameId) {
 	backdropEl.classList.remove("hidden");
-	boxscoreEl.classList.remove("hidden");
-	boxscoreEl.dataset.gameId = gameId;
-	resetBoxscoreView();
+	gameOverlayEl.classList.remove("hidden");
+	gameOverlayEl.dataset.gameId = gameId;
+	resetGameOverlayView();
 
 	// render cached data first (if matching)
 	if (currentBoxscore && currentBoxscore.game && currentBoxscore.game.gameId === gameId) {
@@ -1114,12 +1114,12 @@ function openBoxscore(gameId) {
 	);
 }
 
-function closeBoxscore() {
+function closeGameOverlay() {
 	backdropEl.classList.add("hidden");
-	boxscoreEl.classList.add("hidden");
+	gameOverlayEl.classList.add("hidden");
 }
 
-function resetBoxscoreView() {
+function resetGameOverlayView() {
 	const periodsTable = bsPeriodsEl.querySelector(".bs-periods-table");
 	const thead = periodsTable.querySelector("thead");
 	const tbody = periodsTable.querySelector("tbody");
@@ -1143,8 +1143,8 @@ function renderBoxscore(json) {
 		return;
 	}
 
-	boxscoreEl.dataset.awayTeam = game.awayTeam.teamTricode;
-	boxscoreEl.dataset.homeTeam = game.homeTeam.teamTricode;
+	gameOverlayEl.dataset.awayTeam = game.awayTeam.teamTricode;
+	gameOverlayEl.dataset.homeTeam = game.homeTeam.teamTricode;
 
 	renderBoxscorePeriods(game);
 	renderBoxscoreTeamStats(game);
@@ -1203,7 +1203,7 @@ function renderPlayByPlay(json) {
 		// show score only if made shot
 		if (action.shotResult === "Made") {
 			scoreEl.textContent =
-				`${boxscoreEl.dataset.awayTeam} ${action.scoreAway} ${boxscoreEl.dataset.homeTeam} ${action.scoreHome}`;
+				`${gameOverlayEl.dataset.awayTeam} ${action.scoreAway} ${gameOverlayEl.dataset.homeTeam} ${action.scoreHome}`;
 		}
 
 		panel.appendChild(item);
@@ -1454,20 +1454,20 @@ async function loadData() {
 function switchTab(tab) {
 	const targetId = tab.dataset.target;
 
-	tabs.forEach((t) => {
+	gameTabs.forEach((t) => {
 		t.classList.toggle("is-active", t === tab);
 	});
 
-	panels.forEach((panel) => {
+	gamePanels.forEach((panel) => {
 		const isTarget = panel.id === targetId;
 		panel.classList.toggle("is-active", isTarget);
 	});
 }
 
 function init() {
-	backdropEl.addEventListener("click", closeBoxscore);
-	boxScoreCloseBtn.addEventListener("click", closeBoxscore);
-	tabs.forEach((tab) => {
+	backdropEl.addEventListener("click", closeGameOverlay);
+	gameOverlayCloseBtn.addEventListener("click", closeGameOverlay);
+	gameTabs.forEach((tab) => {
 		tab.addEventListener("click", () => switchTab(tab));
 	});
 	document.addEventListener("touchstart", function () {}, false);
@@ -1533,7 +1533,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-25-v2";
+const serviceWorkerVersion = "2025-11-25-v3";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection

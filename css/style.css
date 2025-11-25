@@ -101,7 +101,7 @@ body {
     }
 }
 
-body>div:not(#backdrop):not(#boxscore) {
+body>div:not(#backdrop):not(#game-overlay) {
     display: flex;
     justify-content: center;
     column-gap: 3vw;
@@ -835,7 +835,7 @@ footer img:hover {
 
 /*
 -------------------------------------------------------------------
-BOXSCORE
+GAME OVERLAY
 -------------------------------------------------------------------
 */
 
@@ -846,7 +846,7 @@ BOXSCORE
     z-index: 1000;
 }
 
-#boxscore {
+#game-overlay {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -864,7 +864,7 @@ BOXSCORE
     z-index: 2000;
 }
 
-#boxscore .close {
+#game-overlay .close {
     position: absolute;
     top: 0px;
     right: 0px;
@@ -872,28 +872,28 @@ BOXSCORE
     cursor: pointer;
 }
 
-#boxscore .close img {
+#game-overlay .close img {
     width: 32px;
     height: auto;
 }
 
-#boxscore h3 img {
+#game-overlay h3 img {
     width: 3rem;
     height: auto;
     vertical-align: middle;
     margin-right: 8px;
 }
 
-#boxscore #boxscore-content {
+#game-overlay #game-overlay-content {
     margin-top: 35px;
 }
 
-#boxscore #bs-periods,
-#boxscore #bs-team-stats {
+#game-overlay #bs-periods,
+#game-overlay #bs-team-stats {
     margin-bottom: 30px;
 }
 
-#boxscore .bs-players-table-wrapper {
+#game-overlay .bs-players-table-wrapper {
     overflow-x: auto;
     overflow-y: hidden;
 }
@@ -902,30 +902,30 @@ BOXSCORE
     margin-top: 20px;
 }
 
-#boxscore .bs-players-table-wrapper table {
+#game-overlay .bs-players-table-wrapper table {
     min-width: 600px;
 }
 
-#boxscore .bs-player-cell {
+#game-overlay .bs-player-cell {
     display: flex;
     align-items: baseline;
     width: clamp(120px, 20vw, 190px);
 }
 
-#boxscore .bs-player-name {
+#game-overlay .bs-player-name {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     flex: 0 1 auto;
 }
 
-#boxscore .bs-player-pos {
+#game-overlay .bs-player-pos {
     margin-left: 10px;
     font-size: 0.9rem;
     flex: 0 0 auto;
 }
 
-#boxscore td:first-of-type {
+#game-overlay td:first-of-type {
     width: 25%;
 }
 
@@ -933,27 +933,27 @@ BOXSCORE
     text-align: left;
 }
 
-#boxscore tr {
+#game-overlay tr {
     border-bottom: 1px solid var(--divider-color);
 }
 
-body:has(#boxscore:not(.hidden)) {
+body:has(#game-overlay:not(.hidden)) {
     overflow: hidden;
 }
 
-#boxscore #bs-teams:empty::before {
+#game-overlay #bs-teams:empty::before {
     content: "Boxscore wird geladen …";
     display: block;
     text-align: center;
 }
 
-#boxscore .stat-wrapper {
+#game-overlay .stat-wrapper {
     display: flex;
     gap: 5px;
     align-items: center;
 }
 
-#boxscore .stat-wrapper .bar {
+#game-overlay .stat-wrapper .bar {
     padding: 0 10px;
     height: 1.5rem;
     background-color: var(--team-color, var(--neutral500));
@@ -965,7 +965,7 @@ body:has(#boxscore:not(.hidden)) {
     box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-#boxscore .bs-tabs {
+#game-overlay .game-tabs {
     display: flex;
     border: 1px solid var(--text-color);
     border-radius: var(--card-corners);
@@ -973,7 +973,7 @@ body:has(#boxscore:not(.hidden)) {
     max-width: 400px;
 }
 
-#boxscore .bs-tab {
+#game-overlay .game-tab {
     flex: 0 0 50%;
     padding: 6px 10px;
     background-color: transparent;
@@ -986,20 +986,20 @@ body:has(#boxscore:not(.hidden)) {
     text-align: center;
 }
 
-#boxscore .bs-tab+.bs-tab {
+#game-overlay .game-tab+.game-tab {
     border-left: 1px solid var(--text-color);
 }
 
-#boxscore .bs-tab.is-active {
+#game-overlay .game-tab.is-active {
     background-color: var(--text-color);
     color: var(--bg-color);
 }
 
-#boxscore .bs-tab-panel {
+#game-overlay .game-tab-panel {
     margin-top: 16px;
 }
 
-#boxscore .bs-tab-panel:not(.is-active) {
+#game-overlay .game-tab-panel:not(.is-active) {
     display: none;
 }
 
@@ -1050,11 +1050,11 @@ body:has(#boxscore:not(.hidden)) {
     display: none;
 }
 
-#boxscore label {
+#game-overlay label {
     margin-bottom: 30px;
 }
 
-#boxscore .checkmark {
+#game-overlay .checkmark {
     background-color: var(--bg-color);
 }
 
@@ -1069,7 +1069,7 @@ MEDIA QUERIES
         filter: invert(85%);
     }
 
-    #boxscore .close img {
+    #game-overlay .close img {
         filter: invert(85%);
     }
 }

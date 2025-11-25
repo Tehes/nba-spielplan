@@ -484,19 +484,19 @@
 					height="35" alt="Github Logo"></a></div>
 	</footer>
 	<div id="backdrop" class="hidden"></div>
-	<div id="boxscore" class="hidden">
+	<div id="game-overlay" class="hidden">
 		<div class="close"><img src="img/close.svg" alt="close Icon"></div>
-		<div id="boxscore-content">
-			<div class="bs-tabs">
-				<button type="button" class="bs-tab is-active" data-target="bs-tab-boxscore">
+		<div id="game-overlay-content">
+			<div class="game-tabs">
+				<button type="button" class="game-tab is-active" data-target="game-tab-boxscore">
 					Boxscore
 				</button>
-				<button type="button" class="bs-tab" data-target="bs-tab-playbyplay">
+				<button type="button" class="game-tab" data-target="game-tab-playbyplay">
 					Play by Play
 				</button>
 			</div>
 
-			<div id="bs-tab-boxscore" class="bs-tab-panel is-active">
+			<div id="game-tab-boxscore" class="game-tab-panel is-active">
 				<h3>Viertelverlauf</h3>
 				<div id="bs-periods">
 					<table class="bs-periods-table">
@@ -559,7 +559,7 @@
 			</div>
 		</div>
 
-		<div id="bs-tab-playbyplay" class="bs-tab-panel">
+		<div id="game-tab-playbyplay" class="game-tab-panel">
 			<label class="show-only-made-shots">Zeige nur getroffene Würfe
 				<input type="checkbox" checked />
 				<span class="checkmark"></span>
