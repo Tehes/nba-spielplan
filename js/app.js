@@ -255,6 +255,23 @@ function setProgressBar() {
 	progressValue.textContent = `${pct}%`;
 }
 
+// Helper to format ISO 8601 PTxxMxxS durations to M:SS
+function formatMinutes(isoDuration) {
+	if (!isoDuration || typeof isoDuration !== "string") return "";
+
+	const match = isoDuration.match(/PT(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/);
+	if (!match) return "";
+
+	const minutes = match[1] ? parseInt(match[1], 10) : 0;
+	const secondsFloat = match[2] ? parseFloat(match[2]) : 0;
+	const totalSeconds = Math.round(minutes * 60 + secondsFloat);
+
+	const m = Math.floor(totalSeconds / 60);
+	const s = totalSeconds % 60;
+
+	return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 // Build a label for live games based on period and gameClock from live scoreboard data
 function getLiveLabel(live) {
 	if (!live) return "LIVE";
@@ -1160,7 +1177,7 @@ function renderBoxscore(json) {
 function renderPlayByPlay(json) {
 	const game = json && json.game;
 	const actions = game.actions || [];
-	const panel = document.querySelector("#bs-playbyplay");
+	const panel = document.querySelector("#playbyplay");
 	const template = document.getElementById("tmpl-pbp-item");
 
 	panel.replaceChildren();
@@ -1182,9 +1199,9 @@ function renderPlayByPlay(json) {
 			item.style.setProperty("--team-color", `var(--${action.teamTricode})`);
 		}
 
-		const timeEl = item.querySelector(".pbp-time");
-		const descEl = item.querySelector(".pbp-description");
-		const scoreEl = item.querySelector(".pbp-score");
+		const timeEl = item.querySelector(".time");
+		const descEl = item.querySelector(".description");
+		const scoreEl = item.querySelector(".score");
 
 		const clock = formatMinutes(action.clock);
 		const period = Number(action.period);
@@ -1343,23 +1360,6 @@ function renderBoxscoreTeam(team) {
 	}
 
 	bsTeamsEl.appendChild(section);
-}
-
-// Helper to format ISO 8601 PTxxMxxS durations to M:SS
-function formatMinutes(isoDuration) {
-	if (!isoDuration || typeof isoDuration !== "string") return "";
-
-	const match = isoDuration.match(/PT(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/);
-	if (!match) return "";
-
-	const minutes = match[1] ? parseInt(match[1], 10) : 0;
-	const secondsFloat = match[2] ? parseFloat(match[2]) : 0;
-	const totalSeconds = Math.round(minutes * 60 + secondsFloat);
-
-	const m = Math.floor(totalSeconds / 60);
-	const s = totalSeconds % 60;
-
-	return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function fillPlayersTable(tbody, players) {
@@ -1534,7 +1534,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-11-25-v5";
+const SERVICE_WORKER_VERSION = "2025-11-25-v6";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
