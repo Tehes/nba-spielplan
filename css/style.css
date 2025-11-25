@@ -545,20 +545,22 @@ TODAY
 
 /*
 -------------------------------------------------------------------
-ANKER
+JUMP LINK
 -------------------------------------------------------------------
 */
 
-.ankerlink {
+.jump-link {
     display: none;
     justify-content: center;
+    margin-bottom: 20px;
 }
 
-#more .ankerlink {
+#more .jump-link {
     display: flex;
+    margin-top: 30px;
 }
 
-.go-to-table {
+.jump-link a {
     font-size: clamp(0.8rem, 2vw, 1rem);
     padding: 6px 10px;
     color: var(--text-color);
@@ -566,15 +568,10 @@ ANKER
     border-radius: var(--card-corners);
     text-decoration: none;
     transition: all var(--transition-duration) ease;
-    margin-bottom: 20px;
     text-transform: uppercase;
 }
 
-#more .go-to-table {
-    margin-top: 30px;
-}
-
-.go-to-table:hover {
+.jump-link a:hover {
     background-color: var(--text-color);
     color: var(--bg-color);
     cursor: pointer;
@@ -888,38 +885,38 @@ GAME OVERLAY
     margin-top: 35px;
 }
 
-#game-overlay #bs-periods,
-#game-overlay #bs-team-stats {
+#game-overlay #periods,
+#game-overlay #team-stats {
     margin-bottom: 30px;
 }
 
-#game-overlay .bs-players-table-wrapper {
+#game-overlay .players-wrapper {
     overflow-x: auto;
     overflow-y: hidden;
 }
 
-.bs-players-table-wrapper+.bs-players-table-wrapper {
+.players-wrapper+.players-wrapper {
     margin-top: 20px;
 }
 
-#game-overlay .bs-players-table-wrapper table {
+#game-overlay .players-wrapper table {
     min-width: 600px;
 }
 
-#game-overlay .bs-player-cell {
+#game-overlay .player-cell {
     display: flex;
     align-items: baseline;
     width: clamp(120px, 20vw, 190px);
 }
 
-#game-overlay .bs-player-name {
+#game-overlay .player-name {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     flex: 0 1 auto;
 }
 
-#game-overlay .bs-player-pos {
+#game-overlay .player-pos {
     margin-left: 10px;
     font-size: 0.9rem;
     flex: 0 0 auto;
@@ -929,31 +926,31 @@ GAME OVERLAY
     width: 25%;
 }
 
-.bs-players-table th:first-of-type {
-    text-align: left;
-}
-
 #game-overlay tr {
     border-bottom: 1px solid var(--divider-color);
+}
+
+.players-table th:first-of-type {
+    text-align: left;
 }
 
 body:has(#game-overlay:not(.hidden)) {
     overflow: hidden;
 }
 
-#game-overlay #bs-teams:empty::before {
+#game-overlay #teams:empty::before {
     content: "Boxscore wird geladen …";
     display: block;
     text-align: center;
 }
 
-#game-overlay .stat-wrapper {
+#game-overlay .stat {
     display: flex;
     gap: 5px;
     align-items: center;
 }
 
-#game-overlay .stat-wrapper .bar {
+#game-overlay .stat .bar {
     padding: 0 10px;
     height: 1.5rem;
     background-color: var(--team-color, var(--neutral500));
@@ -965,7 +962,7 @@ body:has(#game-overlay:not(.hidden)) {
     box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-#game-overlay .game-tabs {
+#game-overlay .tabs {
     display: flex;
     border: 1px solid var(--text-color);
     border-radius: var(--card-corners);
@@ -973,7 +970,7 @@ body:has(#game-overlay:not(.hidden)) {
     max-width: 400px;
 }
 
-#game-overlay .game-tab {
+#game-overlay .tab {
     flex: 0 0 50%;
     padding: 6px 10px;
     background-color: transparent;
@@ -986,20 +983,20 @@ body:has(#game-overlay:not(.hidden)) {
     text-align: center;
 }
 
-#game-overlay .game-tab+.game-tab {
+#game-overlay .tab+.tab {
     border-left: 1px solid var(--text-color);
 }
 
-#game-overlay .game-tab.is-active {
+#game-overlay .tab.is-active {
     background-color: var(--text-color);
     color: var(--bg-color);
 }
 
-#game-overlay .game-tab-panel {
+#game-overlay .panel {
     margin-top: 16px;
 }
 
-#game-overlay .game-tab-panel:not(.is-active) {
+#game-overlay .panel:not(.is-active) {
     display: none;
 }
 
@@ -1081,7 +1078,7 @@ MEDIA QUERIES
         justify-content: flex-start;
     }
 
-    .ankerlink {
+    .jump-link {
         display: flex;
     }
 

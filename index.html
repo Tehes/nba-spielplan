@@ -93,7 +93,7 @@
 					<div class="home-team"></div>
 				</div>
 			</section>
-			<div class="ankerlink"><a href="#tables" class="go-to-table">Zur Tabelle</a></div>
+			<div class="jump-link"><a href="#tables">Zur Tabelle</a></div>
 			<h2>weitere Spiele</h2>
 			<div id="options">
 				<select>
@@ -129,7 +129,7 @@
 					<option value="UTA">Utah Jazz</option>
 					<option value="WAS">Washington Wizards</option>
 				</select>
-				<label class="hide-older-games">vergangene Spiele ausblenden
+				<label class="hide-past-games">vergangene Spiele ausblenden
 					<input type="checkbox" checked />
 					<span class="checkmark"></span>
 				</label>
@@ -487,19 +487,19 @@
 	<div id="game-overlay" class="hidden">
 		<div class="close"><img src="img/close.svg" alt="close Icon"></div>
 		<div id="game-overlay-content">
-			<div class="game-tabs">
-				<button type="button" class="game-tab is-active" data-target="game-tab-boxscore">
+			<div class="tabs">
+				<button type="button" class="tab is-active" data-target="boxscore-panel">
 					Boxscore
 				</button>
-				<button type="button" class="game-tab" data-target="game-tab-playbyplay">
+				<button type="button" class="tab" data-target="playbyplay-panel">
 					Play by Play
 				</button>
 			</div>
 
-			<div id="game-tab-boxscore" class="game-tab-panel is-active">
+			<div id="boxscore-panel" class="panel is-active">
 				<h3>Viertelverlauf</h3>
-				<div id="bs-periods">
-					<table class="bs-periods-table">
+				<div id="periods">
+					<table class="periods-table">
 						<thead>
 						</thead>
 						<tbody>
@@ -507,59 +507,59 @@
 					</table>
 				</div>
 				<h3>Team-Vergleich</h3>
-				<div id="bs-team-stats">
+				<div id="team-stats">
 					<h5>2 Punkte</h5>
-					<div class="stat-wrapper" data-stat="twoPointersMade">
-						<div class="bar bar-away">50%</div>
-						<div class="bar bar-home">50%</div>
+					<div class="stat" data-stat="twoPointersMade">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
 					</div>
 					<h5>3 Punkte</h5>
-					<div class="stat-wrapper" data-stat="threePointersMade">
-						<div class="bar bar-away">50%</div>
-						<div class="bar bar-home">50%</div>
+					<div class="stat" data-stat="threePointersMade">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
 					</div>
 					<h5>Freiwürfe</h5>
-					<div class="stat-wrapper" data-stat="freeThrowsMade">
-						<div class="bar bar-away">50%</div>
-						<div class="bar bar-home">50%</div>
+					<div class="stat" data-stat="freeThrowsMade">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
 					</div>
 					<h5>Rebounds</h5>
-					<div class="stat-wrapper" data-stat="reboundsTotal">
-						<div class="bar bar-away">50%</div>
-						<div class="bar bar-home">50%</div>
+					<div class="stat" data-stat="reboundsTotal">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
 					</div>
 					<h5>Assists</h5>
-					<div class="stat-wrapper" data-stat="assists">
-						<div class="bar bar-away">50%</div>
-						<div class="bar bar-home">50%</div>
+					<div class="stat" data-stat="assists">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
 					</div>
 					<h5>Steals</h5>
-					<div class="stat-wrapper" data-stat="steals">
-						<div class="bar bar-away">50%</div>
-						<div class="bar bar-home">50%</div>
+					<div class="stat" data-stat="steals">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
 					</div>
 					<h5>Blocks</h5>
-					<div class="stat-wrapper" data-stat="blocks">
-						<div class="bar bar-away">50%</div>
-						<div class="bar bar-home">50%</div>
+					<div class="stat" data-stat="blocks">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
 					</div>
 					<h5>Turnover</h5>
-					<div class="stat-wrapper" data-stat="turnoversTotal">
-						<div class="bar bar-away">50%</div>
-						<div class="bar bar-home">50%</div>
+					<div class="stat" data-stat="turnoversTotal">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
 					</div>
 					<h5>Fouls</h5>
-					<div class="stat-wrapper" data-stat="foulsPersonal">
-						<div class="bar bar-away">50%</div>
-						<div class="bar bar-home">50%</div>
+					<div class="stat" data-stat="foulsPersonal">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
 					</div>
 				</div>
 				<h3>Boxscore</h3>
-				<div id="bs-teams"></div>
+				<div id="teams"></div>
 			</div>
 		</div>
 
-		<div id="game-tab-playbyplay" class="game-tab-panel">
+		<div id="playbyplay-panel" class="panel">
 			<label class="show-only-made-shots">Zeige nur getroffene Würfe
 				<input type="checkbox" checked />
 				<span class="checkmark"></span>
@@ -598,7 +598,7 @@
 			<div class="game-label"></div>
 		</div>
 	</template>
-	<template id="tmpl-matchup">
+	<template id="template-matchup">
 		<div class="matchup" data-round="">
 			<div class="teamA">
 				<div class="score"></div>
@@ -610,14 +610,14 @@
 			</div>
 		</div>
 	</template>
-	<template id="tmpl-bs-team">
-		<section class="bs-team">
-			<h3 class="bs-team-title">
-				<img class="bs-team-logo" alt="">
-				<span class="bs-team-name"></span>
+	<template id="template-team">
+		<section class="team">
+			<h3 class="team-title">
+				<img class="team-logo" alt="">
+				<span class="team-name"></span>
 			</h3>
-			<div class="bs-players-table-wrapper">
-				<table class="bs-players-table bs-starters-table">
+			<div class="players-wrapper">
+				<table class="players-table starters">
 					<thead>
 						<tr>
 							<th>Starter</th>
@@ -638,8 +638,8 @@
 					<tbody></tbody>
 				</table>
 			</div>
-			<div class="bs-players-table-wrapper">
-				<table class="bs-players-table bs-bench-table">
+			<div class="players-wrapper">
+				<table class="players-table bench">
 					<thead>
 						<tr>
 							<th>Bank</th>
@@ -662,7 +662,7 @@
 			</div>
 		</section>
 	</template>
-	<template id="tmpl-pbp-item">
+	<template id="template-play-by-play">
 		<div class="item">
 			<div class="line"></div>
 			<div class="body">

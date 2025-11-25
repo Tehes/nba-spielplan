@@ -80,26 +80,23 @@ let lastCheckedDay = new Date().toLocaleDateString("de-DE", {
 });
 
 // DOM Elements
-const templateToday = document.querySelector("#template-today");
-const templateMore = document.querySelector("#template-more");
+
 const todayEl = document.querySelector("#today");
 const moreEl = document.querySelector("#more");
 const progressValue = document.querySelector("#progress-value");
 const teamPicker = document.querySelector("select");
 const checkboxShowScores = document.querySelector(".show-scores input");
-const checkboxHidePastGames = document.querySelector(".hide-older-games input");
+const checkboxHidePastGames = document.querySelector(".hide-past-games input");
 const checkboxPrimetime = document.querySelector(".filter-primetime input");
-const checkboxPlayByPlayMadeShots = document.querySelector("#game-tab-playbyplay label input");
+const checkboxPlayByPlayMadeShots = document.querySelector("#playbyplay-panel input");
 const backdropEl = document.querySelector("#backdrop");
 const gameOverlayEl = document.querySelector("#game-overlay");
 const gameOverlayCloseBtn = gameOverlayEl.querySelector(".close");
-const bsPeriodsEl = document.querySelector("#bs-periods");
-const bsTeamStatsEl = document.querySelector("#bs-team-stats");
-const bsTeamsEl = document.querySelector("#bs-teams");
-const templateBsTeam = document.querySelector("#tmpl-bs-team");
+const periodsEl = document.querySelector("#periods");
+const teamStatsEl = document.querySelector("#team-stats");
+const teamsEl = document.querySelector("#teams");
 const gameOverlay = document.getElementById("game-overlay");
-const gameTabs = gameOverlay.querySelectorAll(".game-tab");
-const gamePanels = gameOverlay.querySelectorAll(".game-tab-panel");
+const gameTabs = gameOverlay.querySelectorAll(".tab");
 
 // Constants
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
@@ -318,7 +315,8 @@ function renderTodaysGames() {
 		games.today.forEach((g) => {
 			const live = liveById.get(g.gameId);
 			const { isFinal, isLive } = getGameState(g, live, now);
-			const clone = templateToday.content.cloneNode(true);
+			const template = document.querySelector("#template-today");
+			const clone = template.content.cloneNode(true);
 			const card = clone.querySelector(".card");
 			card.dataset.gameCode = g.gameCode;
 			card.dataset.gameId = g.gameId;
@@ -459,9 +457,8 @@ function renderMoreGames() {
 
 			if (!checkboxHidePastGames.checked && games.scheduled[0]?.localDate === g.localDate) {
 				const anchorTop = document.createElement("div");
-				anchorTop.classList.add("ankerlink");
+				anchorTop.classList.add("jump-link");
 				const anchorLink = document.createElement("a");
-				anchorLink.classList.add("go-to-table");
 				anchorLink.textContent = "zu den heutigen Spielen";
 				anchorTop.appendChild(anchorLink);
 				anchorLink.href = "#top";
@@ -469,7 +466,8 @@ function renderMoreGames() {
 			}
 		}
 
-		const clone = templateMore.content.cloneNode(true);
+		const template = document.querySelector("#template-more");
+		const clone = template.content.cloneNode(true);
 
 		const card = clone.querySelector(".card");
 		const homeName = clone.querySelector(".h-name");
@@ -792,7 +790,7 @@ function playoffPicture() {
 
 	function renderMatchups(roundNr, round) {
 		const isFinals = roundNr === 4;
-		const tmpl = document.getElementById("tmpl-matchup");
+		const tmpl = document.getElementById("template-matchup");
 
 		// Parent-Container
 		const parentWest = document.querySelector("#western");
@@ -1142,16 +1140,16 @@ function closeGameOverlay() {
 }
 
 function resetGameOverlayView() {
-	const periodsTable = bsPeriodsEl.querySelector(".bs-periods-table");
+	const periodsTable = periodsEl.querySelector(".periods-table");
 	const thead = periodsTable.querySelector("thead");
 	const tbody = periodsTable.querySelector("tbody");
 
 	thead.replaceChildren();
 	tbody.replaceChildren();
-	bsTeamsEl.replaceChildren();
+	teamsEl.replaceChildren();
 
-	if (bsTeamStatsEl) {
-		bsTeamStatsEl.querySelectorAll(".bar").forEach((bar) => {
+	if (teamStatsEl) {
+		teamStatsEl.querySelectorAll(".bar").forEach((bar) => {
 			bar.style.width = "50%";
 			bar.textContent = "–";
 			bar.style.removeProperty("--team-color");
@@ -1178,7 +1176,7 @@ function renderPlayByPlay(json) {
 	const game = json && json.game;
 	const actions = game.actions || [];
 	const panel = document.querySelector("#playbyplay");
-	const template = document.getElementById("tmpl-pbp-item");
+	const template = document.getElementById("template-play-by-play");
 
 	panel.replaceChildren();
 
@@ -1234,12 +1232,12 @@ function renderBoxscoreTeamStats(game) {
 	const homeStats = game.homeTeam?.statistics || {};
 	const awayStats = game.awayTeam?.statistics || {};
 
-	bsTeamStatsEl.querySelectorAll(".stat-wrapper").forEach((wrapper) => {
+	teamStatsEl.querySelectorAll(".stat").forEach((wrapper) => {
 		const key = wrapper.dataset.stat;
 		if (!key) return;
 
-		const homeBar = wrapper.querySelector(".bar-home");
-		const awayBar = wrapper.querySelector(".bar-away");
+		const homeBar = wrapper.querySelector(".bar.home");
+		const awayBar = wrapper.querySelector(".bar.away");
 
 		const homeValue = Number(homeStats?.[key]) || 0;
 		const awayValue = Number(awayStats?.[key]) || 0;
@@ -1261,7 +1259,7 @@ function renderBoxscorePeriods(game) {
 	const home = game.homeTeam;
 	const away = game.awayTeam;
 	const periods = (home.periods && home.periods.length ? home.periods : away.periods) || [];
-	const table = bsPeriodsEl.querySelector(".bs-periods-table");
+	const table = periodsEl.querySelector(".periods-table");
 	const thead = table.querySelector("thead");
 	const tbody = table.querySelector("tbody");
 
@@ -1320,11 +1318,12 @@ function renderBoxscorePeriods(game) {
 }
 
 function renderBoxscoreTeam(team) {
-	const section = templateBsTeam.content.firstElementChild.cloneNode(true);
+	const template = document.querySelector("#template-team");
+	const section = template.content.firstElementChild.cloneNode(true);
 	section.style.setProperty("--team-color", `var(--${team.teamTricode})`);
 
-	const teamLogo = section.querySelector(".bs-team-logo");
-	const teamName = section.querySelector(".bs-team-name");
+	const teamLogo = section.querySelector(".team-logo");
+	const teamName = section.querySelector(".team-name");
 
 	teamLogo.src = `img/${team.teamTricode}.svg`;
 	teamLogo.alt = `${team.teamCity} ${team.teamName} Logo`;
@@ -1346,11 +1345,11 @@ function renderBoxscoreTeam(team) {
 		.filter((p) => p.starter !== "1")
 		.sort((a, b) => a.order - b.order);
 
-	const startersBody = section.querySelector(".bs-starters-table tbody");
-	const benchBody = section.querySelector(".bs-bench-table tbody");
+	const startersBody = section.querySelector(".starters tbody");
+	const benchBody = section.querySelector(".bench tbody");
 	const benchWrapper = section
-		.querySelector(".bs-bench-table")
-		.closest(".bs-players-table-wrapper");
+		.querySelector(".bench")
+		.closest(".players-wrapper");
 
 	fillPlayersTable(startersBody, starters);
 	fillPlayersTable(benchBody, bench);
@@ -1359,7 +1358,7 @@ function renderBoxscoreTeam(team) {
 		benchWrapper.remove();
 	}
 
-	bsTeamsEl.appendChild(section);
+	teamsEl.appendChild(section);
 }
 
 function fillPlayersTable(tbody, players) {
@@ -1369,15 +1368,15 @@ function fillPlayersTable(tbody, players) {
 
 		const nameTd = document.createElement("td");
 		const playerCell = document.createElement("div");
-		playerCell.classList.add("bs-player-cell");
+		playerCell.classList.add("player-cell");
 		nameTd.appendChild(playerCell);
 		const nameSpan = document.createElement("span");
-		nameSpan.classList.add("bs-player-name");
+		nameSpan.classList.add("player-name");
 		playerCell.appendChild(nameSpan);
 		nameSpan.textContent = p.nameI || p.name || "";
 		if (p.starter === "1") {
 			const posSpan = document.createElement("span");
-			posSpan.classList.add("bs-player-pos");
+			posSpan.classList.add("player-pos");
 			posSpan.textContent = p.position || "";
 			playerCell.appendChild(posSpan);
 		}
@@ -1454,14 +1453,16 @@ async function loadData() {
 
 function switchTab(tab) {
 	const targetId = tab.dataset.target;
+	const targetPanel = gameOverlay.querySelector(`#${targetId}`);
 
-	gameTabs.forEach((t) => {
+	// Toggle tab buttons
+	gameOverlay.querySelectorAll(".tab").forEach((t) => {
 		t.classList.toggle("is-active", t === tab);
 	});
 
-	gamePanels.forEach((panel) => {
-		const isTarget = panel.id === targetId;
-		panel.classList.toggle("is-active", isTarget);
+	// Toggle panels
+	gameOverlay.querySelectorAll(".panel").forEach((panel) => {
+		panel.classList.toggle("is-active", panel === targetPanel);
 	});
 }
 
@@ -1534,7 +1535,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-11-25-v6";
+const SERVICE_WORKER_VERSION = "2025-11-25-v7";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
