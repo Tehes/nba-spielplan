@@ -5,15 +5,19 @@ Imports
 async function fetchData(url, updateFunction, forceNetwork = false) {
 	const cacheName = "nba-data-cache"; // never change "-data-" because its used in cleanup
 	const cache = await caches.open(cacheName);
+	const isCoreData = coreCacheUrls.has(url);
 
 	if (!forceNetwork) {
 		const cachedResponse = await cache.match(url);
 		if (cachedResponse) {
 			const cachedJson = await cachedResponse.json();
 			console.log("Cached data loaded");
-			if (renderCount < 2) {
+			const alreadyRendered = isCoreData && renderedCoreCacheUrls.has(url);
+			if (!alreadyRendered) {
 				updateFunction(cachedJson);
-				renderCount++;
+				if (isCoreData) {
+					renderedCoreCacheUrls.add(url);
+				}
 			}
 			return;
 		}
@@ -40,18 +44,24 @@ async function fetchData(url, updateFunction, forceNetwork = false) {
 /* --------------------------------------------------------------------------------------------------
 Variables
 ---------------------------------------------------------------------------------------------------*/
+// API Endpoints
 const scheduleURL = "https://nba-spielplan.tehes.deno.net/schedule";
 const standingsURL = "https://nba-spielplan.tehes.deno.net/standings";
-
-const liveURL = "https://nba-spielplan.tehes.deno.net/scoreboard";
+const todaysScoreboardURL = "https://nba-spielplan.tehes.deno.net/scoreboard";
 const boxscoreURL = "https://nba-spielplan.tehes.deno.net/boxscore";
 const playByPlayURL = "https://nba-spielplan.tehes.deno.net/playbyplay";
+const coreCacheUrls = new Set([scheduleURL, standingsURL]);
+
+// Data Holders
 let liveById = new Map();
 let livePoll = null;
 
 let schedule;
 let standings;
 let games = {};
+
+let currentBoxscore = null;
+let currentPlayByPlay = null;
 
 let eastData = [];
 let westData = [];
@@ -60,25 +70,24 @@ let standingsEast;
 let standingsWest;
 let playoffTeams;
 
-let renderCount = 0;
+const renderedCoreCacheUrls = new Set();
 let lastCheckedDay = new Date().toLocaleDateString("de-DE", {
 	year: "numeric",
 	month: "2-digit",
 	day: "2-digit",
 });
 
+// DOM Elements
 const templateToday = document.querySelector("#template-today");
 const templateMore = document.querySelector("#template-more");
 const todayEl = document.querySelector("#today");
 const moreEl = document.querySelector("#more");
 const progressValue = document.querySelector("#progress-value");
 const teamPicker = document.querySelector("select");
-const checkboxShowScores = document.querySelectorAll("input[type='checkbox']")[0];
-const checkboxHidePastGames = document.querySelectorAll("input[type='checkbox']")[1];
-const checkboxPrimetime = document.querySelectorAll("input[type='checkbox']")[2];
-const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
-const TOTAL_REGULAR_SEASON_GAMES = 1230;
-const AUTO_REFRESH_INTERVAL_MS = 1 * 60 * 1000; // 1 minute
+const checkboxShowScores = document.querySelector(".show-scores input");
+const checkboxHidePastGames = document.querySelector(".hide-older-games input");
+const checkboxPrimetime = document.querySelector(".filter-primetime input");
+const checkboxPlayByPlayMadeShots = document.querySelector("#bs-tab-playbyplay label input");
 const backdropEl = document.querySelector("#backdrop");
 const boxscoreEl = document.querySelector("#boxscore");
 const boxScoreCloseBtn = boxscoreEl.querySelector(".close");
@@ -90,6 +99,11 @@ const boxscore = document.getElementById("boxscore");
 const tabs = boxscore.querySelectorAll(".bs-tab");
 const panels = boxscore.querySelectorAll(".bs-tab-panel");
 
+// Constants
+const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
+const TOTAL_REGULAR_SEASON_GAMES = 1230;
+const AUTO_REFRESH_INTERVAL_MS = 1 * 60 * 1000; // 1 minute
+
 // Load saved states
 checkboxPrimetime.checked = JSON.parse(
 	localStorage.getItem("nba-spielplan_primetime") || "false",
@@ -99,13 +113,14 @@ checkboxShowScores.checked = JSON.parse(
 	localStorage.getItem("nba-spielplan_showScores") || "true",
 );
 
+checkboxPlayByPlayMadeShots.checked = JSON.parse(
+	localStorage.getItem("nba-spielplan_pbp_madeShotsOnly") || "false",
+);
+
 /* --------------------------------------------------------------------------------------------------
 functions
 ---------------------------------------------------------------------------------------------------*/
 
-/* --------------------------------------------------------------------------------------------------
-Live Scoreboard Functions
----------------------------------------------------------------------------------------------------*/
 function updateLive(liveJson) {
 	const arr = liveJson?.scoreboard?.games ?? [];
 	liveById = new Map(arr.map((g) => [g.gameId, g]));
@@ -121,6 +136,7 @@ function updateLive(liveJson) {
 				bsUrl,
 				(json) => {
 					resetBoxscoreView();
+					currentBoxscore = json;
 					renderBoxscore(json);
 				},
 				true,
@@ -130,6 +146,7 @@ function updateLive(liveJson) {
 			fetchData(
 				pbpUrl,
 				(pbpJson) => {
+					currentPlayByPlay = pbpJson;
 					renderPlayByPlay(pbpJson);
 				},
 				true,
@@ -139,7 +156,7 @@ function updateLive(liveJson) {
 }
 
 function fetchLiveOnce() {
-	fetchData(liveURL, updateLive, true);
+	fetchData(todaysScoreboardURL, updateLive, true);
 }
 
 function startLivePolling() {
@@ -1064,15 +1081,37 @@ function openBoxscore(gameId) {
 	boxscoreEl.dataset.gameId = gameId;
 	resetBoxscoreView();
 
+	// render cached data first (if matching)
+	if (currentBoxscore && currentBoxscore.game && currentBoxscore.game.gameId === gameId) {
+		renderBoxscore(currentBoxscore);
+	}
+	if (currentPlayByPlay && currentPlayByPlay.game && currentPlayByPlay.game.gameId === gameId) {
+		renderPlayByPlay(currentPlayByPlay);
+	}
+
+	// fetch fresh data if live or not cached
+	const liveGame = liveById.get(gameId);
+	const forceFresh = liveGame?.gameStatus === 2;
+
 	const bsUrl = `${boxscoreURL}/${gameId}`;
-	fetchData(bsUrl, (json) => {
-		renderBoxscore(json);
-	}, true);
+	fetchData(
+		bsUrl,
+		(json) => {
+			currentBoxscore = json;
+			renderBoxscore(json);
+		},
+		forceFresh,
+	);
 
 	const pbpUrl = `${playByPlayURL}/${gameId}`;
-	fetchData(pbpUrl, (pbpJson) => {
-		renderPlayByPlay(pbpJson);
-	}, true);
+	fetchData(
+		pbpUrl,
+		(pbpJson) => {
+			currentPlayByPlay = pbpJson;
+			renderPlayByPlay(pbpJson);
+		},
+		forceFresh,
+	);
 }
 
 function closeBoxscore() {
@@ -1104,6 +1143,9 @@ function renderBoxscore(json) {
 		return;
 	}
 
+	boxscoreEl.dataset.awayTeam = game.awayTeam.teamTricode;
+	boxscoreEl.dataset.homeTeam = game.homeTeam.teamTricode;
+
 	renderBoxscorePeriods(game);
 	renderBoxscoreTeamStats(game);
 	renderBoxscoreTeam(game.awayTeam);
@@ -1122,7 +1164,17 @@ function renderPlayByPlay(json) {
 		return;
 	}
 
-	actions.forEach((action) => {
+	const filtered = actions.filter((a) => {
+		if (a.actionType === "substitution") return false;
+		if (checkboxPlayByPlayMadeShots.checked && a.shotResult !== "Made") return false;
+		return true;
+	});
+
+	filtered.forEach((action) => {
+		if (checkboxPlayByPlayMadeShots.checked && action.shotResult !== "Made") {
+			return;
+		}
+
 		const item = template.content.firstElementChild.cloneNode(true);
 
 		if (action.teamTricode) {
@@ -1150,7 +1202,8 @@ function renderPlayByPlay(json) {
 
 		// show score only if made shot
 		if (action.shotResult === "Made") {
-			scoreEl.textContent = `${action.scoreAway} - ${action.scoreHome}`;
+			scoreEl.textContent =
+				`${boxscoreEl.dataset.awayTeam} ${action.scoreAway} ${boxscoreEl.dataset.homeTeam} ${action.scoreHome}`;
 		}
 
 		panel.appendChild(item);
@@ -1437,6 +1490,16 @@ function init() {
 		renderTodaysGames();
 	});
 
+	checkboxPlayByPlayMadeShots.addEventListener("change", () => {
+		localStorage.setItem(
+			"nba-spielplan_pbp_madeShotsOnly",
+			checkboxPlayByPlayMadeShots.checked,
+		);
+		if (currentPlayByPlay) {
+			renderPlayByPlay(currentPlayByPlay);
+		}
+	});
+
 	document.addEventListener("DOMContentLoaded", function () {
 		loadData();
 	});
@@ -1449,7 +1512,7 @@ function init() {
 
 	setInterval(() => {
 		if (shouldRerender()) {
-			renderCount = 0;
+			renderedCoreCacheUrls.clear();
 			loadData();
 		}
 	}, 60000);
@@ -1470,7 +1533,7 @@ globalThis.app.init();
  * - serviceWorkerVersion: bump to force new SW and new cache
  -------------------------------------------------------------------------------------------------- */
 const useServiceWorker = true;
-const serviceWorkerVersion = "2025-11-25-v1";
+const serviceWorkerVersion = "2025-11-25-v2";
 
 /* --------------------------------------------------------------------------------------------------
  * Project detection
