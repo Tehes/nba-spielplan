@@ -55,6 +55,10 @@ your browser.
   - Uses static HTML templates for fast client‑side rendering.
   - Works offline if the data was previously cached.
 
+- **Play-by-Play Tab**
+  - Live-by-play feed with time, description, and score delta.
+  - Toggle to show only made shots for a quick scoring view.
+
 - **Lightweight & fast**
   - Minimal bundle, no frameworks, fast loading even on slow networks.
   - Focuses on the essentials only, avoiding the bloat of typical sports apps.
@@ -84,7 +88,16 @@ endpoints:
 | `/standings`      | Derived standings table                | Recomputed from the cached schedule so preseason and neutral tournament games are ignored. |
 | `/scoreboard`     | Live in-day scoreboard feed            | Always proxied without caching; powers the boxscore overlay and in-day score updates.      |
 | `/playoffbracket` | Official bracket JSON                  | Direct proxy so CORS headers stay permissive.                                              |
+| `/boxscore/:id`   | Per-game boxscore                      | Uncached proxy to the NBA live boxscore JSON.                                              |
+| `/playbyplay/:id` | Per-game play-by-play                  | Uncached proxy to the NBA live play-by-play JSON.                                          |
 
 The frontend consumes these endpoints via `fetchData`, which first checks the Cache API before
 hitting the network. When games are live, the app polls `/scoreboard` every minute and merges the
 fresh scores into the already-rendered cards.
+
+---
+
+### Development
+
+- Service Worker toggles live in `js/app.js`: set `useServiceWorker` to `false` for local debugging
+  or bump `serviceWorkerVersion` to force a fresh cache on deploy.
