@@ -214,8 +214,7 @@ section {
     border-radius: var(--card-corners);
 }
 
-.v-abbr,
-.h-abbr {
+.card .abbr {
     display: none;
 }
 
@@ -230,7 +229,7 @@ main div span {
 
 .hidden,
 .card .game-label:empty,
-.card :where(.v-wl, .h-wl, .v-score, .h-score):empty {
+.card :where(.wl, .score):empty {
     display: none;
 }
 
@@ -469,23 +468,19 @@ TODAY
     border-radius: 0 var(--card-corners) 0 0;
 }
 
-#today .v-wl,
-#today .h-wl {
+#today .wl {
     text-align: right;
     font-weight: normal;
     white-space: nowrap;
     font-size: clamp(1rem, 3vw, 1.2rem);
 }
 
-
-#today .h-score,
-#today .v-score {
+#today .score {
     font-size: clamp(1.5rem, 4vw, 2.5rem);
     font-weight: 700;
 }
 
-#today .h-name,
-#today .v-name {
+#today .name {
     flex-grow: 1;
 }
 
@@ -605,20 +600,17 @@ MORE
     flex: 0 0 20%;
 }
 
-#more .h-wl,
-#more .v-wl {
+#more .wl {
     opacity: 0.5;
     white-space: nowrap;
 }
 
-#more .h-score,
-#more .v-score {
+#more .score {
     font-size: 1.4rem;
     font-weight: 700;
 }
 
-#more .h-color,
-#more .v-color {
+#more .color {
     width: 4px;
     height: 100%;
     background-color: var(--team-color, var(--neutral400));
@@ -1105,13 +1097,11 @@ MEDIA QUERIES
 
 @media (max-width: 800px) {
 
-    .h-name,
-    .v-name {
+    .card .name {
         display: none;
     }
 
-    .h-abbr,
-    .v-abbr {
+    .card .abbr {
         display: inline;
         font-size: clamp(1.2rem, 4vw, 1.5rem);
     }

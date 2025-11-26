@@ -323,16 +323,16 @@ function renderTodaysGames() {
 
 			const homeTeam = clone.querySelector(".home-team");
 			const visitingTeam = clone.querySelector(".visiting-team");
-			const homeLogo = clone.querySelectorAll("img")[1];
-			const visitingLogo = clone.querySelectorAll("img")[0];
-			const homeName = clone.querySelector(".h-name");
-			const visitingName = clone.querySelector(".v-name");
-			const homeAbbr = clone.querySelector(".h-abbr");
-			const visitingAbbr = clone.querySelector(".v-abbr");
-			const homeWL = clone.querySelector(".h-wl");
-			const visitingWL = clone.querySelector(".v-wl");
-			const homeScore = clone.querySelector(".h-score");
-			const visitingScore = clone.querySelector(".v-score");
+			const homeLogo = homeTeam.querySelector(".logo");
+			const visitingLogo = visitingTeam.querySelector(".logo");
+			const homeName = homeTeam.querySelector(".name");
+			const visitingName = visitingTeam.querySelector(".name");
+			const homeAbbr = homeTeam.querySelector(".abbr");
+			const visitingAbbr = visitingTeam.querySelector(".abbr");
+			const homeWL = homeTeam.querySelector(".wl");
+			const visitingWL = visitingTeam.querySelector(".wl");
+			const homeScore = homeTeam.querySelector(".score");
+			const visitingScore = visitingTeam.querySelector(".score");
 			const date = clone.querySelector(".date");
 			const gameLabelEl = clone.querySelector(".game-label");
 			const label = g.gameLabel || g.gameSubtype || "";
@@ -470,16 +470,18 @@ function renderMoreGames() {
 		const clone = template.content.cloneNode(true);
 
 		const card = clone.querySelector(".card");
-		const homeName = clone.querySelector(".h-name");
-		const visitingName = clone.querySelector(".v-name");
-		const homeWL = clone.querySelector(".h-wl");
-		const visitingWL = clone.querySelector(".v-wl");
-		const homeColor = clone.querySelector(".h-color");
-		const visitingColor = clone.querySelector(".v-color");
-		const homeAbbr = clone.querySelector(".h-abbr");
-		const visitingAbbr = clone.querySelector(".v-abbr");
-		const homeScore = clone.querySelector(".h-score");
-		const visitingScore = clone.querySelector(".v-score");
+		const homeTeam = clone.querySelector(".home-team");
+		const visitingTeam = clone.querySelector(".visiting-team");
+		const homeName = homeTeam.querySelector(".name");
+		const visitingName = visitingTeam.querySelector(".name");
+		const homeWL = homeTeam.querySelector(".wl");
+		const visitingWL = visitingTeam.querySelector(".wl");
+		const homeColor = homeTeam.querySelector(".color");
+		const visitingColor = visitingTeam.querySelector(".color");
+		const homeAbbr = homeTeam.querySelector(".abbr");
+		const visitingAbbr = visitingTeam.querySelector(".abbr");
+		const homeScore = homeTeam.querySelector(".score");
+		const visitingScore = visitingTeam.querySelector(".score");
 		const date = clone.querySelector(".date");
 		const gameLabelEl = clone.querySelector(".game-label");
 		const label = (g.gameLabel || "").trim();
@@ -1317,7 +1319,7 @@ function renderBoxscorePeriods(game) {
 }
 
 function renderBoxscoreTeam(team) {
-	const template = document.querySelector("#template-team");
+	const template = document.querySelector("#template-boxscore");
 	const section = template.content.firstElementChild.cloneNode(true);
 	section.style.setProperty("--team-color", `var(--${team.teamTricode})`);
 
@@ -1534,7 +1536,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-11-26-v1";
+const SERVICE_WORKER_VERSION = "2025-11-26-v2";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
