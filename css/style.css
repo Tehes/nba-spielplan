@@ -996,7 +996,7 @@ body:has(#game-overlay:not(.hidden)) {
 }
 
 #game-overlay .checkmark {
-    background-color: var(--bg-color);
+    background-color: var(--progress-background);
 }
 
 #playbyplay {
