@@ -101,7 +101,7 @@ body {
     }
 }
 
-body>div:not(#backdrop):not(#game-overlay) {
+#container {
     display: flex;
     justify-content: center;
     column-gap: 3vw;
@@ -154,20 +154,6 @@ a {
     color: inherit;
 }
 
-#info {
-    display: flex;
-    font-size: clamp(0.8rem, 3vw, 1.1rem);
-    margin: 10px 0;
-}
-
-#info span {
-    flex: 0 0 40%;
-}
-
-#info span:nth-of-type(1) {
-    flex: 0 0 20%;
-}
-
 #progress-bar {
     width: 100%;
     height: 20px;
@@ -189,6 +175,20 @@ a {
     color: var(--progress-background);
     font-size: 90%;
     overflow: clip;
+}
+
+#info {
+    display: flex;
+    font-size: clamp(0.8rem, 3vw, 1.1rem);
+    margin: 10px 0;
+}
+
+#info span {
+    flex: 0 0 40%;
+}
+
+#info span:first-of-type {
+    flex: 0 0 20%;
 }
 
 /*
@@ -850,8 +850,7 @@ GAME OVERLAY
     transform: translate(-50%, -50%);
     width: 94vw;
     max-width: 800px;
-    height: auto;
-    max-height: 80vh;
+    height: 80vh;
     padding: 15px;
     overflow-x: hidden;
     overflow-y: auto;
