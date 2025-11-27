@@ -1159,6 +1159,9 @@ function resetGameOverlayView() {
 			bar.style.removeProperty("--team-color");
 		});
 	}
+
+	const pbpPanel = document.querySelector("#playbyplay");
+	pbpPanel.replaceChildren();
 }
 
 function renderBoxscore(json) {
@@ -1176,10 +1179,8 @@ function renderBoxscore(json) {
 function renderPlayByPlay(json) {
 	const game = json && json.game;
 	const actions = game.actions || [];
-	const panel = document.querySelector("#playbyplay");
 	const template = document.getElementById("template-play-by-play");
-
-	panel.replaceChildren();
+	const panel = document.querySelector("#playbyplay");
 
 	if (!actions.length) {
 		return;
@@ -1536,7 +1537,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-11-26-v3";
+const SERVICE_WORKER_VERSION = "2025-11-27-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
