@@ -1139,6 +1139,24 @@ function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
 function closeGameOverlay() {
 	backdropEl.classList.add("hidden");
 	gameOverlayEl.classList.add("hidden");
+	gameOverlayEl.dataset.gameId = "";
+	gameOverlayEl.dataset.awayTeam = "";
+	gameOverlayEl.dataset.homeTeam = "";
+
+	// Reset UI
+	teamsEl.replaceChildren();
+	periodsEl.querySelector("thead").replaceChildren();
+	periodsEl.querySelector("tbody").replaceChildren();
+	teamStatsEl.querySelectorAll(".bar").forEach((bar) => {
+		bar.style.width = "50%";
+		bar.textContent = "–";
+		bar.style.removeProperty("--team-color");
+	});
+	const playByPlayPanel = document.querySelector("#playbyplay");
+	playByPlayPanel.replaceChildren();
+	const p = document.createElement("p");
+	p.textContent = "Lade Spielaktionen…";
+	playByPlayPanel.appendChild(p);
 }
 
 function renderBoxscore(json) {
@@ -1486,7 +1504,7 @@ function init() {
 			"nba-spielplan_pbp_madeShotsOnly",
 			checkboxPlayByPlayMadeShots.checked,
 		);
-		if (currentPlayByPlay) {
+		if (currentPlayByPlay && gameOverlayEl.dataset.gameId === currentPlayByPlay.game.gameId) {
 			renderPlayByPlay(currentPlayByPlay);
 		}
 	});
@@ -1525,7 +1543,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-11-27-v3";
+const SERVICE_WORKER_VERSION = "2025-11-27-v4";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
