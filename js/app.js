@@ -134,7 +134,6 @@ function updateLive(liveJson) {
 			fetchData(
 				bsUrl,
 				(json) => {
-					resetGameOverlayView();
 					currentBoxscore = json;
 					renderBoxscore(json);
 				},
@@ -1103,7 +1102,6 @@ function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
 	gameOverlayEl.dataset.gameId = gameId;
 	gameOverlayEl.dataset.awayTeam = awayTeamTricode || "";
 	gameOverlayEl.dataset.homeTeam = homeTeamTricode || "";
-	resetGameOverlayView();
 
 	// render cached data first (if matching)
 	if (currentBoxscore && currentBoxscore.game && currentBoxscore.game.gameId === gameId) {
@@ -1143,27 +1141,6 @@ function closeGameOverlay() {
 	gameOverlayEl.classList.add("hidden");
 }
 
-function resetGameOverlayView() {
-	const periodsTable = periodsEl.querySelector(".periods-table");
-	const thead = periodsTable.querySelector("thead");
-	const tbody = periodsTable.querySelector("tbody");
-
-	thead.replaceChildren();
-	tbody.replaceChildren();
-	teamsEl.replaceChildren();
-
-	if (teamStatsEl) {
-		teamStatsEl.querySelectorAll(".bar").forEach((bar) => {
-			bar.style.width = "50%";
-			bar.textContent = "–";
-			bar.style.removeProperty("--team-color");
-		});
-	}
-
-	const pbpPanel = document.querySelector("#playbyplay");
-	pbpPanel.replaceChildren();
-}
-
 function renderBoxscore(json) {
 	const game = json && json.game;
 	if (!game) {
@@ -1172,6 +1149,7 @@ function renderBoxscore(json) {
 
 	renderBoxscorePeriods(game);
 	renderBoxscoreTeamStats(game);
+	teamsEl.replaceChildren();
 	renderBoxscoreTeam(game.awayTeam);
 	renderBoxscoreTeam(game.homeTeam);
 }
@@ -1185,6 +1163,7 @@ function renderPlayByPlay(json) {
 	if (!actions.length) {
 		return;
 	}
+	panel.replaceChildren();
 
 	const filtered = actions.filter((a) => {
 		if (a.actionType === "substitution") return false;
@@ -1234,6 +1213,12 @@ function renderBoxscoreTeamStats(game) {
 	const homeStats = game.homeTeam?.statistics || {};
 	const awayStats = game.awayTeam?.statistics || {};
 
+	teamStatsEl.querySelectorAll(".bar").forEach((bar) => {
+		bar.style.width = "50%";
+		bar.textContent = "–";
+		bar.style.removeProperty("--team-color");
+	});
+
 	teamStatsEl.querySelectorAll(".stat").forEach((wrapper) => {
 		const key = wrapper.dataset.stat;
 		if (!key) return;
@@ -1264,6 +1249,9 @@ function renderBoxscorePeriods(game) {
 	const table = periodsEl.querySelector(".periods-table");
 	const thead = table.querySelector("thead");
 	const tbody = table.querySelector("tbody");
+
+	thead.replaceChildren();
+	tbody.replaceChildren();
 
 	const headRow = document.createElement("tr");
 	const teamTh = document.createElement("th");
@@ -1537,7 +1525,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-11-27-v1";
+const SERVICE_WORKER_VERSION = "2025-11-27-v2";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
