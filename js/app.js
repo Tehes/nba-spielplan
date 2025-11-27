@@ -1199,6 +1199,10 @@ function renderPlayByPlay(json) {
 		const timeEl = item.querySelector(".time");
 		const descEl = item.querySelector(".description");
 		const scoreEl = item.querySelector(".score");
+		const awayTeamEl = scoreEl.querySelector(".score-away .team");
+		const homeTeamEl = scoreEl.querySelector(".score-home .team");
+		const awayValueEl = scoreEl.querySelector(".score-away .score-value");
+		const homeValueEl = scoreEl.querySelector(".score-home .score-value");
 
 		const clock = formatMinutes(action.clock);
 		const period = Number(action.period);
@@ -1217,8 +1221,19 @@ function renderPlayByPlay(json) {
 
 		// show score only if made shot
 		if (action.shotResult === "Made") {
-			scoreEl.textContent =
-				`${gameOverlayEl.dataset.awayTeam} ${action.scoreAway} ${gameOverlayEl.dataset.homeTeam} ${action.scoreHome}`;
+			const scoredTeam = action.teamTricode;
+			const awayTeam = gameOverlayEl.dataset.awayTeam;
+			const homeTeam = gameOverlayEl.dataset.homeTeam;
+
+			awayTeamEl.textContent = awayTeam;
+			awayValueEl.textContent = action.scoreAway;
+			awayValueEl.classList.toggle("made", awayTeam === scoredTeam);
+
+			homeTeamEl.textContent = homeTeam;
+			homeValueEl.textContent = action.scoreHome;
+			homeValueEl.classList.toggle("made", homeTeam === scoredTeam);
+		} else {
+			scoreEl.classList.add("hidden");
 		}
 
 		panel.appendChild(item);
@@ -1543,7 +1558,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-11-27-v4";
+const SERVICE_WORKER_VERSION = "2025-11-27-v5";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------

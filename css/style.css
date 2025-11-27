@@ -1041,11 +1041,13 @@ body:has(#game-overlay:not(.hidden)) {
 
 #playbyplay .score {
     margin-top: 0.5rem;
-    font-variant-numeric: tabular-nums;
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
 }
 
-#playbyplay .score:empty {
-    display: none;
+#playbyplay .score .made {
+    font-weight: 600;
 }
 
 /*
