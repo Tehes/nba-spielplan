@@ -629,7 +629,7 @@ MORE
     color: light-dark(var(--neutral700), var(--neutral300));
 }
 
-#options {
+.options {
     display: flex;
     align-items: center;
     flex-wrap: wrap;

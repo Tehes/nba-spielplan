@@ -57,6 +57,7 @@ const coreCacheUrls = new Set([scheduleURL, standingsURL]);
 // Data Holders
 let liveById = new Map();
 let livePoll = null;
+const excitementCache = new Map();
 
 let schedule;
 let standings;
@@ -86,6 +87,7 @@ const moreEl = document.querySelector("#more");
 const progressValue = document.querySelector("#progress-value");
 const teamPicker = document.querySelector("select");
 const checkboxShowScores = document.querySelector(".show-scores input");
+const checkboxShowRating = document.querySelector(".show-rating input");
 const checkboxHidePastGames = document.querySelector(".hide-past-games input");
 const checkboxPrimetime = document.querySelector(".filter-primetime input");
 const checkboxPlayByPlayMadeShots = document.querySelector("#playbyplay-panel input");
@@ -113,6 +115,10 @@ checkboxPrimetime.checked = JSON.parse(
 
 checkboxShowScores.checked = JSON.parse(
 	localStorage.getItem("nba-spielplan_showScores") || "true",
+);
+
+checkboxShowRating.checked = JSON.parse(
+	localStorage.getItem("nba-spielplan_showRating") || "false",
 );
 
 checkboxPlayByPlayMadeShots.checked = JSON.parse(
@@ -381,7 +387,23 @@ function renderTodaysGames() {
 			if (isFinal) {
 				// FINAL
 				date.classList.remove("live");
-				date.textContent = "Beendet";
+				if (checkboxShowRating.checked) {
+					const cachedScore = excitementCache.get(g.gameId);
+					if (cachedScore != null) {
+						date.textContent = `${(cachedScore / 10).toFixed(1)}/10`;
+					} else {
+						date.textContent = "Lädt…";
+						fetchExcitementForGame(g.gameId)
+							.then((score) => {
+								date.textContent = `${(score / 10).toFixed(1)}/10`;
+							})
+							.catch(() => {
+								date.textContent = "Beendet";
+							});
+					}
+				} else {
+					date.textContent = "Beendet";
+				}
 				if (checkboxShowScores.checked) {
 					const liveAway = live?.awayTeam?.score;
 					const liveHome = live?.homeTeam?.score;
@@ -1300,6 +1322,30 @@ function computeGameExcitement(playByPlayJson) {
 	return score;
 }
 
+function fetchExcitementForGame(gameId) {
+	if (excitementCache.has(gameId)) {
+		return Promise.resolve(excitementCache.get(gameId));
+	}
+
+	const url = `${playByPlayURL}/${gameId}`;
+
+	return new Promise((resolve, reject) => {
+		fetchData(
+			url,
+			(pbpJson) => {
+				try {
+					const score = computeGameExcitement(pbpJson);
+					excitementCache.set(gameId, score);
+					resolve(score);
+				} catch (err) {
+					reject(err);
+				}
+			},
+			true,
+		).catch(reject);
+	});
+}
+
 function updateGameExcitementMeter(playByPlayJson) {
 	const gameId = gameOverlayEl.dataset.gameId;
 	const actions = playByPlayJson?.game?.actions || [];
@@ -1326,10 +1372,7 @@ function updateGameExcitementMeter(playByPlayJson) {
 		return;
 	}
 
-	const score = Math.max(
-		0,
-		Math.min(100, Math.round(computeGameExcitement(playByPlayJson))),
-	);
+	const score = computeGameExcitement(playByPlayJson);
 	const rating = (score / 10).toFixed(1);
 
 	gameExcitementValueEl.style.width = `${score}%`;
@@ -1767,6 +1810,11 @@ function init() {
 		renderMoreGames();
 	});
 
+	checkboxShowRating.addEventListener("change", () => {
+		localStorage.setItem("nba-spielplan_showRating", checkboxShowRating.checked);
+		renderTodaysGames();
+	});
+
 	checkboxShowScores.addEventListener("change", () => {
 		localStorage.setItem("nba-spielplan_showScores", checkboxShowScores.checked);
 		renderTodaysGames();
@@ -1816,7 +1864,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-11-27-v5";
+const SERVICE_WORKER_VERSION = "2025-11-29-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
