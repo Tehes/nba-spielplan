@@ -1,4 +1,4 @@
-## NBA Schedule (nba-spielplan)
+## NBA Schedule (german: nba-spielplan)
 
 NBA Schedule is a lightweight Progressive Web App (PWA) that shows every NBA game in your local
 timezone, keeps live scores in sync, and lets you filter the schedule for exactly what you care
@@ -22,7 +22,7 @@ your browser.
     final states.
   - Polls the live scoreboard every minute while at least one game is live, overlaying in-progress
     scores.
-  - Cards are now clickable and open the built-in boxscore overlay.
+  - Cards are clickable and open the built-in boxscore + play-by-play overlay.
 
 - **More games view**
   - Lists recent results plus upcoming games, grouped by date.
@@ -54,6 +54,11 @@ your browser.
     FT).
   - Uses static HTML templates for fast client‑side rendering.
   - Works offline if the data was previously cached.
+
+- **Excitement meter (german: Spannungsmeter)**
+  - Calculates an excitement score (0–100) for finished games from play-by-play closeness, lead
+    changes, comebacks, crunch-time moments, offense, and OT bonuses.
+  - Shows a labeled 1–10 rating above the overlay tabs once a game is final.
 
 - **Play-by-Play Tab**
   - Live-by-play feed with time, description, and score delta.

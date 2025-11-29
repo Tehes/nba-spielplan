@@ -97,6 +97,9 @@ const teamStatsEl = document.querySelector("#team-stats");
 const teamsEl = document.querySelector("#teams");
 const gameOverlay = document.getElementById("game-overlay");
 const gameTabs = gameOverlay.querySelectorAll(".tab");
+const gameExcitementEl = document.querySelector("#game-excitement");
+const gameExcitementValueEl = document.querySelector("#game-excitement-value");
+const gameExcitementLabelEl = document.querySelector("#game-excitement-label");
 
 // Constants
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
@@ -266,6 +269,26 @@ function formatMinutes(isoDuration) {
 	const s = totalSeconds % 60;
 
 	return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function parseClockToSeconds(isoDuration) {
+	if (!isoDuration || typeof isoDuration !== "string") return NaN;
+
+	const match = isoDuration.match(/PT(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/);
+	if (!match) return NaN;
+
+	const minutes = match[1] ? parseInt(match[1], 10) : 0;
+	const secondsFloat = match[2] ? parseFloat(match[2]) : 0;
+
+	return Math.round(minutes * 60 + secondsFloat);
+}
+
+function getOvertimeCount(actions) {
+	const maxPeriod = (actions || []).reduce(
+		(max, action) => Math.max(max, Number(action?.period) || 0),
+		0,
+	);
+	return Math.max(0, maxPeriod - 4);
 }
 
 // Build a label for live games based on period and gameClock from live scoreboard data
@@ -1095,6 +1118,239 @@ function storeNextScheduledGame() {
 	localStorage.setItem("nba_nextScheduledGame", JSON.stringify(nextGame));
 }
 
+function computeGameExcitement(playByPlayJson) {
+	const actions = playByPlayJson?.game?.actions;
+
+	if (!Array.isArray(actions) || actions.length === 0) {
+		return 0;
+	}
+
+	let lastHomeScore = 0;
+	let lastAwayScore = 0;
+	const scoringEvents = [];
+
+	actions.forEach((action) => {
+		const homeScore = Number(action.scoreHome);
+		const awayScore = Number(action.scoreAway);
+
+		if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore)) return;
+		if (homeScore === lastHomeScore && awayScore === lastAwayScore) return;
+
+		scoringEvents.push({
+			homeScore,
+			awayScore,
+			period: Number(action.period),
+			clock: action.clock,
+		});
+
+		lastHomeScore = homeScore;
+		lastAwayScore = awayScore;
+	});
+
+	if (!scoringEvents.length) {
+		return 0;
+	}
+
+	let closenessSum = 0;
+	let leadChanges = 0;
+	let ties = 0;
+	let leader = "tie";
+	let maxHomeDeficit = 0;
+	let maxAwayDeficit = 0;
+	let countHighCrunch = 0;
+	let countMediumCrunch = 0;
+	let countLightCrunch = 0;
+	let totalCrunchEvents = 0;
+	let minLateDiff = Infinity;
+
+	const lastEvent = scoringEvents[scoringEvents.length - 1];
+	const finalHomeScore = lastEvent?.homeScore;
+	const finalAwayScore = lastEvent?.awayScore;
+	const hasFinalScores = Number.isFinite(finalHomeScore) && Number.isFinite(finalAwayScore);
+	const finalMargin = hasFinalScores ? Math.abs(finalHomeScore - finalAwayScore) : Infinity;
+	let marginFactor = 0;
+	if (Number.isFinite(finalMargin)) {
+		if (finalMargin <= 5) {
+			marginFactor = 1;
+		} else if (finalMargin >= 20) {
+			marginFactor = 0;
+		} else {
+			marginFactor = 1 - (finalMargin - 5) / 15;
+		}
+	}
+
+	scoringEvents.forEach((ev) => {
+		const diff = Math.abs(ev.homeScore - ev.awayScore);
+		const closeness = Math.max(0, 1 - diff / 20);
+		closenessSum += closeness;
+
+		const leaderDiff = ev.homeScore - ev.awayScore;
+		let nextLeader = "tie";
+		if (leaderDiff > 0) nextLeader = "home";
+		else if (leaderDiff < 0) nextLeader = "away";
+
+		if (nextLeader !== leader) {
+			if (nextLeader === "tie") {
+				ties++;
+			} else if (leader !== "tie") {
+				leadChanges++;
+			}
+		}
+		leader = nextLeader;
+
+		if (leaderDiff > 0) {
+			maxAwayDeficit = Math.max(maxAwayDeficit, leaderDiff);
+		} else if (leaderDiff < 0) {
+			maxHomeDeficit = Math.max(maxHomeDeficit, Math.abs(leaderDiff));
+		}
+
+		if (ev.period >= 4) {
+			minLateDiff = Math.min(minLateDiff, diff);
+			const secondsRemaining = parseClockToSeconds(ev.clock);
+			if (Number.isFinite(secondsRemaining)) {
+				if (secondsRemaining <= 300) {
+					totalCrunchEvents++;
+					if (diff <= 3) {
+						countHighCrunch++;
+					} else if (diff <= 7) {
+						countMediumCrunch++;
+					} else if (diff <= 12) {
+						countLightCrunch++;
+					}
+				}
+			}
+		}
+	});
+
+	const avgCloseness = closenessSum / scoringEvents.length;
+	const closenessScore = Math.round(avgCloseness * 40);
+
+	const swingsScore = Math.min(25, leadChanges * 2 + ties);
+
+	let winnerMaxDeficit = 0;
+
+	if (Number.isFinite(finalHomeScore) && Number.isFinite(finalAwayScore)) {
+		if (finalHomeScore > finalAwayScore) {
+			winnerMaxDeficit = maxHomeDeficit;
+		} else if (finalAwayScore > finalHomeScore) {
+			winnerMaxDeficit = maxAwayDeficit;
+		}
+	}
+
+	let comebackScore = 0;
+	if (winnerMaxDeficit >= 20) {
+		comebackScore = 10;
+	} else if (winnerMaxDeficit >= 15) {
+		comebackScore = 8;
+	} else if (winnerMaxDeficit >= 10) {
+		comebackScore = 6;
+	} else if (winnerMaxDeficit >= 6) {
+		comebackScore = 4;
+	}
+	let crunchRelevance = 0;
+	if (minLateDiff <= 5) {
+		crunchRelevance = 1;
+	} else if (minLateDiff <= 8) {
+		crunchRelevance = 0.5;
+	}
+	const adjustedBase = (comebackScore * 0.5) + (comebackScore * 0.5 * crunchRelevance);
+	comebackScore = Math.round(adjustedBase * marginFactor);
+
+	let crunchTimeScore = 0;
+	if (totalCrunchEvents > 0) {
+		const ratioHigh = countHighCrunch / totalCrunchEvents;
+		const ratioMedium = countMediumCrunch / totalCrunchEvents;
+		const ratioLight = countLightCrunch / totalCrunchEvents;
+		const crunchScoreRaw = (ratioHigh * 20) + (ratioMedium * 15) + (ratioLight * 8);
+		const rawClamped = Math.min(crunchScoreRaw, 20);
+		crunchTimeScore = Math.round(rawClamped * 1.25);
+		crunchTimeScore = Math.round(crunchTimeScore * (0.7 + 0.3 * marginFactor));
+	}
+
+	const totalPoints = hasFinalScores ? finalHomeScore + finalAwayScore : 0;
+
+	let offenseScore = 0;
+	if (finalMargin <= 10) {
+		let offenseBase = 0;
+		if (totalPoints >= 230) {
+			offenseBase = 5;
+		} else if (totalPoints > 180) {
+			offenseBase = ((totalPoints - 180) / 50) * 5;
+		}
+		offenseBase = Math.max(0, Math.min(5, offenseBase));
+		offenseScore = Math.round(offenseBase * marginFactor);
+	}
+
+	const overtimeCount = getOvertimeCount(actions);
+	let otBonus = 0;
+	if (overtimeCount === 1) {
+		otBonus = 5;
+	} else if (overtimeCount >= 2) {
+		otBonus = 10;
+	}
+
+	const rawScore = closenessScore +
+		swingsScore +
+		crunchTimeScore +
+		comebackScore +
+		offenseScore +
+		otBonus;
+	const score = Math.max(0, Math.min(100, Math.round(rawScore)));
+
+	return score;
+}
+
+function updateGameExcitementMeter(playByPlayJson) {
+	const gameId = gameOverlayEl.dataset.gameId;
+	const actions = playByPlayJson?.game?.actions || [];
+	const hasData = playByPlayJson && actions.length > 0;
+	const matchesGame = hasData && playByPlayJson?.game?.gameId === gameId;
+
+	if (!matchesGame) {
+		gameExcitementEl.classList.add("hidden");
+		gameExcitementValueEl.style.width = "0%";
+		gameExcitementValueEl.textContent = "0%";
+		gameExcitementLabelEl.textContent = "";
+		return;
+	}
+
+	const live = liveById.get(gameId);
+	const game = games.finished.concat(games.today).find((g) => g.gameId === gameId);
+	const { isFinal } = getGameState(game, live);
+
+	if (!isFinal) {
+		gameExcitementEl.classList.add("hidden");
+		gameExcitementValueEl.style.width = "0%";
+		gameExcitementValueEl.textContent = "0%";
+		gameExcitementLabelEl.textContent = "";
+		return;
+	}
+
+	const score = Math.max(
+		0,
+		Math.min(100, Math.round(computeGameExcitement(playByPlayJson))),
+	);
+	const rating = (score / 10).toFixed(1);
+
+	gameExcitementValueEl.style.width = `${score}%`;
+	gameExcitementValueEl.textContent = `${score}%`;
+
+	let label = "";
+	if (score >= 80) {
+		label = `Bewertung: ${rating}/10 · Pflichtprogramm`;
+	} else if (score >= 60) {
+		label = `Bewertung: ${rating}/10 · sehenswert`;
+	} else if (score >= 40) {
+		label = `Bewertung: ${rating}/10 · solide`;
+	} else if (score >= 20) {
+		label = `Bewertung: ${rating}/10 · eher einseitig`;
+	} else {
+		label = `Bewertung: ${rating}/10 · skippen`;
+	}
+
+	gameExcitementLabelEl.textContent = label;
+}
+
 // Game overlay helpers
 function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
 	backdropEl.classList.remove("hidden");
@@ -1107,8 +1363,9 @@ function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
 	if (currentBoxscore && currentBoxscore.game && currentBoxscore.game.gameId === gameId) {
 		renderBoxscore(currentBoxscore);
 	}
-	if (currentPlayByPlay && currentPlayByPlay.game && currentPlayByPlay.game.gameId === gameId) {
+	if (currentPlayByPlay?.game?.gameId === gameId) {
 		renderPlayByPlay(currentPlayByPlay);
+		updateGameExcitementMeter(currentPlayByPlay);
 	}
 
 	// fetch fresh data if live or not cached
@@ -1116,6 +1373,7 @@ function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
 	const forceFresh = liveGame?.gameStatus === 2;
 
 	const bsUrl = `${boxscoreURL}/${gameId}`;
+	const pbpUrl = `${playByPlayURL}/${gameId}`;
 	fetchData(
 		bsUrl,
 		(json) => {
@@ -1125,12 +1383,12 @@ function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
 		forceFresh,
 	);
 
-	const pbpUrl = `${playByPlayURL}/${gameId}`;
 	fetchData(
 		pbpUrl,
 		(pbpJson) => {
 			currentPlayByPlay = pbpJson;
 			renderPlayByPlay(pbpJson);
+			updateGameExcitementMeter(pbpJson);
 		},
 		forceFresh,
 	);
@@ -1147,16 +1405,9 @@ function closeGameOverlay() {
 	teamsEl.replaceChildren();
 	periodsEl.querySelector("thead").replaceChildren();
 	periodsEl.querySelector("tbody").replaceChildren();
-	teamStatsEl.querySelectorAll(".bar").forEach((bar) => {
-		bar.style.width = "50%";
-		bar.textContent = "–";
-		bar.style.removeProperty("--team-color");
-	});
-	const playByPlayPanel = document.querySelector("#playbyplay");
-	playByPlayPanel.replaceChildren();
-	const p = document.createElement("p");
-	p.textContent = "Lade Spielaktionen…";
-	playByPlayPanel.appendChild(p);
+	renderBoxscoreTeamStats(null);
+	renderPlayByPlay(null);
+	updateGameExcitementMeter(null);
 }
 
 function renderBoxscore(json) {
@@ -1173,12 +1424,15 @@ function renderBoxscore(json) {
 }
 
 function renderPlayByPlay(json) {
-	const game = json && json.game;
-	const actions = game.actions || [];
+	const actions = json?.game?.actions || [];
 	const template = document.getElementById("template-play-by-play");
 	const panel = document.querySelector("#playbyplay");
 
 	if (!actions.length) {
+		panel.replaceChildren();
+		const p = document.createElement("p");
+		p.textContent = "Lade Spielaktionen…";
+		playByPlayPanel.appendChild(p);
 		return;
 	}
 	panel.replaceChildren();
@@ -1241,8 +1495,8 @@ function renderPlayByPlay(json) {
 }
 
 function renderBoxscoreTeamStats(game) {
-	const homeTeam = game.homeTeam;
-	const awayTeam = game.awayTeam;
+	const homeTeam = game?.homeTeam;
+	const awayTeam = game?.awayTeam;
 	const homeStats = game.homeTeam?.statistics || {};
 	const awayStats = game.awayTeam?.statistics || {};
 
@@ -1251,6 +1505,10 @@ function renderBoxscoreTeamStats(game) {
 		bar.textContent = "–";
 		bar.style.removeProperty("--team-color");
 	});
+
+	if (!homeTeam || !awayTeam) {
+		return;
+	}
 
 	teamStatsEl.querySelectorAll(".stat").forEach((wrapper) => {
 		const key = wrapper.dataset.stat;

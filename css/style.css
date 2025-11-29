@@ -110,6 +110,30 @@ body {
     max-width: 100%;
 }
 
+.meter-container {
+    width: 100%;
+    background-color: var(--progress-background);
+    border-radius: 10px;
+    box-shadow: var(--progress-shadow);
+    overflow: hidden;
+    height: 20px;
+    margin: 10px 0;
+}
+
+.meter-fill {
+    background-color: var(--progress-foreground);
+    border-radius: 10px;
+    width: 0;
+    transition: width var(--transition-duration);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--progress-background);
+    overflow: clip;
+    font-size: 0.9rem;
+    height: 100%;
+}
+
 /*
 -------------------------------------------------------------------
 MAIN
@@ -152,29 +176,6 @@ h5 {
 
 a {
     color: inherit;
-}
-
-#progress-bar {
-    width: 100%;
-    height: 20px;
-    margin: 10px 0;
-    background-color: var(--progress-background);
-    border-radius: 10px;
-    box-shadow: var(--progress-shadow);
-}
-
-#progress-value {
-    background-color: var(--progress-foreground);
-    border-radius: 10px;
-    height: 20px;
-    width: 0;
-    transition: width var(--transition-duration);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: var(--progress-background);
-    font-size: 90%;
-    overflow: clip;
 }
 
 #info {
@@ -876,6 +877,20 @@ GAME OVERLAY
 
 #game-overlay #game-overlay-content {
     margin-top: 35px;
+}
+
+#game-excitement {
+    margin: 0 0 15px 0;
+    color: var(--text-color);
+}
+
+#game-excitement-bar {
+    height: 16px;
+    margin-top: 4px;
+}
+
+#game-excitement-label {
+    margin: 6px 0 0 0;
 }
 
 #game-overlay #periods,
