@@ -1392,6 +1392,7 @@ function updateGameExcitementMeter(playByPlayJson) {
 	}
 
 	gameExcitementLabelEl.textContent = label;
+	gameExcitementEl.classList.remove("hidden");
 }
 
 // Game overlay helpers
@@ -1475,7 +1476,7 @@ function renderPlayByPlay(json) {
 		panel.replaceChildren();
 		const p = document.createElement("p");
 		p.textContent = "Lade Spielaktionen…";
-		playByPlayPanel.appendChild(p);
+		panel.appendChild(p);
 		return;
 	}
 	panel.replaceChildren();
@@ -1540,8 +1541,8 @@ function renderPlayByPlay(json) {
 function renderBoxscoreTeamStats(game) {
 	const homeTeam = game?.homeTeam;
 	const awayTeam = game?.awayTeam;
-	const homeStats = game.homeTeam?.statistics || {};
-	const awayStats = game.awayTeam?.statistics || {};
+	const homeStats = homeTeam?.statistics || {};
+	const awayStats = awayTeam?.statistics || {};
 
 	teamStatsEl.querySelectorAll(".bar").forEach((bar) => {
 		bar.style.width = "50%";
@@ -1864,7 +1865,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-11-29-v1";
+const SERVICE_WORKER_VERSION = "2025-11-30-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
