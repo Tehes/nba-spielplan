@@ -390,6 +390,16 @@ Deno.serve(async (req) => {
 			return proxyWithCors(playoffUrl);
 		}
 
+		// --- /istbracket: nutzt gecachten Schedule nur für das Jahr ---
+		if (PATH === "/istbracket") {
+			const data = await getSchedule();
+			const seasonString = data?.leagueSchedule?.seasonYear || "2025-26";
+			const year = seasonString.split("-")[0];
+			const istBracketUrl =
+				`https://cdn.nba.com/static/json/staticData/brackets/${year}/ISTBracket.json`;
+			return proxyWithCors(istBracketUrl);
+		}
+
 		// --- /scoreboard: KEIN Cache (immer live) ---
 		if (PATH === "/scoreboard") {
 			return proxyWithCors(SCOREBOARD_URL);
