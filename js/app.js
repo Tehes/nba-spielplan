@@ -997,7 +997,7 @@ function playoffPicture() {
 	renderMatchups(4, finals);
 }
 
-function createCupMatchupNode(series, extraClass) {
+function createMatchupNode(series, extraClass) {
 	const tmpl = document.getElementById("template-matchup");
 	const node = tmpl.content.firstElementChild.cloneNode(true);
 	if (extraClass) {
@@ -1012,28 +1012,56 @@ function createCupMatchupNode(series, extraClass) {
 	// Defensive: handle falsy series
 	const status = Number(series?.nextGameStatus) || 0;
 	const isFinal = status === 3;
-	const awayCode = series?.highSeedTricode || "";
-	const homeCode = series?.lowSeedTricode || "";
-	const awayScoreNum = isFinal ? Number(series?.highSeedScore) : null;
-	const homeScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
-	const hasAwayScore = isFinal && Number.isFinite(awayScoreNum);
-	const hasHomeScore = isFinal && Number.isFinite(homeScoreNum);
 
-	teamANameEl.textContent = awayCode || "";
-	teamANameEl.style.setProperty("background-color", `var(--${awayCode})`);
+	// Logical seeds from API
+	const highId = series?.highSeedId;
+	const lowId = series?.lowSeedId;
+	const highCode = series?.highSeedTricode || "";
+	const lowCode = series?.lowSeedTricode || "";
 
-	teamBNameEl.textContent = homeCode || "";
-	teamBNameEl.style.setProperty("background-color", `var(--${homeCode})`);
+	// Visual bracket position from API
+	const topId = series?.displayTopTeam;
+	const bottomId = series?.displayBottomTeam;
+
+	let topCode = "";
+	let bottomCode = "";
+	let topScoreNum = null;
+	let bottomScoreNum = null;
+
+	if (topId === highId && bottomId === lowId) {
+		// Top row = high seed
+		topCode = highCode;
+		topScoreNum = isFinal ? Number(series?.highSeedScore) : null;
+		// Bottom row = low seed
+		bottomCode = lowCode;
+		bottomScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
+	} else if (topId === lowId && bottomId === highId) {
+		// Top row = low seed
+		topCode = lowCode;
+		topScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
+		// Bottom row = high seed
+		bottomCode = highCode;
+		bottomScoreNum = isFinal ? Number(series?.highSeedScore) : null;
+	}
+
+	const hasTopScore = isFinal && Number.isFinite(topScoreNum);
+	const hasBottomScore = isFinal && Number.isFinite(bottomScoreNum);
+
+	teamANameEl.textContent = topCode || "";
+	teamANameEl.style.setProperty("background-color", `var(--${topCode})`);
+
+	teamBNameEl.textContent = bottomCode || "";
+	teamBNameEl.style.setProperty("background-color", `var(--${bottomCode})`);
 
 	// Show "-" unless we have a valid final score
-	teamAScoreEl.textContent = hasAwayScore ? awayScoreNum : "-";
-	teamBScoreEl.textContent = hasHomeScore ? homeScoreNum : "-";
+	teamAScoreEl.textContent = hasTopScore ? topScoreNum : "-";
+	teamBScoreEl.textContent = hasBottomScore ? bottomScoreNum : "-";
 
 	// Only compare and mark "lower" for real final scores
-	if (hasAwayScore && hasHomeScore) {
-		if (awayScoreNum > homeScoreNum) {
+	if (hasTopScore && hasBottomScore) {
+		if (topScoreNum > bottomScoreNum) {
 			teamBScoreEl.classList.add("lower");
-		} else if (homeScoreNum > awayScoreNum) {
+		} else if (bottomScoreNum > topScoreNum) {
 			teamAScoreEl.classList.add("lower");
 		}
 	}
@@ -1095,30 +1123,34 @@ function updateCupBracket() {
 	cupEl.classList.remove("hidden");
 
 	// West Column: Quarterfinal – Semifinal – Quarterfinal
-	const westTopQuarter = createCupMatchupNode(westQuarters[0]);
-	const westBottomQuarter = createCupMatchupNode(westQuarters[1]);
+	const westTopQuarter = createMatchupNode(westQuarters[0]);
+	const westBottomQuarter = createMatchupNode(westQuarters[1]);
 	const westSemiNode = westSemiSeries
-		? createCupMatchupNode(westSemiSeries, "west-semifinal")
-		: createEmptyCupMatchupNode("west-semifinal");
+		? createMatchupNode(westSemiSeries, "west-semifinal")
+		: null;
 
 	cupWestEl.appendChild(westTopQuarter);
-	cupWestEl.appendChild(westSemiNode);
+	if (westSemiNode) {
+		cupWestEl.appendChild(westSemiNode);
+	}
 	cupWestEl.appendChild(westBottomQuarter);
 
 	// East Column: Quarterfinal – Semifinal – Quarterfinal
-	const eastTopQuarter = createCupMatchupNode(eastQuarters[0]);
-	const eastBottomQuarter = createCupMatchupNode(eastQuarters[1]);
+	const eastTopQuarter = createMatchupNode(eastQuarters[0]);
+	const eastBottomQuarter = createMatchupNode(eastQuarters[1]);
 	const eastSemiNode = eastSemiSeries
-		? createCupMatchupNode(eastSemiSeries, "east-semifinal")
-		: createEmptyCupMatchupNode("east-semifinal");
+		? createMatchupNode(eastSemiSeries, "east-semifinal")
+		: null;
 
 	cupEastEl.appendChild(eastTopQuarter);
-	cupEastEl.appendChild(eastSemiNode);
+	if (eastSemiNode) {
+		cupEastEl.appendChild(eastSemiNode);
+	}
 	cupEastEl.appendChild(eastBottomQuarter);
 
 	// Final in the middle
 	const finalNode = finalSeries
-		? createCupMatchupNode(finalSeries, "final")
+		? createMatchupNode(finalSeries, "final")
 		: createEmptyCupMatchupNode("final");
 
 	cupFinalEl.appendChild(finalNode);
@@ -2022,7 +2054,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-12-01-v1";
+const SERVICE_WORKER_VERSION = "2025-12-01-v2";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
