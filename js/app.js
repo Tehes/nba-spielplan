@@ -52,7 +52,8 @@ const standingsURL = "https://nba-spielplan.tehes.deno.net/standings";
 const todaysScoreboardURL = "https://nba-spielplan.tehes.deno.net/scoreboard";
 const boxscoreURL = "https://nba-spielplan.tehes.deno.net/boxscore";
 const playByPlayURL = "https://nba-spielplan.tehes.deno.net/playbyplay";
-const coreCacheUrls = new Set([scheduleURL, standingsURL]);
+const istBracketURL = "https://nba-spielplan.tehes.deno.net/istbracket";
+const coreCacheUrls = new Set([scheduleURL, standingsURL, istBracketURL]);
 
 // Data Holders
 let liveById = new Map();
@@ -62,6 +63,7 @@ const excitementCache = new Map();
 let schedule;
 let standings;
 let games = {};
+let istBracket = null;
 
 let currentBoxscore = null;
 let currentPlayByPlay = null;
@@ -102,11 +104,17 @@ const gameTabs = gameOverlay.querySelectorAll(".tab");
 const gameExcitementEl = document.querySelector("#game-excitement");
 const gameExcitementValueEl = document.querySelector("#game-excitement-value");
 const gameExcitementLabelEl = document.querySelector("#game-excitement-label");
+const cupHeadlineEl = document.querySelector("#cup-headline");
+const cupEl = document.querySelector("#cup");
+const cupWestEl = document.querySelector("#cup-west");
+const cupEastEl = document.querySelector("#cup-east");
+const cupFinalEl = document.querySelector("#cup-final");
 
 // Constants
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
 const TOTAL_REGULAR_SEASON_GAMES = 1230;
 const AUTO_REFRESH_INTERVAL_MS = 1 * 60 * 1000; // 1 minute
+const CUP_FINAL_HIDE_MS = 8 * 24 * 60 * 60 * 1000; // 8 Tage
 
 // Load saved states
 checkboxPrimetime.checked = JSON.parse(
@@ -133,6 +141,7 @@ function updateLive(liveJson) {
 	const arr = liveJson?.scoreboard?.games ?? [];
 	liveById = new Map(arr.map((g) => [g.gameId, g]));
 	renderTodaysGames();
+	updateCupBracket();
 
 	if (!gameOverlayEl.classList.contains("hidden")) {
 		const gameId = gameOverlayEl.dataset.gameId;
@@ -196,6 +205,14 @@ function getGameState(game, live, now = new Date()) {
 	const isLive = !isFinal && !isPostponed && (live?.gameStatus === 2 || inLiveWindow);
 
 	return { isPostponed, isFinal, isLive, inLiveWindow };
+}
+
+function resetCupBracket() {
+	cupWestEl.replaceChildren();
+	cupEastEl.replaceChildren();
+	cupFinalEl.replaceChildren();
+	cupEl.classList.add("hidden");
+	cupHeadlineEl.classList.add("hidden");
 }
 
 function prepareGameData() {
@@ -980,6 +997,133 @@ function playoffPicture() {
 	renderMatchups(4, finals);
 }
 
+function createCupMatchupNode(series, extraClass) {
+	const tmpl = document.getElementById("template-matchup");
+	const node = tmpl.content.firstElementChild.cloneNode(true);
+	if (extraClass) {
+		node.classList.add(extraClass);
+	}
+
+	const teamANameEl = node.querySelector(".teamA .teamname");
+	const teamBNameEl = node.querySelector(".teamB .teamname");
+	const teamAScoreEl = node.querySelector(".teamA .score");
+	const teamBScoreEl = node.querySelector(".teamB .score");
+
+	// Defensive: handle falsy series
+	const status = Number(series?.nextGameStatus) || 0;
+	const isFinal = status === 3;
+	const awayCode = series?.highSeedTricode || "";
+	const homeCode = series?.lowSeedTricode || "";
+	const awayScoreNum = isFinal ? Number(series?.highSeedScore) : null;
+	const homeScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
+	const hasAwayScore = isFinal && Number.isFinite(awayScoreNum);
+	const hasHomeScore = isFinal && Number.isFinite(homeScoreNum);
+
+	teamANameEl.textContent = awayCode || "";
+	teamANameEl.style.setProperty("background-color", `var(--${awayCode})`);
+
+	teamBNameEl.textContent = homeCode || "";
+	teamBNameEl.style.setProperty("background-color", `var(--${homeCode})`);
+
+	// Show "-" unless we have a valid final score
+	teamAScoreEl.textContent = hasAwayScore ? awayScoreNum : "-";
+	teamBScoreEl.textContent = hasHomeScore ? homeScoreNum : "-";
+
+	// Only compare and mark "lower" for real final scores
+	if (hasAwayScore && hasHomeScore) {
+		if (awayScoreNum > homeScoreNum) {
+			teamBScoreEl.classList.add("lower");
+		} else if (homeScoreNum > awayScoreNum) {
+			teamAScoreEl.classList.add("lower");
+		}
+	}
+
+	return node;
+}
+
+function updateCupBracket() {
+	const series = istBracket?.bracket?.istBracketSeries || [];
+	if (!series.length) {
+		resetCupBracket();
+		return;
+	}
+
+	const quarterFinals = series.filter((s) => s.roundNumber === 1);
+	const semifinals = series.filter((s) => s.roundNumber === 2);
+	const finalSeries = series.find((s) => s.roundNumber === 3);
+
+	const allQuarterTeamsDecided = quarterFinals.length === 4 &&
+		quarterFinals.every((s) => s.highSeedTricode && s.lowSeedTricode);
+
+	let finalIsTooOld = false;
+	if (finalSeries && finalSeries.nextGameDateTimeUTC) {
+		const finalDate = new Date(finalSeries.nextGameDateTimeUTC);
+		if (!Number.isNaN(finalDate.getTime())) {
+			finalIsTooOld = Date.now() - finalDate.getTime() > CUP_FINAL_HIDE_MS;
+		}
+	}
+
+	if (!allQuarterTeamsDecided || finalIsTooOld) {
+		resetCupBracket();
+		return;
+	}
+
+	const eastQuarters = quarterFinals
+		.filter((s) => s.seriesConference === "East")
+		.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
+	const westQuarters = quarterFinals
+		.filter((s) => s.seriesConference === "West")
+		.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
+
+	// Guard if conferences are incomplete
+	if (eastQuarters.length !== 2 || westQuarters.length !== 2) {
+		resetCupBracket();
+		return;
+	}
+
+	const sortedSemis = semifinals.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
+	const westSemiSeries = sortedSemis[0] || null;
+	const eastSemiSeries = sortedSemis[1] || null;
+
+	// empty the cup bracket first
+	cupWestEl.replaceChildren();
+	cupEastEl.replaceChildren();
+	cupFinalEl.replaceChildren();
+
+	// Show the cup bracket
+	cupHeadlineEl.classList.remove("hidden");
+	cupEl.classList.remove("hidden");
+
+	// West Column: Quarterfinal – Semifinal – Quarterfinal
+	const westTopQuarter = createCupMatchupNode(westQuarters[0]);
+	const westBottomQuarter = createCupMatchupNode(westQuarters[1]);
+	const westSemiNode = westSemiSeries
+		? createCupMatchupNode(westSemiSeries, "west-semifinal")
+		: createEmptyCupMatchupNode("west-semifinal");
+
+	cupWestEl.appendChild(westTopQuarter);
+	cupWestEl.appendChild(westSemiNode);
+	cupWestEl.appendChild(westBottomQuarter);
+
+	// East Column: Quarterfinal – Semifinal – Quarterfinal
+	const eastTopQuarter = createCupMatchupNode(eastQuarters[0]);
+	const eastBottomQuarter = createCupMatchupNode(eastQuarters[1]);
+	const eastSemiNode = eastSemiSeries
+		? createCupMatchupNode(eastSemiSeries, "east-semifinal")
+		: createEmptyCupMatchupNode("east-semifinal");
+
+	cupEastEl.appendChild(eastTopQuarter);
+	cupEastEl.appendChild(eastSemiNode);
+	cupEastEl.appendChild(eastBottomQuarter);
+
+	// Final in the middle
+	const finalNode = finalSeries
+		? createCupMatchupNode(finalSeries, "final")
+		: createEmptyCupMatchupNode("final");
+
+	cupFinalEl.appendChild(finalNode);
+}
+
 function handleScheduleData(json) {
 	if (json?.leagueSchedule?.gameDates?.length) {
 		schedule = json;
@@ -998,6 +1142,7 @@ function handleScheduleData(json) {
 			checkboxHidePastGames.checked = false;
 		}
 		renderMoreGames();
+		updateCupBracket();
 	} else {
 		console.log(
 			"Schedule data not available. Skipping schedule rendering.",
@@ -1037,6 +1182,16 @@ function handleStandingsData(json) {
 			});
 		}
 	}
+}
+
+function handleIstBracketData(json) {
+	if (!json || !json.bracket || !Array.isArray(json.bracket.istBracketSeries)) {
+		console.log("IST bracket data not available. Skipping cup bracket rendering.");
+		return;
+	}
+
+	istBracket = json;
+	updateCupBracket();
 }
 
 function shouldRerender() {
@@ -1769,10 +1924,12 @@ async function loadData() {
 	await fetchData(scheduleURL, handleScheduleData);
 	storeNextScheduledGame();
 	await fetchData(standingsURL, handleStandingsData);
+	await fetchData(istBracketURL, handleIstBracketData);
 
 	if (shouldReloadData()) {
 		await fetchData(scheduleURL, handleScheduleData, true);
 		await fetchData(standingsURL, handleStandingsData, true);
+		await fetchData(istBracketURL, handleIstBracketData, true);
 	}
 }
 
@@ -1865,7 +2022,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-11-30-v1";
+const SERVICE_WORKER_VERSION = "2025-12-01-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------

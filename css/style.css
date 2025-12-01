@@ -248,18 +248,20 @@ main div span {
 
 /*
 -------------------------------------------------------------------
-PLAYOFFS
+PLAYOFFS and NBA CUP
 -------------------------------------------------------------------
 */
 
-#playoffs {
+#playoffs,
+#cup {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
 }
 
-#playoffs>div {
+#playoffs>div,
+#cup>div {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -268,15 +270,18 @@ PLAYOFFS
     gap: 10px;
 }
 
-#playoffs #finals {
+#playoffs #finals,
+#cup #cup-final {
     align-items: center;
 }
 
-#playoffs #eastern {
+#playoffs #eastern,
+#cup #cup-east {
     direction: rtl;
 }
 
-#playoffs .matchup {
+#playoffs .matchup,
+#cup .matchup {
     --radius-first: 0 var(--card-corners) 0 0;
     --radius-last: 0 0 var(--card-corners) 0;
     display: flex;
@@ -287,7 +292,8 @@ PLAYOFFS
     min-height: 69px;
 }
 
-#playoffs #eastern .matchup {
+#playoffs #eastern .matchup,
+#cup #cup-east .matchup {
     --radius-first: var(--card-corners) 0 0 0;
     --radius-last: 0 0 0 var(--card-corners);
 }
@@ -298,6 +304,11 @@ PLAYOFFS
 
 #playoffs .conference-finals {
     margin-inline-start: min(200px, 15vw);
+}
+
+#cup .east-semifinal,
+#cup .west-semifinal {
+    margin-inline-start: auto;
 }
 
 /* -----------------------------------------------------------------
@@ -366,12 +377,19 @@ PLAYOFFS
     width: 75px;
 }
 
-#playoffs :is(.teamA, .teamB)>div {
+#cup :is(.teamA, .teamB) {
+    display: flex;
+    width: 85px;
+}
+
+#playoffs :is(.teamA, .teamB)>div,
+#cup :is(.teamA, .teamB)>div {
     display: flex;
     padding: 5px;
 }
 
-#playoffs .teamA {
+#playoffs .teamA,
+#cup .teamA {
     border-bottom: 1px solid var(--card-bg);
 }
 
@@ -387,29 +405,40 @@ PLAYOFFS
 }
 
 
-#playoffs .score {
+#playoffs .score,
+#cup .score {
     flex: 0 0 40%;
     display: flex;
     justify-content: center;
     font-weight: 600;
 }
 
-#playoffs .teamname {
+#playoffs .score.lower,
+#cup .score.lower {
+    opacity: 0.7;
+}
+
+#playoffs .teamname,
+#cup .teamname {
     flex: 0 0 60%;
     display: flex;
     justify-content: center;
     color: var(--neutral-white);
+    background-color: var(--neutral400);
 }
 
-#playoffs .teamname:empty::before {
+#playoffs .teamname:empty::before,
+#cup .teamname:empty::before {
     content: "TBD";
 }
 
-#playoffs .matchup>div:first-child .teamname {
+#playoffs .matchup>div:first-child .teamname,
+#cup .matchup>div:first-child .teamname {
     border-radius: var(--radius-first);
 }
 
-#playoffs .matchup>div:last-child .teamname {
+#playoffs .matchup>div:last-child .teamname,
+#cup .matchup>div:last-child .teamname {
     border-radius: var(--radius-last);
 }
 

@@ -35,6 +35,8 @@ your browser.
   - Automatic standings tables for both conferences (W-L, games behind, streak, home/away splits).
   - Dynamically generated playoff bracket that plugs in the top six seeds, projects play‑in winners,
     and updates round-by-round once results are available.
+  - NBA Cup bracket (In-Season Tournament) that renders quarterfinals onward once the official
+    bracket feed lists all matchups.
 
 - **Offline-ready PWA**
   - Installable via `manifest.json`, Apple touch meta tags, and service-worker registration.
@@ -93,6 +95,7 @@ endpoints:
 | `/standings`      | Derived standings table                | Recomputed from the cached schedule so preseason and neutral tournament games are ignored. |
 | `/scoreboard`     | Live in-day scoreboard feed            | Always proxied without caching; powers the boxscore overlay and in-day score updates.      |
 | `/playoffbracket` | Official bracket JSON                  | Direct proxy so CORS headers stay permissive.                                              |
+| `/istbracket`     | NBA Cup (IST) bracket JSON             | Uses the cached schedule to pick the season year and proxies the official ISTBracket feed. |
 | `/boxscore/:id`   | Per-game boxscore                      | Uncached proxy to the NBA live boxscore JSON.                                              |
 | `/playbyplay/:id` | Per-game play-by-play                  | Uncached proxy to the NBA live play-by-play JSON.                                          |
 
