@@ -83,7 +83,6 @@ let lastCheckedDay = new Date().toLocaleDateString("de-DE", {
 });
 
 // DOM Elements
-
 const todayEl = document.querySelector("#today");
 const moreEl = document.querySelector("#more");
 const progressValue = document.querySelector("#progress-value");
@@ -134,8 +133,63 @@ checkboxPlayByPlayMadeShots.checked = JSON.parse(
 );
 
 /* --------------------------------------------------------------------------------------------------
-functions
+PREPARATION
 ---------------------------------------------------------------------------------------------------*/
+function prepareGameData() {
+	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
+
+	const now = new Date();
+	const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+	allGames.forEach((game) => {
+		game.localDate = new Date(game.gameDateTimeUTC);
+
+		// Format date and time for display
+		if (Number.isNaN(game.localDate.getTime())) {
+			game.date = "Noch offen";
+			game.time = "HH:MM";
+		} else {
+			game.date = game.localDate.toLocaleDateString("de-DE", {
+				weekday: "short",
+				day: "2-digit",
+				month: "2-digit",
+				year: "numeric",
+			});
+			game.time = game.localDate.toLocaleTimeString("de-DE", {
+				hour: "2-digit",
+				minute: "2-digit",
+			});
+		}
+
+		const live = liveById.get(game.gameId);
+		const { isPostponed, isFinal, isLive } = getGameState(game, live, now);
+		const isToday = game.localDate >= todayStart && game.localDate < tomorrowStart;
+
+		if ((isToday && !isPostponed) || isLive) games.today.push(game);
+		else if (isFinal) games.finished.push(game);
+		else if (game.localDate >= tomorrowStart && !isPostponed) games.scheduled.push(game);
+	});
+
+	games.today.sort((a, b) => a.localDate - b.localDate);
+	games.finished.sort((a, b) => a.localDate - b.localDate);
+	games.scheduled.sort((a, b) => a.localDate - b.localDate);
+}
+
+/* --------------------------------------------------------------------------------------------------
+PROGRESS BAR
+---------------------------------------------------------------------------------------------------*/
+function setProgressBar() {
+	const notPre = (g) => g.gameLabel !== "Preseason";
+
+	const done = (games.finished?.filter(notPre).filter((g) => g.gameStatus === 3).length ?? 0) +
+		(games.today?.filter(notPre).filter((g) => g.gameStatus === 3).length ?? 0);
+
+	const pct = Math.floor((done * 100) / TOTAL_REGULAR_SEASON_GAMES);
+
+	progressValue.style.width = `${pct}%`;
+	progressValue.textContent = `${pct}%`;
+}
 
 function updateLive(liveJson) {
 	const arr = liveJson?.scoreboard?.games ?? [];
@@ -171,40 +225,80 @@ function updateLive(liveJson) {
 	}
 }
 
-function fetchLiveOnce() {
-	fetchData(todaysScoreboardURL, updateLive, true);
-}
+/* --------------------------------------------------------------------------------------------------
+NBA CUP
+---------------------------------------------------------------------------------------------------*/
 
-function startLivePolling() {
-	if (!livePoll) {
-		console.log("Starting live polling...");
-		fetchLiveOnce();
-		livePoll = setInterval(fetchLiveOnce, AUTO_REFRESH_INTERVAL_MS); // 60 seconds
+function createMatchupNode(series, extraClass) {
+	const tmpl = document.getElementById("template-matchup");
+	const node = tmpl.content.firstElementChild.cloneNode(true);
+	if (extraClass) {
+		node.classList.add(extraClass);
 	}
-}
 
-function stopLivePolling() {
-	if (livePoll) {
-		console.log("Stopping live polling");
-		clearInterval(livePoll);
-		livePoll = null;
+	const teamANameEl = node.querySelector(".teamA .teamname");
+	const teamBNameEl = node.querySelector(".teamB .teamname");
+	const teamAScoreEl = node.querySelector(".teamA .score");
+	const teamBScoreEl = node.querySelector(".teamB .score");
+
+	// Defensive: handle falsy series
+	const status = Number(series?.nextGameStatus) || 0;
+	const isFinal = status === 3;
+
+	// Logical seeds from API
+	const highId = series?.highSeedId;
+	const lowId = series?.lowSeedId;
+	const highCode = series?.highSeedTricode || "";
+	const lowCode = series?.lowSeedTricode || "";
+
+	// Visual bracket position from API
+	const topId = series?.displayTopTeam;
+	const bottomId = series?.displayBottomTeam;
+
+	let topCode = "";
+	let bottomCode = "";
+	let topScoreNum = null;
+	let bottomScoreNum = null;
+
+	if (topId === highId && bottomId === lowId) {
+		// Top row = high seed
+		topCode = highCode;
+		topScoreNum = isFinal ? Number(series?.highSeedScore) : null;
+		// Bottom row = low seed
+		bottomCode = lowCode;
+		bottomScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
+	} else if (topId === lowId && bottomId === highId) {
+		// Top row = low seed
+		topCode = lowCode;
+		topScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
+		// Bottom row = high seed
+		bottomCode = highCode;
+		bottomScoreNum = isFinal ? Number(series?.highSeedScore) : null;
 	}
-}
 
-function getGameState(game, live, now = new Date()) {
-	const start = game?.localDate instanceof Date ? game.localDate : new Date(game?.localDate);
-	const startMs = start?.getTime?.() ?? NaN;
-	const hasValidStart = Number.isFinite(startMs);
-	const isPostponed = game?.gameStatus === 4;
-	const isFinal = game?.gameStatus === 3 || live?.gameStatus === 3;
-	const inLiveWindow = hasValidStart &&
-		!isFinal &&
-		!isPostponed &&
-		now.getTime() >= startMs &&
-		now.getTime() < startMs + GAME_MAX_DURATION_MS;
-	const isLive = !isFinal && !isPostponed && (live?.gameStatus === 2 || inLiveWindow);
+	const hasTopScore = isFinal && Number.isFinite(topScoreNum);
+	const hasBottomScore = isFinal && Number.isFinite(bottomScoreNum);
 
-	return { isPostponed, isFinal, isLive, inLiveWindow };
+	teamANameEl.textContent = topCode || "";
+	teamANameEl.style.setProperty("background-color", `var(--${topCode})`);
+
+	teamBNameEl.textContent = bottomCode || "";
+	teamBNameEl.style.setProperty("background-color", `var(--${bottomCode})`);
+
+	// Show "-" unless we have a valid final score
+	teamAScoreEl.textContent = hasTopScore ? topScoreNum : "-";
+	teamBScoreEl.textContent = hasBottomScore ? bottomScoreNum : "-";
+
+	// Only compare and mark "lower" for real final scores
+	if (hasTopScore && hasBottomScore) {
+		if (topScoreNum > bottomScoreNum) {
+			teamBScoreEl.classList.add("lower");
+		} else if (bottomScoreNum > topScoreNum) {
+			teamAScoreEl.classList.add("lower");
+		}
+	}
+
+	return node;
 }
 
 function resetCupBracket() {
@@ -215,141 +309,75 @@ function resetCupBracket() {
 	cupHeadlineEl.classList.add("hidden");
 }
 
-function prepareGameData() {
-	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
-
-	const now = new Date();
-	const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-	const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
-
-	allGames.forEach((game) => {
-		game.localDate = new Date(game.gameDateTimeUTC);
-
-		// Format date and time for display
-		if (Number.isNaN(game.localDate.getTime())) {
-			game.date = "Noch offen";
-			game.time = "HH:MM";
-		} else {
-			game.date = game.localDate.toLocaleDateString("de-DE", {
-				weekday: "short",
-				day: "2-digit",
-				month: "2-digit",
-				year: "numeric",
-			});
-			game.time = game.localDate.toLocaleTimeString("de-DE", {
-				hour: "2-digit",
-				minute: "2-digit",
-			});
-		}
-
-		const live = liveById.get(game.gameId);
-		const { isPostponed, isFinal, isLive } = getGameState(game, live, now);
-		const isToday = game.localDate >= todayStart && game.localDate < tomorrowStart;
-
-		if ((isToday && !isPostponed) || isLive) {
-			games.today.push(game);
-		} else if (isFinal) {
-			games.finished.push(game);
-		} else if (game.localDate >= tomorrowStart && !isPostponed) {
-			games.scheduled.push(game);
-		}
-
-		// Playoff games
-		if (isFinal && game.seriesText !== "") {
-			games.playoffs.push(game);
-		}
-	});
-
-	games.today.sort((a, b) => a.localDate - b.localDate);
-	games.finished.sort((a, b) => a.localDate - b.localDate);
-	games.scheduled.sort((a, b) => a.localDate - b.localDate);
-}
-
-function setProgressBar() {
-	const notPre = (g) => g.gameLabel !== "Preseason";
-
-	const done = (games.finished?.filter(notPre).filter((g) => g.gameStatus === 3).length ?? 0) +
-		(games.today?.filter(notPre).filter((g) => g.gameStatus === 3).length ?? 0);
-
-	const pct = Math.floor((done * 100) / TOTAL_REGULAR_SEASON_GAMES);
-
-	progressValue.style.width = `${pct}%`;
-	progressValue.textContent = `${pct}%`;
-}
-
-// Helper to format ISO 8601 PTxxMxxS durations to M:SS
-function formatMinutes(isoDuration) {
-	if (!isoDuration || typeof isoDuration !== "string") return "";
-
-	const match = isoDuration.match(/PT(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/);
-	if (!match) return "";
-
-	const minutes = match[1] ? parseInt(match[1], 10) : 0;
-	const secondsFloat = match[2] ? parseFloat(match[2]) : 0;
-	const totalSeconds = Math.round(minutes * 60 + secondsFloat);
-
-	const m = Math.floor(totalSeconds / 60);
-	const s = totalSeconds % 60;
-
-	return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function parseClockToSeconds(isoDuration) {
-	if (!isoDuration || typeof isoDuration !== "string") return NaN;
-
-	const match = isoDuration.match(/PT(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/);
-	if (!match) return NaN;
-
-	const minutes = match[1] ? parseInt(match[1], 10) : 0;
-	const secondsFloat = match[2] ? parseFloat(match[2]) : 0;
-
-	return Math.round(minutes * 60 + secondsFloat);
-}
-
-function getOvertimeCount(actions) {
-	const maxPeriod = (actions || []).reduce(
-		(max, action) => Math.max(max, Number(action?.period) || 0),
-		0,
-	);
-	return Math.max(0, maxPeriod - 4);
-}
-
-// Build a label for live games based on period and gameClock from live scoreboard data
-function getLiveLabel(live) {
-	if (!live) return "LIVE";
-
-	// Pregame
-	if (live.gameStatus === 1) {
-		return "in Kürze";
+function updateCupBracket() {
+	const series = istBracket?.bracket?.istBracketSeries || [];
+	if (!series.length) {
+		resetCupBracket();
+		return;
 	}
 
-	const period = Number(live.period);
-	const clockStr = formatMinutes(live.gameClock);
+	const quarterFinals = series.filter((s) => s.roundNumber === 1);
+	const semifinals = series.filter((s) => s.roundNumber === 2);
+	const finalSeries = series.find((s) => s.roundNumber === 3);
 
-	const isOT = period > 4;
-	const otIndex = period - 4;
-	const otLabel = otIndex === 1 ? "OT" : `OT${otIndex}`;
+	const allQuarterTeamsDecided = quarterFinals.length === 4 &&
+		quarterFinals.every((s) => s.highSeedTricode && s.lowSeedTricode);
 
-	// End of periods or OT
-	if (clockStr === "0:00") {
-		if (period === 2) {
-			return "Halbzeit";
-		}
-		if (!isOT) {
-			return `Ende Q${period}`;
-		}
-		return `Ende ${otLabel}`;
+	let finalIsTooOld = false;
+	if (finalSeries && finalSeries.nextGameDateTimeUTC) {
+		const finalDate = new Date(finalSeries.nextGameDateTimeUTC);
+		finalIsTooOld = Date.now() - finalDate.getTime() > CUP_FINAL_HIDE_MS;
 	}
 
-	// running time of periods
-	if (!isOT) {
-		return `Q${period} ${clockStr}`;
+	if (!allQuarterTeamsDecided || finalIsTooOld) {
+		resetCupBracket();
+		return;
 	}
 
-	// running time of OT
-	return `${otLabel} ${clockStr}`;
+	const eastQuarters = quarterFinals
+		.filter((s) => s.seriesConference === "East")
+		.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
+	const westQuarters = quarterFinals
+		.filter((s) => s.seriesConference === "West")
+		.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
+
+	const sortedSemis = semifinals.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
+	const westSemiSeries = sortedSemis[0] || null;
+	const eastSemiSeries = sortedSemis[1] || null;
+
+	// empty the cup bracket first
+	cupWestEl.replaceChildren();
+	cupEastEl.replaceChildren();
+	cupFinalEl.replaceChildren();
+
+	// Show the cup bracket
+	cupHeadlineEl.classList.remove("hidden");
+	cupEl.classList.remove("hidden");
+
+	// West Column: Quarterfinal – Semifinal – Quarterfinal
+	const westTopQuarter = createMatchupNode(westQuarters[0]);
+	const westBottomQuarter = createMatchupNode(westQuarters[1]);
+	const westSemiNode = createMatchupNode(westSemiSeries, "west-semifinal");
+	cupWestEl.appendChild(westTopQuarter);
+	cupWestEl.appendChild(westSemiNode);
+	cupWestEl.appendChild(westBottomQuarter);
+
+	// East Column: Quarterfinal – Semifinal – Quarterfinal
+	const eastTopQuarter = createMatchupNode(eastQuarters[0]);
+	const eastBottomQuarter = createMatchupNode(eastQuarters[1]);
+	const eastSemiNode = createMatchupNode(eastSemiSeries, "east-semifinal");
+	cupEastEl.appendChild(eastTopQuarter);
+	cupEastEl.appendChild(eastSemiNode);
+	cupEastEl.appendChild(eastBottomQuarter);
+
+	// Final in the middle
+	const finalNode = createMatchupNode(finalSeries, "final");
+	cupFinalEl.appendChild(finalNode);
 }
 
+/* --------------------------------------------------------------------------------------------------
+TODAY
+---------------------------------------------------------------------------------------------------*/
 function renderTodaysGames() {
 	todayEl.replaceChildren();
 
@@ -483,6 +511,107 @@ function renderTodaysGames() {
 	} else {
 		stopLivePolling();
 	}
+}
+
+function fetchLiveOnce() {
+	fetchData(todaysScoreboardURL, updateLive, true);
+}
+
+function startLivePolling() {
+	if (!livePoll) {
+		console.log("Starting live polling...");
+		fetchLiveOnce();
+		livePoll = setInterval(fetchLiveOnce, AUTO_REFRESH_INTERVAL_MS); // 60 seconds
+	}
+}
+
+function stopLivePolling() {
+	if (livePoll) {
+		console.log("Stopping live polling");
+		clearInterval(livePoll);
+		livePoll = null;
+	}
+}
+
+function getGameState(game, live, now = new Date()) {
+	const start = game?.localDate instanceof Date ? game.localDate : new Date(game?.localDate);
+	const startMs = start?.getTime?.() ?? NaN;
+	const hasValidStart = Number.isFinite(startMs);
+	const isPostponed = game?.gameStatus === 4;
+	const isFinal = game?.gameStatus === 3 || live?.gameStatus === 3;
+	const inLiveWindow = hasValidStart &&
+		!isFinal &&
+		!isPostponed &&
+		now.getTime() >= startMs &&
+		now.getTime() < startMs + GAME_MAX_DURATION_MS;
+	const isLive = !isFinal && !isPostponed && (live?.gameStatus === 2 || inLiveWindow);
+
+	return { isPostponed, isFinal, isLive, inLiveWindow };
+}
+
+// Helper to format ISO 8601 PTxxMxxS durations to M:SS
+function formatMinutes(isoDuration) {
+	if (!isoDuration || typeof isoDuration !== "string") return "";
+
+	const match = isoDuration.match(/PT(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/);
+	if (!match) return "";
+
+	const minutes = match[1] ? parseInt(match[1], 10) : 0;
+	const secondsFloat = match[2] ? parseFloat(match[2]) : 0;
+	const totalSeconds = Math.round(minutes * 60 + secondsFloat);
+
+	const m = Math.floor(totalSeconds / 60);
+	const s = totalSeconds % 60;
+
+	return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function parseClockToSeconds(isoDuration) {
+	if (!isoDuration || typeof isoDuration !== "string") return NaN;
+
+	const match = isoDuration.match(/PT(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/);
+	if (!match) return NaN;
+
+	const minutes = match[1] ? parseInt(match[1], 10) : 0;
+	const secondsFloat = match[2] ? parseFloat(match[2]) : 0;
+
+	return Math.round(minutes * 60 + secondsFloat);
+}
+
+// Build a label for live games based on period and gameClock from live scoreboard data
+function getLiveLabel(live) {
+	if (!live) return "LIVE";
+
+	// Pregame
+	if (live.gameStatus === 1) {
+		return "in Kürze";
+	}
+
+	const period = Number(live.period);
+	const clockStr = formatMinutes(live.gameClock);
+
+	const isOT = period > 4;
+	const otIndex = period - 4;
+	const otLabel = otIndex === 1 ? "OT" : `OT${otIndex}`;
+
+	// End of periods or OT
+	if (clockStr === "0:00") {
+		if (period === 2) {
+			return "Halbzeit";
+		}
+		if (!isOT) {
+			return `Ende Q${period}`;
+		}
+		return `Ende ${otLabel}`;
+	}
+
+	// running time of periods
+	if (!isOT) {
+		return `Q${period} ${clockStr}`;
+	}
+
+	// running time of OT
+	return `${otLabel} ${clockStr}`;
 }
 
 function renderMoreGames() {
@@ -997,165 +1126,6 @@ function playoffPicture() {
 	renderMatchups(4, finals);
 }
 
-function createMatchupNode(series, extraClass) {
-	const tmpl = document.getElementById("template-matchup");
-	const node = tmpl.content.firstElementChild.cloneNode(true);
-	if (extraClass) {
-		node.classList.add(extraClass);
-	}
-
-	const teamANameEl = node.querySelector(".teamA .teamname");
-	const teamBNameEl = node.querySelector(".teamB .teamname");
-	const teamAScoreEl = node.querySelector(".teamA .score");
-	const teamBScoreEl = node.querySelector(".teamB .score");
-
-	// Defensive: handle falsy series
-	const status = Number(series?.nextGameStatus) || 0;
-	const isFinal = status === 3;
-
-	// Logical seeds from API
-	const highId = series?.highSeedId;
-	const lowId = series?.lowSeedId;
-	const highCode = series?.highSeedTricode || "";
-	const lowCode = series?.lowSeedTricode || "";
-
-	// Visual bracket position from API
-	const topId = series?.displayTopTeam;
-	const bottomId = series?.displayBottomTeam;
-
-	let topCode = "";
-	let bottomCode = "";
-	let topScoreNum = null;
-	let bottomScoreNum = null;
-
-	if (topId === highId && bottomId === lowId) {
-		// Top row = high seed
-		topCode = highCode;
-		topScoreNum = isFinal ? Number(series?.highSeedScore) : null;
-		// Bottom row = low seed
-		bottomCode = lowCode;
-		bottomScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
-	} else if (topId === lowId && bottomId === highId) {
-		// Top row = low seed
-		topCode = lowCode;
-		topScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
-		// Bottom row = high seed
-		bottomCode = highCode;
-		bottomScoreNum = isFinal ? Number(series?.highSeedScore) : null;
-	}
-
-	const hasTopScore = isFinal && Number.isFinite(topScoreNum);
-	const hasBottomScore = isFinal && Number.isFinite(bottomScoreNum);
-
-	teamANameEl.textContent = topCode || "";
-	teamANameEl.style.setProperty("background-color", `var(--${topCode})`);
-
-	teamBNameEl.textContent = bottomCode || "";
-	teamBNameEl.style.setProperty("background-color", `var(--${bottomCode})`);
-
-	// Show "-" unless we have a valid final score
-	teamAScoreEl.textContent = hasTopScore ? topScoreNum : "-";
-	teamBScoreEl.textContent = hasBottomScore ? bottomScoreNum : "-";
-
-	// Only compare and mark "lower" for real final scores
-	if (hasTopScore && hasBottomScore) {
-		if (topScoreNum > bottomScoreNum) {
-			teamBScoreEl.classList.add("lower");
-		} else if (bottomScoreNum > topScoreNum) {
-			teamAScoreEl.classList.add("lower");
-		}
-	}
-
-	return node;
-}
-
-function updateCupBracket() {
-	const series = istBracket?.bracket?.istBracketSeries || [];
-	if (!series.length) {
-		resetCupBracket();
-		return;
-	}
-
-	const quarterFinals = series.filter((s) => s.roundNumber === 1);
-	const semifinals = series.filter((s) => s.roundNumber === 2);
-	const finalSeries = series.find((s) => s.roundNumber === 3);
-
-	const allQuarterTeamsDecided = quarterFinals.length === 4 &&
-		quarterFinals.every((s) => s.highSeedTricode && s.lowSeedTricode);
-
-	let finalIsTooOld = false;
-	if (finalSeries && finalSeries.nextGameDateTimeUTC) {
-		const finalDate = new Date(finalSeries.nextGameDateTimeUTC);
-		if (!Number.isNaN(finalDate.getTime())) {
-			finalIsTooOld = Date.now() - finalDate.getTime() > CUP_FINAL_HIDE_MS;
-		}
-	}
-
-	if (!allQuarterTeamsDecided || finalIsTooOld) {
-		resetCupBracket();
-		return;
-	}
-
-	const eastQuarters = quarterFinals
-		.filter((s) => s.seriesConference === "East")
-		.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
-	const westQuarters = quarterFinals
-		.filter((s) => s.seriesConference === "West")
-		.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
-
-	// Guard if conferences are incomplete
-	if (eastQuarters.length !== 2 || westQuarters.length !== 2) {
-		resetCupBracket();
-		return;
-	}
-
-	const sortedSemis = semifinals.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
-	const westSemiSeries = sortedSemis[0] || null;
-	const eastSemiSeries = sortedSemis[1] || null;
-
-	// empty the cup bracket first
-	cupWestEl.replaceChildren();
-	cupEastEl.replaceChildren();
-	cupFinalEl.replaceChildren();
-
-	// Show the cup bracket
-	cupHeadlineEl.classList.remove("hidden");
-	cupEl.classList.remove("hidden");
-
-	// West Column: Quarterfinal – Semifinal – Quarterfinal
-	const westTopQuarter = createMatchupNode(westQuarters[0]);
-	const westBottomQuarter = createMatchupNode(westQuarters[1]);
-	const westSemiNode = westSemiSeries
-		? createMatchupNode(westSemiSeries, "west-semifinal")
-		: null;
-
-	cupWestEl.appendChild(westTopQuarter);
-	if (westSemiNode) {
-		cupWestEl.appendChild(westSemiNode);
-	}
-	cupWestEl.appendChild(westBottomQuarter);
-
-	// East Column: Quarterfinal – Semifinal – Quarterfinal
-	const eastTopQuarter = createMatchupNode(eastQuarters[0]);
-	const eastBottomQuarter = createMatchupNode(eastQuarters[1]);
-	const eastSemiNode = eastSemiSeries
-		? createMatchupNode(eastSemiSeries, "east-semifinal")
-		: null;
-
-	cupEastEl.appendChild(eastTopQuarter);
-	if (eastSemiNode) {
-		cupEastEl.appendChild(eastSemiNode);
-	}
-	cupEastEl.appendChild(eastBottomQuarter);
-
-	// Final in the middle
-	const finalNode = finalSeries
-		? createMatchupNode(finalSeries, "final")
-		: createEmptyCupMatchupNode("final");
-
-	cupFinalEl.appendChild(finalNode);
-}
-
 function handleScheduleData(json) {
 	if (json?.leagueSchedule?.gameDates?.length) {
 		schedule = json;
@@ -1490,7 +1460,11 @@ function computeGameExcitement(playByPlayJson) {
 		offenseScore = Math.round(offenseBase * marginFactor);
 	}
 
-	const overtimeCount = getOvertimeCount(actions);
+	const maxPeriod = (actions || []).reduce(
+		(max, action) => Math.max(max, Number(action?.period) || 0),
+		0,
+	);
+	const overtimeCount = Math.max(0, maxPeriod - 4);
 	let otBonus = 0;
 	if (overtimeCount === 1) {
 		otBonus = 5;
@@ -2054,7 +2028,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-12-01-v2";
+const SERVICE_WORKER_VERSION = "2025-12-01-v3";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
