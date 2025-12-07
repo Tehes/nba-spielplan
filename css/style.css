@@ -311,67 +311,6 @@ PLAYOFFS and NBA CUP
     margin-inline-start: auto;
 }
 
-/* -----------------------------------------------------------------
-   Flex-order mapping
-   DOM order: 4×Round-1 → 2×Round-2 → 1×Round-3
-   Visual order per conference column:
-   1-8 ▸ upper semi ▸ 4-5 ▸ conference final ▸ 3-6 ▸ lower semi ▸ 2-7
-------------------------------------------------------------------*/
-
-#playoffs :is(#western, #eastern) {
-    display: flex;
-    flex-direction: column;
-    /* order works only in column layout */
-}
-
-/* Round-1 matchups (DOM children 1–4) */
-/* 1-8 */
-#playoffs :is(#western, #eastern) .matchup:nth-child(1) {
-    order: 0;
-}
-
-/* 2-7 */
-#playoffs :is(#western, #eastern) .matchup:nth-child(2) {
-    order: 6;
-}
-
-/* 3-6 */
-#playoffs :is(#western, #eastern) .matchup:nth-child(3) {
-    order: 4;
-}
-
-/* 4-5 */
-#playoffs :is(#western, #eastern) .matchup:nth-child(4) {
-    order: 2;
-}
-
-/* Round-2 matchups (DOM children 5 & 6) */
-/* upper semi */
-#playoffs :is(#western, #eastern) .matchup:nth-child(5) {
-    order: 1;
-}
-
-
-/* West lower semi: swap visual order, round only left corners */
-#playoffs .matchup:nth-child(6) {
-    order: 5;
-    flex-direction: column-reverse;
-    --radius-first: 0 0 var(--card-corners) 0;
-    --radius-last: 0 var(--card-corners) 0 0;
-}
-
-/* East lower semi: swap visual order, round only right corners */
-#playoffs #eastern .matchup:nth-child(6) {
-    --radius-first: 0 0 0 var(--card-corners);
-    --radius-last: var(--card-corners) 0 0 0;
-}
-
-/* Round-3 matchup (DOM child 7) */
-/* conference final */
-#playoffs :is(#western, #eastern) .matchup:nth-child(7) {
-    order: 3;
-}
-
 #playoffs :is(.teamA, .teamB) {
     display: flex;
     width: 75px;
@@ -392,18 +331,6 @@ PLAYOFFS and NBA CUP
 #cup .teamA {
     border-bottom: 1px solid var(--card-bg);
 }
-
-/* Overrides for reversed lower semi-finals border */
-#playoffs #western .matchup:nth-child(6)>.teamA {
-    border-bottom: none;
-    border-top: 1px solid var(--card-bg);
-}
-
-#playoffs #eastern .matchup:nth-child(6)>.teamA {
-    border-bottom: none;
-    border-top: 1px solid var(--card-bg);
-}
-
 
 #playoffs .score,
 #cup .score {

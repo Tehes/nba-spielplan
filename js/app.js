@@ -73,7 +73,6 @@ let westData = [];
 
 let standingsEast;
 let standingsWest;
-let playoffTeams;
 
 const renderedCoreCacheUrls = new Set();
 let lastCheckedDay = new Date().toLocaleDateString("de-DE", {
@@ -260,17 +259,21 @@ function createMatchupNode(series, extraClass) {
 	let topScoreNum = null;
 	let bottomScoreNum = null;
 
-	if (topId === highId && bottomId === lowId) {
+	if (topId === highId) {
 		// Top row = high seed
 		topCode = highCode;
 		topScoreNum = isFinal ? Number(series?.highSeedScore) : null;
-		// Bottom row = low seed
-		bottomCode = lowCode;
-		bottomScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
-	} else if (topId === lowId && bottomId === highId) {
+	} else if (topId === lowId) {
 		// Top row = low seed
 		topCode = lowCode;
 		topScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
+	}
+
+	if (bottomId === lowId) {
+		// Bottom row = low seed
+		bottomCode = lowCode;
+		bottomScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
+	} else if (bottomId === highId) {
 		// Bottom row = high seed
 		bottomCode = highCode;
 		bottomScoreNum = isFinal ? Number(series?.highSeedScore) : null;
@@ -614,689 +617,9 @@ function getLiveLabel(live) {
 	return `${otLabel} ${clockStr}`;
 }
 
-function renderMoreGames() {
-	let dateHeadline = "";
-	moreEl.innerHTML = "";
-
-	let gamesToDisplay = [];
-
-	if (checkboxHidePastGames.checked) {
-		gamesToDisplay = games.scheduled;
-	} else {
-		gamesToDisplay = games.finished.concat(games.scheduled);
-	}
-
-	if (checkboxPrimetime.checked) {
-		gamesToDisplay = gamesToDisplay.filter((g) => {
-			const [hours, minutes] = g.time.split(":").map(Number);
-			const gameHour = hours + minutes / 60;
-
-			// Primetime
-			return gameHour >= 18 && gameHour < 24;
-		});
-	}
-
-	gamesToDisplay.forEach((g) => {
-		if (dateHeadline === "" || dateHeadline !== g.date) {
-			dateHeadline = g.date;
-			const h3El = document.createElement("h3");
-			const headlineText = document.createTextNode(g.date);
-			h3El.dataset.timestamp = g.localDate.getTime();
-			h3El.appendChild(headlineText);
-			moreEl.appendChild(h3El);
-
-			if (!checkboxHidePastGames.checked && games.scheduled[0]?.localDate === g.localDate) {
-				const anchorTop = document.createElement("div");
-				anchorTop.classList.add("jump-link");
-				const anchorLink = document.createElement("a");
-				anchorLink.textContent = "zu den heutigen Spielen";
-				anchorTop.appendChild(anchorLink);
-				anchorLink.href = "#top";
-				moreEl.insertBefore(anchorTop, h3El);
-			}
-		}
-
-		const template = document.querySelector("#template-more");
-		const clone = template.content.cloneNode(true);
-
-		const card = clone.querySelector(".card");
-		const homeTeam = clone.querySelector(".home-team");
-		const visitingTeam = clone.querySelector(".visiting-team");
-		const homeName = homeTeam.querySelector(".name");
-		const visitingName = visitingTeam.querySelector(".name");
-		const homeWL = homeTeam.querySelector(".wl");
-		const visitingWL = visitingTeam.querySelector(".wl");
-		const homeColor = homeTeam.querySelector(".color");
-		const visitingColor = visitingTeam.querySelector(".color");
-		const homeAbbr = homeTeam.querySelector(".abbr");
-		const visitingAbbr = visitingTeam.querySelector(".abbr");
-		const homeScore = homeTeam.querySelector(".score");
-		const visitingScore = visitingTeam.querySelector(".score");
-		const date = clone.querySelector(".date");
-		const gameLabelEl = clone.querySelector(".game-label");
-		const label = (g.gameLabel || "").trim();
-		const subLabel = (g.gameSubLabel || "").trim();
-
-		homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
-		visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
-		homeAbbr.textContent = g.homeTeam.teamTricode;
-		homeColor.style.setProperty("--team-color", `var(--${g.homeTeam.teamTricode})`);
-		visitingAbbr.textContent = g.awayTeam.teamTricode;
-		visitingColor.style.setProperty("--team-color", `var(--${g.awayTeam.teamTricode})`);
-		card.dataset.abbr = `${g.awayTeam.teamTricode}/${g.homeTeam.teamTricode}`;
-		date.textContent = `${g.time} Uhr`;
-		gameLabelEl.textContent = label ? subLabel ? `${label} – ${subLabel}` : label : subLabel;
-
-		if (g.gameStatus === 3) {
-			homeScore.textContent = g.homeTeam.score ?? "";
-			visitingScore.textContent = g.awayTeam.score ?? "";
-			const hNum = Number(g.homeTeam.score);
-			const aNum = Number(g.awayTeam.score);
-			if (Number.isFinite(hNum) && Number.isFinite(aNum)) {
-				homeScore.classList.toggle("lower", hNum < aNum);
-				visitingScore.classList.toggle("lower", aNum < hNum);
-			}
-			card.dataset.gameId = g.gameId;
-			card.dataset.clickable = "true";
-			card.addEventListener("click", () => {
-				openGameOverlay(g.gameId, g.awayTeam.teamTricode, g.homeTeam.teamTricode);
-			});
-		} else {
-			homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
-			visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
-		}
-
-		moreEl.appendChild(clone);
-	});
-	filterTeams();
-}
-
-function scrollToLastPastHeadline() {
-	const headlines = moreEl.querySelectorAll("h3");
-	if (!headlines.length) return;
-
-	let bestHeadline = null;
-	let bestTimestamp = null;
-	const now = Date.now();
-
-	headlines.forEach((h3) => {
-		const timestamp = Number(h3.dataset.timestamp);
-		if (!timestamp) return;
-
-		// Find the latest timestamp that is still in the past
-		if (timestamp < now && (!bestTimestamp || timestamp > bestTimestamp)) {
-			bestTimestamp = timestamp;
-			bestHeadline = h3;
-		}
-	});
-
-	if (bestHeadline) {
-		bestHeadline.scrollIntoView({
-			behavior: "smooth",
-			block: "start",
-		});
-	}
-}
-
-function renderStandings() {
-	const rows = [
-		standingsWest.querySelectorAll("tr:not(:first-of-type)"),
-		standingsEast.querySelectorAll("tr:not(:first-of-type)"),
-	];
-
-	const dataByConf = [westData, eastData];
-
-	for (let confIdx = 0; confIdx < rows.length; confIdx++) {
-		const rowsForTable = rows[confIdx];
-		const data = dataByConf[confIdx];
-
-		rowsForTable.forEach((row, index) => {
-			const team = data[index];
-			if (!team) return;
-
-			const cells = row.querySelectorAll("td");
-			row.style.setProperty("--team-color", `var(--${team.teamTricode})`);
-			cells[1].textContent = team.teamTricode; // Name/abbr
-			cells[2].textContent = `${team.wins}-${team.losses}`; // W-L
-			cells[3].textContent = team.gb; // GB
-			cells[4].textContent = team.streak; // STR
-			cells[5].textContent = team.home; // Home
-			cells[6].textContent = team.away; // Away
-
-			// Seeds 1–6 are direct playoff teams
-			if (index < 6) {
-				playoffTeams[confIdx].push({
-					ta: team.teamTricode,
-					tid: team.teamId,
-				});
-			}
-		});
-	}
-}
-
-function filterTeams() {
-	const selectedTeam = teamPicker.value;
-
-	if (selectedTeam !== "") {
-		const otherTeams = document.querySelectorAll(
-			`#more .card:not([data-abbr*="${selectedTeam}"])`,
-		);
-		for (const card of otherTeams) {
-			card.remove();
-		}
-		const emptyHeadlines = document.querySelectorAll(
-			"#more h3:not(:has(+ .card))",
-		);
-		for (const emptyHeadline of emptyHeadlines) {
-			emptyHeadline.remove();
-		}
-	}
-}
-
-function findLastRegularSeasonGame() {
-	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
-
-	// Group games by date
-	const gamesByDate = allGames.reduce(function (groupedGames, game) {
-		const gameDate = new Date(game.gameDateTimeUTC).toISOString().slice(0, 10); // YYYY-MM-DD
-		if (!groupedGames[gameDate]) {
-			groupedGames[gameDate] = [];
-		}
-		groupedGames[gameDate].push(game);
-		return groupedGames;
-	}, {});
-
-	// Get all dates with exactly 15 games
-	const daysWith15Games = Object.keys(gamesByDate).filter(function (date) {
-		return gamesByDate[date].length === 15;
-	});
-
-	// Sort the dates in ascending order and return the last one
-	const lastRegularSeasonDay = daysWith15Games
-		.sort((a, b) => new Date(a) - new Date(b))
-		.pop();
-
-	return lastRegularSeasonDay;
-}
-
-function determinePlayInWinners() {
-	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
-
-	// Find the last regular season day
-	const lastRegularSeasonDay = findLastRegularSeasonGame();
-
-	// Filter all games after the last regular season day and exclude Playoff series games (seriesText present)
-	const playInGames = allGames
-		.filter(function (game) {
-			const gameDate = new Date(game.gameDateTimeUTC).toISOString().slice(0, 10);
-			const isAfterRegularSeason = new Date(gameDate) > new Date(lastRegularSeasonDay);
-			const isNotPlayoffGame = !game.seriesText; // exclude playoffs
-			return isAfterRegularSeason && isNotPlayoffGame;
-		})
-		.filter((game) => game && game.homeTeam && game.awayTeam);
-
-	// Not enough reliable Play-In data — abort safely
-	if (!playInGames || playInGames.length < 3) return;
-
-	// Play-In Teams (7-10) for East and West conferences from new standings data
-	const eastPlayInTeams = eastData.slice(6, 10).map((t) => ({
-		tid: t.teamId,
-		ta: t.teamTricode,
-	}));
-	const westPlayInTeams = westData.slice(6, 10).map((t) => ({
-		tid: t.teamId,
-		ta: t.teamTricode,
-	}));
-
-	function getWinner(game) {
-		if (!game || !game.homeTeam || !game.awayTeam) return null;
-		const homeScore = parseInt(game.homeTeam.score, 10);
-		const awayScore = parseInt(game.awayTeam.score, 10);
-		if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) return null;
-		return homeScore > awayScore
-			? { tid: game.homeTeam.teamId, ta: game.homeTeam.teamTricode }
-			: { tid: game.awayTeam.teamId, ta: game.awayTeam.teamTricode };
-	}
-
-	function playInTournament(playInTeams, conferenceIndex) {
-		const [seed7, seed8, seed9, seed10] = playInTeams;
-
-		// Game 1: Seed 7 (home) vs Seed 8 → Winner is 7th Seed
-		const game1 = playInGames.find((game) =>
-			game.homeTeam.teamId === seed7.tid && game.awayTeam.teamId === seed8.tid
-		);
-		const winnerGame1 = getWinner(game1);
-		if (!winnerGame1) return;
-		const loserGame1 = winnerGame1.tid === seed7.tid ? seed8 : seed7;
-
-		// Game 2: Seed 9 (home) vs Seed 10 → Loser out, Winner advances
-		const game2 = playInGames.find((game) =>
-			game.homeTeam.teamId === seed9.tid && game.awayTeam.teamId === seed10.tid
-		);
-		const winnerGame2 = getWinner(game2);
-		if (!winnerGame2) return;
-
-		// Game 3: Loser of Game 1 vs Winner of Game 2 → Winner is 8th Seed
-		const game3 = playInGames.find((game) =>
-			game.homeTeam.teamId === loserGame1.tid && game.awayTeam.teamId === winnerGame2.tid
-		);
-		const winnerGame3 = getWinner(game3);
-		if (!winnerGame3) return;
-
-		playoffTeams[conferenceIndex].push(winnerGame1); // 7th Seed
-		playoffTeams[conferenceIndex].push(winnerGame3); // 8th Seed
-	}
-
-	// Determine East and West Play-In winners
-	playInTournament(eastPlayInTeams, 0); // East
-	playInTournament(westPlayInTeams, 1); // West
-}
-
-function playoffPicture() {
-	// Guard: require 8 teams per conference (6 + 2 play-in). If not complete, skip rendering.
-	if (
-		!Array.isArray(playoffTeams) || playoffTeams.length < 2 ||
-		!Array.isArray(playoffTeams[0]) || !Array.isArray(playoffTeams[1]) ||
-		playoffTeams[0].length < 8 || playoffTeams[1].length < 8
-	) {
-		console.log("Playoff picture skipped: playoffTeams incomplete", {
-			west: playoffTeams?.[0]?.length ?? 0,
-			east: playoffTeams?.[1]?.length ?? 0,
-		});
-		return;
-	}
-	const playoffBracket = document.querySelector("#playoffs");
-	const playoffHeadline = document.querySelectorAll("h1")[0];
-	playoffHeadline.classList.remove("hidden");
-	playoffBracket.classList.remove("hidden");
-
-	const conferenceIndex = ["west", "east"];
-
-	function getMatchups(noOfTeams, thisRound, previousRound) {
-		for (let j = 0; j < conferenceIndex.length; j++) {
-			for (let i = 0; i < noOfTeams / 2; i++) {
-				thisRound[j].push({
-					conference: conferenceIndex[j],
-					series: "0-0",
-					leadingTeam: "",
-					leadingTeamSeed: 0,
-				});
-				if (previousRound[j][i].series.includes("4")) {
-					Object.assign(thisRound[j][i], {
-						teamA: previousRound[j][i].leadingTeam,
-						teamASeed: previousRound[j][i].leadingTeamSeed,
-					});
-				}
-				if (
-					previousRound[j][numberOfTeams - 1 - i].series.includes("4")
-				) {
-					Object.assign(thisRound[j][i], {
-						teamB: previousRound[j][numberOfTeams - 1 - i].leadingTeam,
-						teamBSeed: previousRound[j][numberOfTeams - 1 - i]
-							.leadingTeamSeed,
-					});
-				}
-			}
-		}
-	}
-
-	/* consumes playoff games that belong to the provided round and
-       returns once all match‑ups have been updated. Remaining games
-       (for later rounds) are kept in games.playoffs                */
-	function playSeries(round) {
-		const remainingGames = [];
-
-		games.playoffs.forEach((g) => {
-			const teamNames = g.gameCode.slice(-6);
-			let consumed = false;
-
-			for (const conference of round) {
-				for (const matchup of conference) {
-					if (
-						teamNames.includes(matchup.teamA) &&
-						teamNames.includes(matchup.teamB)
-					) {
-						// update matchup infos
-						matchup.series = g.seriesText.slice(-3);
-						matchup.leadingTeam = g.seriesText.slice(0, 3);
-
-						if (matchup.leadingTeam === matchup.teamB) {
-							matchup.series = matchup.series.split("").reverse()
-								.join("");
-							matchup.leadingTeamSeed = matchup.teamBSeed;
-						} else {
-							matchup.leadingTeamSeed = matchup.teamASeed;
-						}
-						consumed = true;
-						break; // inner loop
-					}
-				}
-				if (consumed) break; // outer loop
-			}
-
-			if (!consumed) remainingGames.push(g); // keep games for the next rounds
-		});
-
-		games.playoffs = remainingGames;
-	}
-
-	function renderMatchups(roundNr, round) {
-		const isFinals = roundNr === 4;
-		const tmpl = document.getElementById("template-matchup");
-
-		// Parent-Container
-		const parentWest = document.querySelector("#western");
-		const parentEast = document.querySelector("#eastern");
-		const parentFinals = document.querySelector("#finals");
-
-		// Remove old matchups for this round
-		if (isFinals) {
-			parentFinals.querySelectorAll(`[data-round="4"]`).forEach((el) => el.remove());
-		} else {
-			[parentWest, parentEast].forEach((p) =>
-				p.querySelectorAll(`[data-round="${roundNr}"]`).forEach((el) => el.remove())
-			);
-		}
-
-		// Helper to clone and fill template, simplified: just append
-		const fillClone = (parent, m) => {
-			const node = tmpl.content.firstElementChild.cloneNode(true);
-			if (roundNr === 2) {
-				node.classList.add("semi-conference-finals");
-			} else if (roundNr === 3) {
-				node.classList.add("conference-finals");
-			}
-			node.dataset.round = roundNr;
-
-			node.querySelector(".teamA .score").textContent = m.series.split("-")[0];
-			node.querySelector(".teamB .score").textContent = m.series.split("-")[1];
-			node.querySelector(".teamA .teamname").textContent = m.teamA || "";
-			node.querySelector(".teamB .teamname").textContent = m.teamB || "";
-
-			// Set background color for teamA and teamB (undefined yields var(--undefined))
-			const teamANameEl = node.querySelector(".teamA .teamname");
-			teamANameEl.style.setProperty(
-				"background-color",
-				`var(--${m.teamA})`,
-			);
-
-			const teamBNameEl = node.querySelector(".teamB .teamname");
-			teamBNameEl.style.setProperty(
-				"background-color",
-				`var(--${m.teamB})`,
-			);
-
-			parent.appendChild(node);
-		};
-
-		if (isFinals) {
-			// Finals is a single matchup object
-			fillClone(parentFinals, round);
-			return;
-		}
-
-		// Rounds 1–3: round is [westArray, eastArray]
-		for (let confIdx = 0; confIdx < round.length; confIdx++) {
-			const matchups = round[confIdx];
-			// Now, order is always in natural order
-			const order = matchups.map((_, i) => i);
-
-			order.forEach((matchupIdx) => {
-				const parent = confIdx === 0 ? parentWest : parentEast;
-				fillClone(parent, matchups[matchupIdx]);
-			});
-		}
-	}
-
-	// first Round
-	const firstRound = [[], []];
-	let numberOfTeams = 8;
-
-	for (let j = 0; j < conferenceIndex.length; j++) {
-		for (let i = 0; i < numberOfTeams / 2; i++) {
-			firstRound[j].push({
-				conference: conferenceIndex[j],
-				teamA: playoffTeams[j][i].ta,
-				teamASeed: i + 1,
-				teamB: playoffTeams[j][numberOfTeams - 1 - i].ta,
-				teamBSeed: playoffTeams[0].length - i,
-				series: "0-0",
-				leadingTeam: "",
-				leadingTeamSeed: 0,
-			});
-		}
-	}
-
-	playSeries(firstRound);
-	renderMatchups(1, firstRound);
-
-	//second Round
-	const secondRound = [[], []];
-	numberOfTeams = 4;
-
-	getMatchups(numberOfTeams, secondRound, firstRound);
-	playSeries(secondRound);
-	renderMatchups(2, secondRound);
-
-	//conference Finals
-	const conferenceFinals = [[], []];
-	numberOfTeams = 2;
-
-	getMatchups(numberOfTeams, conferenceFinals, secondRound);
-	playSeries(conferenceFinals);
-	renderMatchups(3, conferenceFinals);
-
-	//finals
-	const finals = {
-		series: "0-0",
-		leadingTeam: "",
-		leadingTeamSeed: 0,
-	};
-	if (conferenceFinals[0][0].series.includes("4")) {
-		Object.assign(finals, {
-			teamA: conferenceFinals[0][0].leadingTeam,
-			teamASeed: conferenceFinals[0][0].leadingTeamSeed,
-		});
-	}
-	if (conferenceFinals[1][0].series.includes("4")) {
-		Object.assign(finals, {
-			teamB: conferenceFinals[1][0].leadingTeam,
-			teamBSeed: conferenceFinals[1][0].leadingTeamSeed,
-		});
-	}
-
-	games.playoffs.forEach((g) => {
-		const teamNames = g.gameCode.slice(-6);
-
-		if (
-			teamNames.includes(finals.teamA) && teamNames.includes(finals.teamB)
-		) {
-			finals.series = g.seriesText.slice(-3);
-			finals.leadingTeam = g.seriesText.slice(0, 3);
-			if (finals.leadingTeam === finals.teamB) {
-				finals.series = finals.series.split("").reverse().join("");
-				finals.leadingTeamSeed = finals.teamBSeed;
-			} else {
-				finals.leadingTeamSeed = finals.teamASeed;
-			}
-		}
-	});
-
-	// Render the finals using the template-based renderer
-	renderMatchups(4, finals);
-}
-
-function handleScheduleData(json) {
-	if (json?.leagueSchedule?.gameDates?.length) {
-		schedule = json;
-
-		games = {
-			today: [],
-			finished: [],
-			scheduled: [],
-			playoffs: [],
-		};
-
-		prepareGameData();
-		setProgressBar();
-		renderTodaysGames();
-		if (games.scheduled.length === 0 && checkboxHidePastGames.checked) {
-			checkboxHidePastGames.checked = false;
-		}
-		renderMoreGames();
-		updateCupBracket();
-	} else {
-		console.log(
-			"Schedule data not available. Skipping schedule rendering.",
-		);
-	}
-}
-
-function handleStandingsData(json) {
-	if (!json || !Array.isArray(json.east) || !Array.isArray(json.west)) {
-		console.log("Standings data not available. Skipping standings rendering.");
-		return;
-	}
-
-	standings = json;
-	playoffTeams = [[], []];
-
-	// Store new-format arrays directly
-	eastData = standings.east.slice(); // already sorted by your endpoint
-	westData = standings.west.slice();
-
-	standingsEast = document.querySelector("#east table");
-	standingsWest = document.querySelector("#west table");
-
-	renderStandings();
-
-	// If we already have playoff games, try to compute picture (requires seeded teams)
-	if (games.playoffs.length > 0) {
-		determinePlayInWinners();
-		const westCount = playoffTeams[0]?.length ?? 0;
-		const eastCount = playoffTeams[1]?.length ?? 0;
-		if (westCount >= 8 && eastCount >= 8) {
-			playoffPicture();
-		} else {
-			console.log("Skipping playoffPicture: missing play-in winners", {
-				westCount,
-				eastCount,
-			});
-		}
-	}
-}
-
-function handleIstBracketData(json) {
-	if (!json || !json.bracket || !Array.isArray(json.bracket.istBracketSeries)) {
-		console.log("IST bracket data not available. Skipping cup bracket rendering.");
-		return;
-	}
-
-	istBracket = json;
-	updateCupBracket();
-}
-
-function shouldRerender() {
-	const now = new Date();
-
-	const todayString = now.toLocaleDateString("de-DE", {
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-	});
-
-	if (lastCheckedDay !== todayString) {
-		lastCheckedDay = todayString;
-		console.log("New day detected, rerender required.");
-		return true;
-	}
-
-	const gameTimeWindowChanged = games.today.some((g) => {
-		const card = document.querySelector(`[data-game-code="${g.gameCode}"]`);
-		if (!card) return false;
-		const dateEl = card.querySelector(".date");
-
-		const live = liveById.get(g.gameId);
-		const { isLive } = getGameState(g, live, now);
-		const isLiveClass = dateEl.classList.contains("live");
-
-		// Rerender if we need to toggle the "live" state
-		return isLive !== isLiveClass;
-	});
-
-	if (gameTimeWindowChanged) {
-		console.log("Live state changed by time window, rerender required.");
-		return true;
-	}
-	console.log("no rerendering needed");
-	return false;
-}
-
-function shouldReloadData() {
-	const nextGame = JSON.parse(localStorage.getItem("nba_nextScheduledGame"));
-
-	if (nextGame) {
-		const nextGameDate = new Date(nextGame.localDate);
-		const expectedEndTime = new Date(nextGameDate.getTime() + GAME_MAX_DURATION_MS);
-		const now = new Date();
-
-		console.log(
-			`Next game: ${
-				nextGameDate.toLocaleString("de-DE", {
-					day: "2-digit",
-					month: "2-digit",
-					year: "numeric",
-					hour: "2-digit",
-					minute: "2-digit",
-				})
-			} | Expected end: ${
-				expectedEndTime.toLocaleTimeString("de-DE", {
-					hour: "2-digit",
-					minute: "2-digit",
-				})
-			} | Now: ${
-				now.toLocaleString("de-DE", {
-					day: "2-digit",
-					month: "2-digit",
-					year: "numeric",
-					hour: "2-digit",
-					minute: "2-digit",
-				})
-			}`,
-		);
-
-		if (now > expectedEndTime) {
-			console.log(
-				"Next scheduled game is in the past. Data should be reloaded.",
-			);
-			return true;
-		} else {
-			console.log("Cache still valid.");
-			return false;
-		}
-	} else {
-		console.log("No next scheduled game found. Data should be reloaded.");
-		return true;
-	}
-}
-
-function storeNextScheduledGame() {
-	const allScheduledGames = games.scheduled.concat(
-		games.today.filter((game) => game.gameStatus !== 3),
-	);
-
-	if (allScheduledGames.length === 0) {
-		return;
-	}
-
-	const nextGame = allScheduledGames.reduce((soonest, game) => {
-		const gameDate = new Date(game.localDate);
-		return gameDate < new Date(soonest.localDate) ? game : soonest;
-	});
-
-	localStorage.setItem("nba_nextScheduledGame", JSON.stringify(nextGame));
-}
-
+/* --------------------------------------------------------------------------------------------------
+GAME EXCITEMENT RATING
+---------------------------------------------------------------------------------------------------*/
 function computeGameExcitement(playByPlayJson) {
 	const actions = playByPlayJson?.game?.actions;
 
@@ -1556,7 +879,25 @@ function updateGameExcitementMeter(playByPlayJson) {
 	gameExcitementEl.classList.remove("hidden");
 }
 
-// Game overlay helpers
+/* --------------------------------------------------------------------------------------------------
+GAME OVERLAY
+---------------------------------------------------------------------------------------------------*/
+
+function switchTab(tab) {
+	const targetId = tab.dataset.target;
+	const targetPanel = gameOverlay.querySelector(`#${targetId}`);
+
+	// Toggle tab buttons
+	gameOverlay.querySelectorAll(".tab").forEach((t) => {
+		t.classList.toggle("is-active", t === tab);
+	});
+
+	// Toggle panels
+	gameOverlay.querySelectorAll(".panel").forEach((panel) => {
+		panel.classList.toggle("is-active", panel === targetPanel);
+	});
+}
+
 function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
 	backdropEl.classList.remove("hidden");
 	gameOverlayEl.classList.remove("hidden");
@@ -1926,6 +1267,343 @@ function fillPlayersTable(tbody, players) {
 	});
 }
 
+/* --------------------------------------------------------------------------------------------------
+MORE GAMES
+---------------------------------------------------------------------------------------------------*/
+
+function renderMoreGames() {
+	let dateHeadline = "";
+	moreEl.innerHTML = "";
+
+	let gamesToDisplay = [];
+
+	if (checkboxHidePastGames.checked) {
+		gamesToDisplay = games.scheduled;
+	} else {
+		gamesToDisplay = games.finished.concat(games.scheduled);
+	}
+
+	if (checkboxPrimetime.checked) {
+		gamesToDisplay = gamesToDisplay.filter((g) => {
+			const [hours, minutes] = g.time.split(":").map(Number);
+			const gameHour = hours + minutes / 60;
+
+			// Primetime
+			return gameHour >= 18 && gameHour < 24;
+		});
+	}
+
+	gamesToDisplay.forEach((g) => {
+		if (dateHeadline === "" || dateHeadline !== g.date) {
+			dateHeadline = g.date;
+			const h3El = document.createElement("h3");
+			const headlineText = document.createTextNode(g.date);
+			h3El.dataset.timestamp = g.localDate.getTime();
+			h3El.appendChild(headlineText);
+			moreEl.appendChild(h3El);
+
+			if (!checkboxHidePastGames.checked && games.scheduled[0]?.localDate === g.localDate) {
+				const anchorTop = document.createElement("div");
+				anchorTop.classList.add("jump-link");
+				const anchorLink = document.createElement("a");
+				anchorLink.textContent = "zu den heutigen Spielen";
+				anchorTop.appendChild(anchorLink);
+				anchorLink.href = "#top";
+				moreEl.insertBefore(anchorTop, h3El);
+			}
+		}
+
+		const template = document.querySelector("#template-more");
+		const clone = template.content.cloneNode(true);
+
+		const card = clone.querySelector(".card");
+		const homeTeam = clone.querySelector(".home-team");
+		const visitingTeam = clone.querySelector(".visiting-team");
+		const homeName = homeTeam.querySelector(".name");
+		const visitingName = visitingTeam.querySelector(".name");
+		const homeWL = homeTeam.querySelector(".wl");
+		const visitingWL = visitingTeam.querySelector(".wl");
+		const homeColor = homeTeam.querySelector(".color");
+		const visitingColor = visitingTeam.querySelector(".color");
+		const homeAbbr = homeTeam.querySelector(".abbr");
+		const visitingAbbr = visitingTeam.querySelector(".abbr");
+		const homeScore = homeTeam.querySelector(".score");
+		const visitingScore = visitingTeam.querySelector(".score");
+		const date = clone.querySelector(".date");
+		const gameLabelEl = clone.querySelector(".game-label");
+		const label = (g.gameLabel || "").trim();
+		const subLabel = (g.gameSubLabel || "").trim();
+
+		homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
+		visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
+		homeAbbr.textContent = g.homeTeam.teamTricode;
+		homeColor.style.setProperty("--team-color", `var(--${g.homeTeam.teamTricode})`);
+		visitingAbbr.textContent = g.awayTeam.teamTricode;
+		visitingColor.style.setProperty("--team-color", `var(--${g.awayTeam.teamTricode})`);
+		card.dataset.abbr = `${g.awayTeam.teamTricode}/${g.homeTeam.teamTricode}`;
+		date.textContent = `${g.time} Uhr`;
+		gameLabelEl.textContent = label ? subLabel ? `${label} – ${subLabel}` : label : subLabel;
+
+		if (g.gameStatus === 3) {
+			homeScore.textContent = g.homeTeam.score ?? "";
+			visitingScore.textContent = g.awayTeam.score ?? "";
+			const hNum = Number(g.homeTeam.score);
+			const aNum = Number(g.awayTeam.score);
+			if (Number.isFinite(hNum) && Number.isFinite(aNum)) {
+				homeScore.classList.toggle("lower", hNum < aNum);
+				visitingScore.classList.toggle("lower", aNum < hNum);
+			}
+			card.dataset.gameId = g.gameId;
+			card.dataset.clickable = "true";
+			card.addEventListener("click", () => {
+				openGameOverlay(g.gameId, g.awayTeam.teamTricode, g.homeTeam.teamTricode);
+			});
+		} else {
+			homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
+			visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
+		}
+
+		moreEl.appendChild(clone);
+	});
+	filterTeams();
+}
+
+function filterTeams() {
+	const selectedTeam = teamPicker.value;
+
+	if (selectedTeam !== "") {
+		const otherTeams = document.querySelectorAll(
+			`#more .card:not([data-abbr*="${selectedTeam}"])`,
+		);
+		for (const card of otherTeams) {
+			card.remove();
+		}
+		const emptyHeadlines = document.querySelectorAll(
+			"#more h3:not(:has(+ .card))",
+		);
+		for (const emptyHeadline of emptyHeadlines) {
+			emptyHeadline.remove();
+		}
+	}
+}
+
+function scrollToLastPastHeadline() {
+	const headlines = moreEl.querySelectorAll("h3");
+	if (!headlines.length) return;
+
+	let bestHeadline = null;
+	let bestTimestamp = null;
+	const now = Date.now();
+
+	headlines.forEach((h3) => {
+		const timestamp = Number(h3.dataset.timestamp);
+		if (!timestamp) return;
+
+		// Find the latest timestamp that is still in the past
+		if (timestamp < now && (!bestTimestamp || timestamp > bestTimestamp)) {
+			bestTimestamp = timestamp;
+			bestHeadline = h3;
+		}
+	});
+
+	if (bestHeadline) {
+		bestHeadline.scrollIntoView({
+			behavior: "smooth",
+			block: "start",
+		});
+	}
+}
+
+/* --------------------------------------------------------------------------------------------------
+STANDINGS
+---------------------------------------------------------------------------------------------------*/
+
+function renderStandings() {
+	const rows = [
+		standingsWest.querySelectorAll("tr:not(:first-of-type)"),
+		standingsEast.querySelectorAll("tr:not(:first-of-type)"),
+	];
+
+	const dataByConf = [westData, eastData];
+
+	for (let confIdx = 0; confIdx < rows.length; confIdx++) {
+		const rowsForTable = rows[confIdx];
+		const data = dataByConf[confIdx];
+
+		rowsForTable.forEach((row, index) => {
+			const team = data[index];
+			if (!team) return;
+
+			const cells = row.querySelectorAll("td");
+			row.style.setProperty("--team-color", `var(--${team.teamTricode})`);
+			cells[1].textContent = team.teamTricode;
+			cells[2].textContent = `${team.wins}-${team.losses}`; // W-L
+			cells[3].textContent = team.gb;
+			cells[4].textContent = team.streak;
+			cells[5].textContent = team.home;
+			cells[6].textContent = team.away;
+		});
+	}
+}
+
+/* --------------------------------------------------------------------------------------------------
+DATA HANDLERS
+---------------------------------------------------------------------------------------------------*/
+
+function handleScheduleData(json) {
+	if (json?.leagueSchedule?.gameDates?.length) {
+		schedule = json;
+
+		games = {
+			today: [],
+			finished: [],
+			scheduled: [],
+		};
+
+		prepareGameData();
+		setProgressBar();
+		renderTodaysGames();
+		if (games.scheduled.length === 0 && checkboxHidePastGames.checked) {
+			checkboxHidePastGames.checked = false;
+		}
+		renderMoreGames();
+		updateCupBracket();
+	} else {
+		console.log(
+			"Schedule data not available. Skipping schedule rendering.",
+		);
+	}
+}
+
+function handleStandingsData(json) {
+	if (!json || !Array.isArray(json.east) || !Array.isArray(json.west)) {
+		console.log("Standings data not available. Skipping standings rendering.");
+		return;
+	}
+
+	standings = json;
+
+	// Store new-format arrays directly
+	eastData = standings.east.slice();
+	westData = standings.west.slice();
+
+	standingsEast = document.querySelector("#east table");
+	standingsWest = document.querySelector("#west table");
+
+	renderStandings();
+}
+
+function handleIstBracketData(json) {
+	if (!json || !json.bracket || !Array.isArray(json.bracket.istBracketSeries)) {
+		console.log("IST bracket data not available. Skipping cup bracket rendering.");
+		return;
+	}
+
+	istBracket = json;
+	updateCupBracket();
+}
+
+function shouldRerender() {
+	const now = new Date();
+
+	const todayString = now.toLocaleDateString("de-DE", {
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+	});
+
+	if (lastCheckedDay !== todayString) {
+		lastCheckedDay = todayString;
+		console.log("New day detected, rerender required.");
+		return true;
+	}
+
+	const gameTimeWindowChanged = games.today.some((g) => {
+		const card = document.querySelector(`[data-game-code="${g.gameCode}"]`);
+		if (!card) return false;
+		const dateEl = card.querySelector(".date");
+
+		const live = liveById.get(g.gameId);
+		const { isLive } = getGameState(g, live, now);
+		const isLiveClass = dateEl.classList.contains("live");
+
+		// Rerender if we need to toggle the "live" state
+		return isLive !== isLiveClass;
+	});
+
+	if (gameTimeWindowChanged) {
+		console.log("Live state changed by time window, rerender required.");
+		return true;
+	}
+	console.log("no rerendering needed");
+	return false;
+}
+
+function shouldReloadData() {
+	const nextGame = JSON.parse(localStorage.getItem("nba_nextScheduledGame"));
+
+	if (nextGame) {
+		const nextGameDate = new Date(nextGame.localDate);
+		const expectedEndTime = new Date(nextGameDate.getTime() + GAME_MAX_DURATION_MS);
+		const now = new Date();
+
+		console.log(
+			`Next game: ${
+				nextGameDate.toLocaleString("de-DE", {
+					day: "2-digit",
+					month: "2-digit",
+					year: "numeric",
+					hour: "2-digit",
+					minute: "2-digit",
+				})
+			} | Expected end: ${
+				expectedEndTime.toLocaleTimeString("de-DE", {
+					hour: "2-digit",
+					minute: "2-digit",
+				})
+			} | Now: ${
+				now.toLocaleString("de-DE", {
+					day: "2-digit",
+					month: "2-digit",
+					year: "numeric",
+					hour: "2-digit",
+					minute: "2-digit",
+				})
+			}`,
+		);
+
+		if (now > expectedEndTime) {
+			console.log(
+				"Next scheduled game is in the past. Data should be reloaded.",
+			);
+			return true;
+		} else {
+			console.log("Cache still valid.");
+			return false;
+		}
+	} else {
+		console.log("No next scheduled game found. Data should be reloaded.");
+		return true;
+	}
+}
+
+function storeNextScheduledGame() {
+	const allScheduledGames = games.scheduled.concat(
+		games.today.filter((game) => game.gameStatus !== 3),
+	);
+
+	if (allScheduledGames.length === 0) {
+		return;
+	}
+
+	const nextGame = allScheduledGames.reduce((soonest, game) => {
+		const gameDate = new Date(game.localDate);
+		return gameDate < new Date(soonest.localDate) ? game : soonest;
+	});
+
+	localStorage.setItem("nba_nextScheduledGame", JSON.stringify(nextGame));
+}
+
 async function loadData() {
 	await fetchData(scheduleURL, handleScheduleData);
 	storeNextScheduledGame();
@@ -1937,21 +1615,6 @@ async function loadData() {
 		await fetchData(standingsURL, handleStandingsData, true);
 		await fetchData(istBracketURL, handleIstBracketData, true);
 	}
-}
-
-function switchTab(tab) {
-	const targetId = tab.dataset.target;
-	const targetPanel = gameOverlay.querySelector(`#${targetId}`);
-
-	// Toggle tab buttons
-	gameOverlay.querySelectorAll(".tab").forEach((t) => {
-		t.classList.toggle("is-active", t === tab);
-	});
-
-	// Toggle panels
-	gameOverlay.querySelectorAll(".panel").forEach((panel) => {
-		panel.classList.toggle("is-active", panel === targetPanel);
-	});
 }
 
 function init() {
@@ -2028,7 +1691,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-12-01-v3";
+const SERVICE_WORKER_VERSION = "2025-12-07-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
