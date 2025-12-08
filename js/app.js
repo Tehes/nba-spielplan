@@ -938,23 +938,30 @@ function updateGameExcitementMeter(playByPlayJson) {
 		return;
 	}
 
-	const score = computeGameExcitement(playByPlayJson);
-	const rating = (score / 10).toFixed(1);
+	// Raw 0–100 value from computeGameExcitement
+	const rawScore = computeGameExcitement(playByPlayJson);
 
-	gameExcitementValueEl.style.width = `${score}%`;
-	gameExcitementValueEl.textContent = `${score}%`;
+	// Round consistently based on the 0–10 rating first
+	const rating = Math.round(rawScore) / 10; // 0–10 with one decimal possible
+	const pct = rating * 10; // 0–100 align bar width to rating
+
+	// Update bar UI with consistent numbers
+	gameExcitementValueEl.style.width = `${pct.toFixed(1)}%`;
+	gameExcitementValueEl.textContent = `${pct.toFixed(1)}%`;
+
+	const ratingLabel = rating.toFixed(1);
 
 	let label = "";
-	if (score >= 80) {
-		label = `Bewertung: ${rating}/10 · Pflichtprogramm`;
-	} else if (score >= 60) {
-		label = `Bewertung: ${rating}/10 · sehenswert`;
-	} else if (score >= 40) {
-		label = `Bewertung: ${rating}/10 · solide`;
-	} else if (score >= 20) {
-		label = `Bewertung: ${rating}/10 · eher einseitig`;
+	if (pct >= 80) {
+		label = `Bewertung: ${ratingLabel}/10 · Pflichtprogramm`;
+	} else if (pct >= 60) {
+		label = `Bewertung: ${ratingLabel}/10 · sehenswert`;
+	} else if (pct >= 40) {
+		label = `Bewertung: ${ratingLabel}/10 · solide`;
+	} else if (pct >= 20) {
+		label = `Bewertung: ${ratingLabel}/10 · eher einseitig`;
 	} else {
-		label = `Bewertung: ${rating}/10 · skippen`;
+		label = `Bewertung: ${ratingLabel}/10 · skippen`;
 	}
 
 	gameExcitementLabelEl.textContent = label;
@@ -1774,7 +1781,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-12-09-v1";
+const SERVICE_WORKER_VERSION = "2025-12-09-v2";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
