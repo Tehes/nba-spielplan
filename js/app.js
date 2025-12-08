@@ -569,18 +569,6 @@ function formatMinutes(isoDuration) {
 	return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function parseClockToSeconds(isoDuration) {
-	if (!isoDuration || typeof isoDuration !== "string") return NaN;
-
-	const match = isoDuration.match(/PT(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/);
-	if (!match) return NaN;
-
-	const minutes = match[1] ? parseInt(match[1], 10) : 0;
-	const secondsFloat = match[2] ? parseFloat(match[2]) : 0;
-
-	return Math.round(minutes * 60 + secondsFloat);
-}
-
 // Build a label for live games based on period and gameClock from live scoreboard data
 function getLiveLabel(live) {
 	if (!live) return "LIVE";
@@ -620,6 +608,18 @@ function getLiveLabel(live) {
 /* --------------------------------------------------------------------------------------------------
 GAME EXCITEMENT RATING
 ---------------------------------------------------------------------------------------------------*/
+/**
+ * EXCITEMENT RATING v2.0 - "Tension-Pressure-Model"
+ *
+ * Measures excitement based on five components:
+ * 1. Pressure Index (50 points): What % of events were within striking distance?
+ * 2. Crunch-Time Intensity (25 points): Was the ending in danger?
+ * 3. Momentum Swings (15 points): Were there dramatic runs?
+ * 4. Lead Changes Bonus (10 points): How often did the lead flip?
+ * 5. Overtime Bonus (5-10 points): Overtime periods
+ *
+ * Max: 100 points (clamped to 0-100)
+ */
 function computeGameExcitement(playByPlayJson) {
 	const actions = playByPlayJson?.game?.actions;
 
@@ -627,6 +627,7 @@ function computeGameExcitement(playByPlayJson) {
 		return 0;
 	}
 
+	// === STEP 1: Extract scoring events ===
 	let lastHomeScore = 0;
 	let lastAwayScore = 0;
 	const scoringEvents = [];
@@ -653,41 +654,97 @@ function computeGameExcitement(playByPlayJson) {
 		return 0;
 	}
 
-	let closenessSum = 0;
-	let leadChanges = 0;
-	let ties = 0;
-	let leader = "tie";
-	let maxHomeDeficit = 0;
-	let maxAwayDeficit = 0;
-	let countHighCrunch = 0;
-	let countMediumCrunch = 0;
-	let countLightCrunch = 0;
-	let totalCrunchEvents = 0;
-	let minLateDiff = Infinity;
-
-	const lastEvent = scoringEvents[scoringEvents.length - 1];
-	const finalHomeScore = lastEvent?.homeScore;
-	const finalAwayScore = lastEvent?.awayScore;
-	const hasFinalScores = Number.isFinite(finalHomeScore) && Number.isFinite(finalAwayScore);
-	const finalMargin = hasFinalScores ? Math.abs(finalHomeScore - finalAwayScore) : Infinity;
-	let marginFactor = 0;
-	if (Number.isFinite(finalMargin)) {
-		if (finalMargin <= 5) {
-			marginFactor = 1;
-		} else if (finalMargin >= 20) {
-			marginFactor = 0;
-		} else {
-			marginFactor = 1 - (finalMargin - 5) / 15;
-		}
-	}
+	// === COMPONENT 1: PRESSURE INDEX (50 points) ===
+	// Measures: What % of scoring events were in striking distance?
+	let pressureSum = 0;
 
 	scoringEvents.forEach((ev) => {
 		const diff = Math.abs(ev.homeScore - ev.awayScore);
-		const closeness = Math.max(0, 1 - diff / 20);
-		closenessSum += closeness;
 
+		if (diff <= 3) {
+			// One-possession game: full weight
+			pressureSum += 1.0;
+		} else if (diff <= 7) {
+			// Two-possession game: 70% weight
+			pressureSum += 0.7;
+		} else if (diff <= 12) {
+			// Still reachable: 30% weight
+			pressureSum += 0.3;
+		}
+		// diff > 12: 0 points
+	});
+
+	const pressureRatio = pressureSum / scoringEvents.length;
+	const pressureScore = pressureRatio * 50;
+
+	// === COMPONENT 2: CRUNCH-TIME INTENSITY (25 points) ===
+	// Measures: Was the ending in danger? (last ~40 events from Q4/OT)
+	const crunchEvents = scoringEvents.filter((ev) => ev.period >= 4).slice(-40);
+
+	let crunchSum = 0;
+
+	crunchEvents.forEach((ev) => {
+		const diff = Math.abs(ev.homeScore - ev.awayScore);
+
+		if (diff <= 3) {
+			crunchSum += 1.0;
+		} else if (diff <= 7) {
+			crunchSum += 0.5;
+		}
+	});
+
+	let crunchScore = 0;
+	if (crunchEvents.length > 0) {
+		const crunchRatio = crunchSum / crunchEvents.length;
+		crunchScore = crunchRatio * 25;
+	}
+
+	// === COMPONENT 3: MOMENTUM SWINGS (15 points) ===
+	// Measures: Largest point-differential change within a sliding window
+	const windowSize = 15; // ~3-5 minutes of basketball at normal pace
+	let maxMomentumSwing = 0;
+
+	for (let i = windowSize; i < scoringEvents.length; i++) {
+		const startEvent = scoringEvents[i - windowSize];
+		const endEvent = scoringEvents[i];
+
+		const startDiff = startEvent.homeScore - startEvent.awayScore;
+		const endDiff = endEvent.homeScore - endEvent.awayScore;
+
+		// Point-differential change (absolute)
+		const swing = Math.abs(endDiff - startDiff);
+
+		const startAbsDiff = Math.abs(startDiff);
+		const endAbsDiff = Math.abs(endDiff);
+
+		// Variant A: Swing counts if the end is in striking distance
+		const endsInStrikingDistance = endAbsDiff <= 12;
+
+		// Variant B: Swing also counts if a blowout was dramatically reduced
+		const isComebackRun = startAbsDiff >= 15 && endAbsDiff <= 7 && swing >= 10;
+
+		if ((endsInStrikingDistance || isComebackRun) && swing > maxMomentumSwing) {
+			maxMomentumSwing = swing;
+		}
+	}
+
+	let momentumScore = 0;
+	if (maxMomentumSwing >= 18) momentumScore = 15;
+	else if (maxMomentumSwing >= 14) momentumScore = 12;
+	else if (maxMomentumSwing >= 10) momentumScore = 9;
+	else if (maxMomentumSwing >= 7) momentumScore = 6;
+	else if (maxMomentumSwing >= 5) momentumScore = 3;
+
+	// === COMPONENT 4: LEAD CHANGES BONUS (10 points) ===
+	// Measures: How often did the lead change? (reduced weight)
+	let leadChanges = 0;
+	let ties = 0;
+	let leader = "tie";
+
+	scoringEvents.forEach((ev) => {
 		const leaderDiff = ev.homeScore - ev.awayScore;
 		let nextLeader = "tie";
+
 		if (leaderDiff > 0) nextLeader = "home";
 		else if (leaderDiff < 0) nextLeader = "away";
 
@@ -699,95 +756,17 @@ function computeGameExcitement(playByPlayJson) {
 			}
 		}
 		leader = nextLeader;
-
-		if (leaderDiff > 0) {
-			maxAwayDeficit = Math.max(maxAwayDeficit, leaderDiff);
-		} else if (leaderDiff < 0) {
-			maxHomeDeficit = Math.max(maxHomeDeficit, Math.abs(leaderDiff));
-		}
-
-		if (ev.period >= 4) {
-			minLateDiff = Math.min(minLateDiff, diff);
-			const secondsRemaining = parseClockToSeconds(ev.clock);
-			if (Number.isFinite(secondsRemaining)) {
-				if (secondsRemaining <= 300) {
-					totalCrunchEvents++;
-					if (diff <= 3) {
-						countHighCrunch++;
-					} else if (diff <= 7) {
-						countMediumCrunch++;
-					} else if (diff <= 12) {
-						countLightCrunch++;
-					}
-				}
-			}
-		}
 	});
 
-	const avgCloseness = closenessSum / scoringEvents.length;
-	const closenessScore = Math.round(avgCloseness * 40);
+	const leadChangesScore = Math.min(10, leadChanges * 0.7 + ties * 0.3);
 
-	const swingsScore = Math.min(25, leadChanges * 2 + ties);
-
-	let winnerMaxDeficit = 0;
-
-	if (Number.isFinite(finalHomeScore) && Number.isFinite(finalAwayScore)) {
-		if (finalHomeScore > finalAwayScore) {
-			winnerMaxDeficit = maxHomeDeficit;
-		} else if (finalAwayScore > finalHomeScore) {
-			winnerMaxDeficit = maxAwayDeficit;
-		}
-	}
-
-	let comebackScore = 0;
-	if (winnerMaxDeficit >= 20) {
-		comebackScore = 10;
-	} else if (winnerMaxDeficit >= 15) {
-		comebackScore = 8;
-	} else if (winnerMaxDeficit >= 10) {
-		comebackScore = 6;
-	} else if (winnerMaxDeficit >= 6) {
-		comebackScore = 4;
-	}
-	let crunchRelevance = 0;
-	if (minLateDiff <= 5) {
-		crunchRelevance = 1;
-	} else if (minLateDiff <= 8) {
-		crunchRelevance = 0.5;
-	}
-	const adjustedBase = (comebackScore * 0.5) + (comebackScore * 0.5 * crunchRelevance);
-	comebackScore = Math.round(adjustedBase * marginFactor);
-
-	let crunchTimeScore = 0;
-	if (totalCrunchEvents > 0) {
-		const ratioHigh = countHighCrunch / totalCrunchEvents;
-		const ratioMedium = countMediumCrunch / totalCrunchEvents;
-		const ratioLight = countLightCrunch / totalCrunchEvents;
-		const crunchScoreRaw = (ratioHigh * 20) + (ratioMedium * 15) + (ratioLight * 8);
-		const rawClamped = Math.min(crunchScoreRaw, 20);
-		crunchTimeScore = Math.round(rawClamped * 1.25);
-		crunchTimeScore = Math.round(crunchTimeScore * (0.7 + 0.3 * marginFactor));
-	}
-
-	const totalPoints = hasFinalScores ? finalHomeScore + finalAwayScore : 0;
-
-	let offenseScore = 0;
-	if (finalMargin <= 10) {
-		let offenseBase = 0;
-		if (totalPoints >= 230) {
-			offenseBase = 5;
-		} else if (totalPoints > 180) {
-			offenseBase = ((totalPoints - 180) / 50) * 5;
-		}
-		offenseBase = Math.max(0, Math.min(5, offenseBase));
-		offenseScore = Math.round(offenseBase * marginFactor);
-	}
-
+	// === COMPONENT 5: OVERTIME BONUS (5-10 points) ===
 	const maxPeriod = (actions || []).reduce(
 		(max, action) => Math.max(max, Number(action?.period) || 0),
 		0,
 	);
 	const overtimeCount = Math.max(0, maxPeriod - 4);
+
 	let otBonus = 0;
 	if (overtimeCount === 1) {
 		otBonus = 5;
@@ -795,15 +774,22 @@ function computeGameExcitement(playByPlayJson) {
 		otBonus = 10;
 	}
 
-	const rawScore = closenessScore +
-		swingsScore +
-		crunchTimeScore +
-		comebackScore +
-		offenseScore +
-		otBonus;
-	const score = Math.max(0, Math.min(100, Math.round(rawScore)));
+	// === FINAL CALCULATION ===
+	const rawScore = pressureScore + // max 50
+		crunchScore + // max 25
+		momentumScore + // max 15
+		leadChangesScore + // max 10
+		otBonus; // max 10
 
-	return score;
+	// Clamp to 0-100
+	const clampedRaw = Math.max(0, Math.min(100, rawScore));
+
+	// Ease-out transformation (exponent < 1):
+	// Lifts low values to create psychologically friendlier scores.
+	// Rationale: 50/100 reads like "bad", but an average NBA game is still entertaining → median nudged to ~59.
+	const displayScore = +(Math.pow(clampedRaw / 100, 0.7) * 100).toFixed(1);
+
+	return displayScore;
 }
 
 function fetchExcitementForGame(gameId) {
@@ -828,6 +814,102 @@ function fetchExcitementForGame(gameId) {
 			true,
 		).catch(reject);
 	});
+}
+
+// Console helper to dump the excitement rating for every finished game in the schedule
+async function logFinishedGameExcitementScores() {
+	if (!schedule?.leagueSchedule?.gameDates?.length) {
+		console.warn("Spielplan ist noch nicht geladen. Lade Daten neu…");
+		await loadData();
+	}
+
+	const allGames = schedule?.leagueSchedule?.gameDates?.flatMap((d) => d.games || []) || [];
+	const finishedGames = allGames.filter((g) => g.gameStatus === 3);
+
+	if (!finishedGames.length) {
+		console.log("Keine beendeten Spiele gefunden.");
+		return [];
+	}
+
+	const sorted = [...finishedGames].sort((a, b) => {
+		const aDate = new Date(a.localDate || a.gameDateTimeUTC);
+		const bDate = new Date(b.localDate || b.gameDateTimeUTC);
+		return aDate - bDate;
+	});
+
+	console.log(`Excitement Score für ${sorted.length} beendete Spiele:`);
+	const results = [];
+
+	for (const game of sorted) {
+		const home = game.homeTeam?.teamTricode || "HOME";
+		const away = game.awayTeam?.teamTricode || "AWAY";
+		const dateLabel = new Date(game.localDate || game.gameDateTimeUTC).toLocaleDateString(
+			"de-DE",
+			{ day: "2-digit", month: "2-digit" },
+		);
+
+		try {
+			const score = await fetchExcitementForGame(game.gameId);
+			const rating = (score / 10).toFixed(1);
+			const line = `[${dateLabel}] ${away} @ ${home}: ${rating}/10 (${score}%)`;
+			console.log(line);
+			results.push({ gameId: game.gameId, home, away, score, rating, date: dateLabel });
+		} catch (error) {
+			console.error(
+				`Excitement Score für ${away} @ ${home} (${game.gameId}) fehlgeschlagen:`,
+				error,
+			);
+		}
+	}
+
+	const successful = results.filter((r) => Number.isFinite(r.score));
+	const scores = successful.map((r) => r.score);
+	const total = scores.reduce((sum, n) => sum + n, 0);
+	const averageScore = scores.length ? Math.round((total / scores.length) * 10) / 10 : 0;
+	const minScore = scores.length ? Math.min(...scores) : null;
+	const maxScore = scores.length ? Math.max(...scores) : null;
+	let medianScore = null;
+	const scoreHistogram = new Map();
+
+	if (scores.length) {
+		const sortedScores = [...scores].sort((a, b) => a - b);
+		const mid = Math.floor(sortedScores.length / 2);
+		if (sortedScores.length % 2 === 0) {
+			medianScore = Math.round(((sortedScores[mid - 1] + sortedScores[mid]) / 2) * 10) / 10;
+		} else {
+			medianScore = sortedScores[mid];
+		}
+
+		sortedScores.forEach((s) => {
+			scoreHistogram.set(s, (scoreHistogram.get(s) || 0) + 1);
+		});
+	}
+
+	const summary = {
+		gamesFinished: sorted.length,
+		gamesWithScore: successful.length,
+		averageScore, // gerundet auf eine Nachkommastelle (0-100 Skala)
+		minScore,
+		maxScore,
+		medianScore,
+		scoreHistogram: Object.fromEntries(scoreHistogram), // Score -> Anzahl
+	};
+
+	console.log(
+		`Ø Score: ${averageScore} | Median: ${medianScore ?? "—"} | Min: ${
+			minScore ?? "—"
+		} | Max: ${maxScore ?? "—"} | erfolgreich berechnet: ${successful.length}/${sorted.length}`,
+	);
+	if (scoreHistogram.size) {
+		const histogramList = [...scoreHistogram.entries()]
+			.sort((a, b) => b[1] - a[1] || b[0] - a[0])
+			.map(([score, count]) => ({ score, count }));
+		console.log("Score-Histogramm (Score -> Anzahl):");
+		console.table(histogramList);
+	}
+	console.log("Fertig. Ergebnisse sind zusätzlich im Rückgabewert verfügbar.");
+
+	return { results, summary };
 }
 
 function updateGameExcitementMeter(playByPlayJson) {
@@ -1680,6 +1762,7 @@ public members, exposed with return statement
 ---------------------------------------------------------------------------------------------------*/
 globalThis.app = {
 	init,
+	logFinishedGameExcitementScores,
 };
 
 globalThis.app.init();
@@ -1691,7 +1774,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-12-07-v1";
+const SERVICE_WORKER_VERSION = "2025-12-09-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
