@@ -657,8 +657,6 @@ function computeGameExcitement(playByPlayJson) {
 	let leadChanges = 0;
 	let ties = 0;
 	let leader = "tie";
-	let maxHomeDeficit = 0;
-	let maxAwayDeficit = 0;
 	let countHighCrunch = 0;
 	let countMediumCrunch = 0;
 	let countLightCrunch = 0;
@@ -681,6 +679,20 @@ function computeGameExcitement(playByPlayJson) {
 		}
 	}
 
+	const BIG_DEFICIT_THRESHOLD = 10;
+
+	const comebackHome = {
+		maxDeficit: 0,
+		bestDiff: Infinity,
+		bestPeriod: 0,
+	};
+
+	const comebackAway = {
+		maxDeficit: 0,
+		bestDiff: Infinity,
+		bestPeriod: 0,
+	};
+
 	scoringEvents.forEach((ev) => {
 		const diff = Math.abs(ev.homeScore - ev.awayScore);
 		const closeness = Math.max(0, 1 - diff / 20);
@@ -700,10 +712,24 @@ function computeGameExcitement(playByPlayJson) {
 		}
 		leader = nextLeader;
 
-		if (leaderDiff > 0) {
-			maxAwayDeficit = Math.max(maxAwayDeficit, leaderDiff);
-		} else if (leaderDiff < 0) {
-			maxHomeDeficit = Math.max(maxHomeDeficit, Math.abs(leaderDiff));
+		if (leaderDiff < 0) {
+			const deficit = Math.abs(leaderDiff);
+			if (deficit > comebackHome.maxDeficit) {
+				comebackHome.maxDeficit = deficit;
+			}
+			if (comebackHome.maxDeficit >= BIG_DEFICIT_THRESHOLD && diff < comebackHome.bestDiff) {
+				comebackHome.bestDiff = diff;
+				comebackHome.bestPeriod = ev.period;
+			}
+		} else if (leaderDiff > 0) {
+			const deficit = leaderDiff;
+			if (deficit > comebackAway.maxDeficit) {
+				comebackAway.maxDeficit = deficit;
+			}
+			if (comebackAway.maxDeficit >= BIG_DEFICIT_THRESHOLD && diff < comebackAway.bestDiff) {
+				comebackAway.bestDiff = diff;
+				comebackAway.bestPeriod = ev.period;
+			}
 		}
 
 		if (ev.period >= 4) {
@@ -729,34 +755,12 @@ function computeGameExcitement(playByPlayJson) {
 
 	const swingsScore = Math.min(25, leadChanges * 2 + ties);
 
-	let winnerMaxDeficit = 0;
-
-	if (Number.isFinite(finalHomeScore) && Number.isFinite(finalAwayScore)) {
-		if (finalHomeScore > finalAwayScore) {
-			winnerMaxDeficit = maxHomeDeficit;
-		} else if (finalAwayScore > finalHomeScore) {
-			winnerMaxDeficit = maxAwayDeficit;
-		}
-	}
-
-	let comebackScore = 0;
-	if (winnerMaxDeficit >= 20) {
-		comebackScore = 10;
-	} else if (winnerMaxDeficit >= 15) {
-		comebackScore = 8;
-	} else if (winnerMaxDeficit >= 10) {
-		comebackScore = 6;
-	} else if (winnerMaxDeficit >= 6) {
-		comebackScore = 4;
-	}
 	let crunchRelevance = 0;
 	if (minLateDiff <= 5) {
 		crunchRelevance = 1;
 	} else if (minLateDiff <= 8) {
 		crunchRelevance = 0.5;
 	}
-	const adjustedBase = (comebackScore * 0.5) + (comebackScore * 0.5 * crunchRelevance);
-	comebackScore = Math.round(adjustedBase * marginFactor);
 
 	let crunchTimeScore = 0;
 	if (totalCrunchEvents > 0) {
@@ -768,6 +772,71 @@ function computeGameExcitement(playByPlayJson) {
 		crunchTimeScore = Math.round(rawClamped * 1.25);
 		crunchTimeScore = Math.round(crunchTimeScore * (0.7 + 0.3 * marginFactor));
 	}
+
+	function computeTeamComebackIntensity(teamComeback) {
+		if (teamComeback.maxDeficit < BIG_DEFICIT_THRESHOLD) return 0;
+		if (!Number.isFinite(teamComeback.bestDiff)) return 0;
+
+		let sizeFactor = 0;
+		if (teamComeback.maxDeficit >= 20) {
+			sizeFactor = 1;
+		} else if (teamComeback.maxDeficit >= 15) {
+			sizeFactor = 0.8;
+		} else if (teamComeback.maxDeficit >= 10) {
+			sizeFactor = 0.6;
+		}
+
+		let distanceFactor = 0;
+		if (teamComeback.bestDiff <= 3) {
+			distanceFactor = 1;
+		} else if (teamComeback.bestDiff <= 6) {
+			distanceFactor = 0.6;
+		} else {
+			distanceFactor = 0;
+		}
+
+		if (!teamComeback.bestPeriod || teamComeback.bestPeriod < 4) {
+			return sizeFactor * distanceFactor * 0.7;
+		}
+
+		return sizeFactor * distanceFactor;
+	}
+
+	const homeIntensity = computeTeamComebackIntensity(comebackHome);
+	const awayIntensity = computeTeamComebackIntensity(comebackAway);
+
+	let comebackScoreBase = 0;
+	if (hasFinalScores) {
+		const homeWon = finalHomeScore > finalAwayScore;
+		const awayWon = finalAwayScore > finalHomeScore;
+		const winnerWeight = 1;
+		const loserWeight = 0.7;
+
+		if (homeIntensity > 0) {
+			if (homeWon) {
+				comebackScoreBase += homeIntensity * winnerWeight;
+			} else if (awayWon) {
+				comebackScoreBase += homeIntensity * loserWeight;
+			} else {
+				comebackScoreBase += homeIntensity * 0.85;
+			}
+		}
+
+		if (awayIntensity > 0) {
+			if (awayWon) {
+				comebackScoreBase += awayIntensity * winnerWeight;
+			} else if (homeWon) {
+				comebackScoreBase += awayIntensity * loserWeight;
+			} else {
+				comebackScoreBase += awayIntensity * 0.85;
+			}
+		}
+	}
+
+	comebackScoreBase = Math.min(1, comebackScoreBase);
+	let comebackScore = Math.round(comebackScoreBase * 10);
+	const comebackScale = 0.5 + 0.5 * crunchRelevance;
+	comebackScore = Math.round(comebackScore * comebackScale * marginFactor);
 
 	const totalPoints = hasFinalScores ? finalHomeScore + finalAwayScore : 0;
 
@@ -1691,7 +1760,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-12-09-v3";
+const SERVICE_WORKER_VERSION = "2025-12-10-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
