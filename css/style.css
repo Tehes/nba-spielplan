@@ -134,6 +134,10 @@ body {
     height: 100%;
 }
 
+.lower {
+    opacity: 0.7;
+}
+
 /*
 -------------------------------------------------------------------
 MAIN
@@ -238,10 +242,6 @@ main div span {
     flex-wrap: wrap;
 }
 
-.card .lower {
-    opacity: 0.7;
-}
-
 .card[data-clickable="true"]:hover {
     cursor: pointer;
 }
@@ -318,7 +318,7 @@ PLAYOFFS and NBA CUP
 
 #cup :is(.teamA, .teamB) {
     display: flex;
-    width: 85px;
+    width: 90px;
 }
 
 #playoffs :is(.teamA, .teamB)>div,
@@ -338,11 +338,6 @@ PLAYOFFS and NBA CUP
     display: flex;
     justify-content: center;
     font-weight: 600;
-}
-
-#playoffs .score.lower,
-#cup .score.lower {
-    opacity: 0.7;
 }
 
 #playoffs .teamname,

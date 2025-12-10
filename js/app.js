@@ -627,6 +627,54 @@ function computeGameExcitement(playByPlayJson) {
 		return 0;
 	}
 
+	// Helpers
+	function computeMarginFactor(margin) {
+		if (margin <= 5) return 1;
+		if (margin >= 20) return 0;
+		return 1 - (margin - 5) / 15;
+	}
+
+	function computeOvertimeBonus(maxPeriod) {
+		const overtimeCount = Math.max(0, maxPeriod - 4);
+		if (overtimeCount === 1) return 5;
+		if (overtimeCount >= 2) return 10;
+		return 0;
+	}
+
+	function computeTeamComebackIntensity(teamComeback, bigDeficitThreshold) {
+		if (teamComeback.maxDeficit < bigDeficitThreshold) return 0;
+		if (!Number.isFinite(teamComeback.bestDiff)) return 0;
+
+		let sizeFactor = 0;
+		if (teamComeback.maxDeficit >= 20) {
+			sizeFactor = 1;
+		} else if (teamComeback.maxDeficit >= 15) {
+			sizeFactor = 0.8;
+		} else if (teamComeback.maxDeficit >= 10) {
+			sizeFactor = 0.6;
+		}
+
+		let distanceFactor = 0;
+		if (teamComeback.bestDiff <= 3) {
+			distanceFactor = 1;
+		} else if (teamComeback.bestDiff <= 6) {
+			distanceFactor = 0.6;
+		}
+
+		const base = sizeFactor * distanceFactor;
+		if (!teamComeback.bestPeriod || teamComeback.bestPeriod < 4) {
+			return base * 0.7;
+		}
+		return base;
+	}
+
+	function applyComebackScore(intensity, teamWon, opponentWon, winnerWeight, loserWeight) {
+		if (intensity <= 0) return 0;
+		if (teamWon) return intensity * winnerWeight;
+		if (opponentWon) return intensity * loserWeight;
+		return intensity * 0.85;
+	}
+
 	let lastHomeScore = 0;
 	let lastAwayScore = 0;
 	const scoringEvents = [];
@@ -653,31 +701,10 @@ function computeGameExcitement(playByPlayJson) {
 		return 0;
 	}
 
-	let closenessSum = 0;
-	let leadChanges = 0;
-	let ties = 0;
-	let leader = "tie";
-	let countHighCrunch = 0;
-	let countMediumCrunch = 0;
-	let countLightCrunch = 0;
-	let totalCrunchEvents = 0;
-	let minLateDiff = Infinity;
-
-	const lastEvent = scoringEvents[scoringEvents.length - 1];
-	const finalHomeScore = lastEvent?.homeScore;
-	const finalAwayScore = lastEvent?.awayScore;
-	const hasFinalScores = Number.isFinite(finalHomeScore) && Number.isFinite(finalAwayScore);
-	const finalMargin = hasFinalScores ? Math.abs(finalHomeScore - finalAwayScore) : Infinity;
-	let marginFactor = 0;
-	if (Number.isFinite(finalMargin)) {
-		if (finalMargin <= 5) {
-			marginFactor = 1;
-		} else if (finalMargin >= 20) {
-			marginFactor = 0;
-		} else {
-			marginFactor = 1 - (finalMargin - 5) / 15;
-		}
-	}
+	const lastEvent = scoringEvents.at(-1);
+	const { homeScore: finalHomeScore, awayScore: finalAwayScore } = lastEvent;
+	const finalMargin = Math.abs(finalHomeScore - finalAwayScore);
+	const marginFactor = computeMarginFactor(finalMargin);
 
 	const BIG_DEFICIT_THRESHOLD = 10;
 
@@ -692,6 +719,16 @@ function computeGameExcitement(playByPlayJson) {
 		bestDiff: Infinity,
 		bestPeriod: 0,
 	};
+
+	let closenessSum = 0;
+	let leadChanges = 0;
+	let ties = 0;
+	let leader = "tie";
+	let countHighCrunch = 0;
+	let countMediumCrunch = 0;
+	let countLightCrunch = 0;
+	let totalCrunchEvents = 0;
+	let minLateDiff = Infinity;
 
 	scoringEvents.forEach((ev) => {
 		const diff = Math.abs(ev.homeScore - ev.awayScore);
@@ -713,7 +750,7 @@ function computeGameExcitement(playByPlayJson) {
 		leader = nextLeader;
 
 		if (leaderDiff < 0) {
-			const deficit = Math.abs(leaderDiff);
+			const deficit = -leaderDiff;
 			if (deficit > comebackHome.maxDeficit) {
 				comebackHome.maxDeficit = deficit;
 			}
@@ -735,16 +772,14 @@ function computeGameExcitement(playByPlayJson) {
 		if (ev.period >= 4) {
 			minLateDiff = Math.min(minLateDiff, diff);
 			const secondsRemaining = parseClockToSeconds(ev.clock);
-			if (Number.isFinite(secondsRemaining)) {
-				if (secondsRemaining <= 300) {
-					totalCrunchEvents++;
-					if (diff <= 3) {
-						countHighCrunch++;
-					} else if (diff <= 7) {
-						countMediumCrunch++;
-					} else if (diff <= 12) {
-						countLightCrunch++;
-					}
+			if (Number.isFinite(secondsRemaining) && secondsRemaining <= 300) {
+				totalCrunchEvents++;
+				if (diff <= 3) {
+					countHighCrunch++;
+				} else if (diff <= 7) {
+					countMediumCrunch++;
+				} else if (diff <= 12) {
+					countLightCrunch++;
 				}
 			}
 		}
@@ -773,96 +808,41 @@ function computeGameExcitement(playByPlayJson) {
 		crunchTimeScore = Math.round(crunchTimeScore * (0.7 + 0.3 * marginFactor));
 	}
 
-	function computeTeamComebackIntensity(teamComeback) {
-		if (teamComeback.maxDeficit < BIG_DEFICIT_THRESHOLD) return 0;
-		if (!Number.isFinite(teamComeback.bestDiff)) return 0;
+	const homeIntensity = computeTeamComebackIntensity(comebackHome, BIG_DEFICIT_THRESHOLD);
+	const awayIntensity = computeTeamComebackIntensity(comebackAway, BIG_DEFICIT_THRESHOLD);
 
-		let sizeFactor = 0;
-		if (teamComeback.maxDeficit >= 20) {
-			sizeFactor = 1;
-		} else if (teamComeback.maxDeficit >= 15) {
-			sizeFactor = 0.8;
-		} else if (teamComeback.maxDeficit >= 10) {
-			sizeFactor = 0.6;
-		}
-
-		let distanceFactor = 0;
-		if (teamComeback.bestDiff <= 3) {
-			distanceFactor = 1;
-		} else if (teamComeback.bestDiff <= 6) {
-			distanceFactor = 0.6;
-		} else {
-			distanceFactor = 0;
-		}
-
-		if (!teamComeback.bestPeriod || teamComeback.bestPeriod < 4) {
-			return sizeFactor * distanceFactor * 0.7;
-		}
-
-		return sizeFactor * distanceFactor;
-	}
-
-	const homeIntensity = computeTeamComebackIntensity(comebackHome);
-	const awayIntensity = computeTeamComebackIntensity(comebackAway);
+	const homeWon = finalHomeScore > finalAwayScore;
+	const awayWon = finalAwayScore > finalHomeScore;
+	const winnerWeight = 1;
+	const loserWeight = 0.7;
 
 	let comebackScoreBase = 0;
-	if (hasFinalScores) {
-		const homeWon = finalHomeScore > finalAwayScore;
-		const awayWon = finalAwayScore > finalHomeScore;
-		const winnerWeight = 1;
-		const loserWeight = 0.7;
-
-		if (homeIntensity > 0) {
-			if (homeWon) {
-				comebackScoreBase += homeIntensity * winnerWeight;
-			} else if (awayWon) {
-				comebackScoreBase += homeIntensity * loserWeight;
-			} else {
-				comebackScoreBase += homeIntensity * 0.85;
-			}
-		}
-
-		if (awayIntensity > 0) {
-			if (awayWon) {
-				comebackScoreBase += awayIntensity * winnerWeight;
-			} else if (homeWon) {
-				comebackScoreBase += awayIntensity * loserWeight;
-			} else {
-				comebackScoreBase += awayIntensity * 0.85;
-			}
-		}
-	}
+	comebackScoreBase += applyComebackScore(homeIntensity, homeWon, awayWon, winnerWeight, loserWeight);
+	comebackScoreBase += applyComebackScore(awayIntensity, awayWon, homeWon, winnerWeight, loserWeight);
 
 	comebackScoreBase = Math.min(1, comebackScoreBase);
 	let comebackScore = Math.round(comebackScoreBase * 10);
 	const comebackScale = 0.5 + 0.5 * crunchRelevance;
 	comebackScore = Math.round(comebackScore * comebackScale * marginFactor);
 
-	const totalPoints = hasFinalScores ? finalHomeScore + finalAwayScore : 0;
+	const totalPoints = finalHomeScore + finalAwayScore;
 
 	let offenseScore = 0;
-	if (finalMargin <= 10) {
-		let offenseBase = 0;
+	if (finalMargin <= 10 && totalPoints > 180) {
+		let offenseBase;
 		if (totalPoints >= 230) {
 			offenseBase = 5;
-		} else if (totalPoints > 180) {
+		} else {
 			offenseBase = ((totalPoints - 180) / 50) * 5;
 		}
-		offenseBase = Math.max(0, Math.min(5, offenseBase));
-		offenseScore = Math.round(offenseBase * marginFactor);
+		offenseScore = Math.round(Math.min(5, offenseBase) * marginFactor);
 	}
 
 	const maxPeriod = (actions || []).reduce(
 		(max, action) => Math.max(max, Number(action?.period) || 0),
 		0,
 	);
-	const overtimeCount = Math.max(0, maxPeriod - 4);
-	let otBonus = 0;
-	if (overtimeCount === 1) {
-		otBonus = 5;
-	} else if (overtimeCount >= 2) {
-		otBonus = 10;
-	}
+	const otBonus = computeOvertimeBonus(maxPeriod);
 
 	const rawScore = closenessScore +
 		swingsScore +
@@ -870,10 +850,10 @@ function computeGameExcitement(playByPlayJson) {
 		comebackScore +
 		offenseScore +
 		otBonus;
-	const score = Math.max(0, Math.min(100, Math.round(rawScore)));
 
-	return score;
+	return Math.max(0, Math.min(100, Math.round(rawScore)));
 }
+
 
 function fetchExcitementForGame(gameId) {
 	if (excitementCache.has(gameId)) {
