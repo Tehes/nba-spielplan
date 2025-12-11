@@ -9,7 +9,7 @@ function that shields the official NBA JSON feeds and adds caching plus derived 
 
 ### Check It Out
 
-Visit the live build at https://tehes.github.io/nba-spielplan/ and explore the schedule directly in
+Visit the live build at https://nba-spielplan.de/ and explore the schedule directly in
 your browser.
 
 ---
