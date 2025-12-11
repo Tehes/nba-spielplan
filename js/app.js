@@ -672,7 +672,17 @@ function computeGameExcitement(playByPlayJson) {
 		if (intensity <= 0) return 0;
 		if (teamWon) return intensity * winnerWeight;
 		if (opponentWon) return intensity * loserWeight;
-		return intensity * 0.85;
+		return 0; // Fallback
+	}
+
+	function updateComebackTracking(comeback, deficit, diff, period, threshold) {
+		if (deficit > comeback.maxDeficit) {
+			comeback.maxDeficit = deficit;
+		}
+		if (comeback.maxDeficit >= threshold && diff < comeback.bestDiff) {
+			comeback.bestDiff = diff;
+			comeback.bestPeriod = period;
+		}
 	}
 
 	let lastHomeScore = 0;
@@ -750,23 +760,21 @@ function computeGameExcitement(playByPlayJson) {
 		leader = nextLeader;
 
 		if (leaderDiff < 0) {
-			const deficit = -leaderDiff;
-			if (deficit > comebackHome.maxDeficit) {
-				comebackHome.maxDeficit = deficit;
-			}
-			if (comebackHome.maxDeficit >= BIG_DEFICIT_THRESHOLD && diff < comebackHome.bestDiff) {
-				comebackHome.bestDiff = diff;
-				comebackHome.bestPeriod = ev.period;
-			}
+			updateComebackTracking(
+				comebackHome,
+				-leaderDiff,
+				diff,
+				ev.period,
+				BIG_DEFICIT_THRESHOLD,
+			);
 		} else if (leaderDiff > 0) {
-			const deficit = leaderDiff;
-			if (deficit > comebackAway.maxDeficit) {
-				comebackAway.maxDeficit = deficit;
-			}
-			if (comebackAway.maxDeficit >= BIG_DEFICIT_THRESHOLD && diff < comebackAway.bestDiff) {
-				comebackAway.bestDiff = diff;
-				comebackAway.bestPeriod = ev.period;
-			}
+			updateComebackTracking(
+				comebackAway,
+				leaderDiff,
+				diff,
+				ev.period,
+				BIG_DEFICIT_THRESHOLD,
+			);
 		}
 
 		if (ev.period >= 4) {
@@ -787,15 +795,8 @@ function computeGameExcitement(playByPlayJson) {
 
 	const avgCloseness = closenessSum / scoringEvents.length;
 	const closenessScore = Math.round(avgCloseness * 40);
-
 	const swingsScore = Math.min(25, leadChanges * 2 + ties);
-
-	let crunchRelevance = 0;
-	if (minLateDiff <= 5) {
-		crunchRelevance = 1;
-	} else if (minLateDiff <= 8) {
-		crunchRelevance = 0.5;
-	}
+	const lateGameCloseness = minLateDiff <= 5 ? 1 : minLateDiff <= 8 ? 0.5 : 0;
 
 	let crunchTimeScore = 0;
 	if (totalCrunchEvents > 0) {
@@ -804,8 +805,7 @@ function computeGameExcitement(playByPlayJson) {
 		const ratioLight = countLightCrunch / totalCrunchEvents;
 		const crunchScoreRaw = (ratioHigh * 20) + (ratioMedium * 15) + (ratioLight * 8);
 		const rawClamped = Math.min(crunchScoreRaw, 20);
-		crunchTimeScore = Math.round(rawClamped * 1.25);
-		crunchTimeScore = Math.round(crunchTimeScore * (0.7 + 0.3 * marginFactor));
+		crunchTimeScore = Math.round(rawClamped * 1.25 * (0.7 + 0.3 * marginFactor));
 	}
 
 	const homeIntensity = computeTeamComebackIntensity(comebackHome, BIG_DEFICIT_THRESHOLD);
@@ -817,28 +817,35 @@ function computeGameExcitement(playByPlayJson) {
 	const loserWeight = 0.7;
 
 	let comebackScoreBase = 0;
-	comebackScoreBase += applyComebackScore(homeIntensity, homeWon, awayWon, winnerWeight, loserWeight);
-	comebackScoreBase += applyComebackScore(awayIntensity, awayWon, homeWon, winnerWeight, loserWeight);
+	comebackScoreBase += applyComebackScore(
+		homeIntensity,
+		homeWon,
+		awayWon,
+		winnerWeight,
+		loserWeight,
+	);
+	comebackScoreBase += applyComebackScore(
+		awayIntensity,
+		awayWon,
+		homeWon,
+		winnerWeight,
+		loserWeight,
+	);
 
 	comebackScoreBase = Math.min(1, comebackScoreBase);
 	let comebackScore = Math.round(comebackScoreBase * 10);
-	const comebackScale = 0.5 + 0.5 * crunchRelevance;
+	const comebackScale = 0.5 + 0.5 * lateGameCloseness;
 	comebackScore = Math.round(comebackScore * comebackScale * marginFactor);
 
 	const totalPoints = finalHomeScore + finalAwayScore;
 
 	let offenseScore = 0;
 	if (finalMargin <= 10 && totalPoints > 180) {
-		let offenseBase;
-		if (totalPoints >= 230) {
-			offenseBase = 5;
-		} else {
-			offenseBase = ((totalPoints - 180) / 50) * 5;
-		}
-		offenseScore = Math.round(Math.min(5, offenseBase) * marginFactor);
+		const offenseBase = Math.min(5, ((totalPoints - 180) / 50) * 5);
+		offenseScore = Math.round(offenseBase * marginFactor);
 	}
 
-	const maxPeriod = (actions || []).reduce(
+	const maxPeriod = actions.reduce(
 		(max, action) => Math.max(max, Number(action?.period) || 0),
 		0,
 	);
@@ -853,7 +860,6 @@ function computeGameExcitement(playByPlayJson) {
 
 	return Math.max(0, Math.min(100, Math.round(rawScore)));
 }
-
 
 function fetchExcitementForGame(gameId) {
 	if (excitementCache.has(gameId)) {
@@ -1740,7 +1746,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-12-10-v1";
+const SERVICE_WORKER_VERSION = "2025-12-11-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
