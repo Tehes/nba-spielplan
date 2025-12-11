@@ -299,16 +299,16 @@ PLAYOFFS and NBA CUP
 }
 
 #playoffs .semi-conference-finals {
-    margin-inline-start: min(110px, 11vw);
+    align-self: center;
 }
 
 #playoffs .conference-finals {
-    margin-inline-start: min(200px, 15vw);
+    align-self: flex-end;
 }
 
 #cup .east-semifinal,
 #cup .west-semifinal {
-    margin-inline-start: auto;
+    align-self: flex-end;
 }
 
 #playoffs :is(.teamA, .teamB) {
@@ -318,13 +318,13 @@ PLAYOFFS and NBA CUP
 
 #cup :is(.teamA, .teamB) {
     display: flex;
-    width: 90px;
+    width: clamp(75px, 20vw, 110px);
 }
 
 #playoffs :is(.teamA, .teamB)>div,
 #cup :is(.teamA, .teamB)>div {
     display: flex;
-    padding: 5px;
+    padding: 5px 2px;
 }
 
 #playoffs .teamA,
