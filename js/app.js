@@ -918,14 +918,20 @@ function updateGameExcitementMeter(playByPlayJson) {
 	gameExcitementValueEl.textContent = `${score}%`;
 
 	let label = "";
-	if (score >= 80) {
+	if (score >= 90) {
+		label = `Bewertung: ${rating}/10 · Instant Classic`;
+	} else if (score >= 80) {
 		label = `Bewertung: ${rating}/10 · Pflichtprogramm`;
+	} else if (score >= 70) {
+		label = `Bewertung: ${rating}/10 · sehr sehenswert`;
 	} else if (score >= 60) {
 		label = `Bewertung: ${rating}/10 · sehenswert`;
-	} else if (score >= 40) {
+	} else if (score >= 50) {
 		label = `Bewertung: ${rating}/10 · solide`;
-	} else if (score >= 20) {
+	} else if (score >= 40) {
 		label = `Bewertung: ${rating}/10 · eher einseitig`;
+	} else if (score >= 30) {
+		label = `Bewertung: ${rating}/10 · Highlights reichen`;
 	} else {
 		label = `Bewertung: ${rating}/10 · skippen`;
 	}
@@ -1746,7 +1752,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-12-11-v1";
+const SERVICE_WORKER_VERSION = "2025-12-11-v2";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
