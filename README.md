@@ -3,7 +3,8 @@
 NBA Schedule is a lightweight Progressive Web App (PWA) that shows every NBA game in your local
 timezone, keeps live scores in sync, and lets you filter the schedule for exactly what you care
 about—without ads or trackers. The UI is written in plain HTML/CSS/JS, backed by a tiny Deno edge
-function that shields the official NBA JSON feeds and adds caching plus derived standings.
+function that shields the official NBA JSON feeds, handles derived standings, and caches only the
+season year for bracket calls.
 
 ---
 
@@ -91,17 +92,19 @@ endpoints:
 
 | Endpoint          | Purpose                                | Notes                                                                                      |
 | ----------------- | -------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `/schedule`       | Raw league schedule from `cdn.nba.com` | Cached in-memory for 5 minutes to avoid hammering the upstream API.                        |
-| `/standings`      | Derived standings table                | Recomputed from the cached schedule so preseason and neutral tournament games are ignored. |
+| `/schedule`       | Raw league schedule from `cdn.nba.com` | Fetched fresh per request; client Cache API handles reuse.                                 |
+| `/standings`      | Derived standings table                | Recomputed from the fresh schedule; client Cache API keeps the payload warm.               |
 | `/scoreboard`     | Live in-day scoreboard feed            | Always proxied without caching; powers the boxscore overlay and in-day score updates.      |
-| `/playoffbracket` | Official bracket JSON                  | Direct proxy so CORS headers stay permissive.                                              |
-| `/istbracket`     | NBA Cup (IST) bracket JSON             | Uses the cached schedule to pick the season year and proxies the official ISTBracket feed. |
+| `/playoffbracket` | Official bracket JSON                  | Uses a 24h-cached season year, then proxies the official bracket feed.                     |
+| `/istbracket`     | NBA Cup (IST) bracket JSON             | Uses a 24h-cached season year, then proxies the official ISTBracket feed.                  |
 | `/boxscore/:id`   | Per-game boxscore                      | Uncached proxy to the NBA live boxscore JSON.                                              |
 | `/playbyplay/:id` | Per-game play-by-play                  | Uncached proxy to the NBA live play-by-play JSON.                                          |
 
 The frontend consumes these endpoints via `fetchData`, which first checks the Cache API before
 hitting the network. When games are live, the app polls `/scoreboard` every minute and merges the
-fresh scores into the already-rendered cards.
+fresh scores into the already-rendered cards. The client caches `schedule`, `standings`, and
+`istbracket` responses (`nba-data-cache`) and the service worker uses stale-while-revalidate for the
+app shell and API calls on the same origin.
 
 ---
 

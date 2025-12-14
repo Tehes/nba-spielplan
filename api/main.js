@@ -52,22 +52,38 @@ const TEAM_META = {
 
 const getMeta = (tricode) => TEAM_META[tricode] || { conf: "?", div: "?" };
 
-// === Cache (only for Schedule!) ===
-let cachedSchedule = null;
-let cachedAt = 0;
-const CACHE_TTL_MS = 5 * 60_000; // 5 min
+// === Cache (only for Season Year) ===
+let cachedSeasonYear = null;
+let seasonYearCachedAt = 0;
+const SEASON_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
-async function getSchedule() {
+async function getSeasonYear() {
 	const now = Date.now();
-	if (cachedSchedule && now - cachedAt < CACHE_TTL_MS) {
-		console.log("[cache hit] schedule");
-		return cachedSchedule;
+
+	if (cachedSeasonYear && (now - seasonYearCachedAt) < SEASON_TTL_MS) {
+		console.log("[cache hit] seasonYear", cachedSeasonYear);
+		return cachedSeasonYear;
 	}
-	console.log("[cache miss] fetching schedule");
-	const data = await fetchUpstream(SCHEDULE_URL);
-	cachedSchedule = data;
-	cachedAt = now;
-	return data;
+
+	try {
+		console.log("[cache miss] fetching seasonYear via schedule");
+		const schedule = await fetchUpstream(SCHEDULE_URL);
+		const seasonYear = schedule?.leagueSchedule?.seasonYear;
+
+		if (!seasonYear) {
+			throw new Error("Season year missing in schedule response");
+		}
+
+		cachedSeasonYear = seasonYear;
+		seasonYearCachedAt = now;
+		return seasonYear;
+	} catch (err) {
+		if (cachedSeasonYear) {
+			console.log("[seasonYear fallback] using last known good", cachedSeasonYear);
+			return cachedSeasonYear;
+		}
+		throw err;
+	}
 }
 
 // === Helper Functions ===
@@ -366,34 +382,31 @@ Deno.serve(async (req) => {
 	}
 
 	try {
-		// --- /schedule: nutzt Cache ---
+		// --- /schedule: fetch fresh ---
 		if (PATH === "/schedule") {
-			const data = await getSchedule();
-			return respondWithCors(data, 60);
+			return proxyWithCors(SCHEDULE_URL);
 		}
 
-		// --- /standings: baut auf gecachtem Schedule auf ---
+		// --- /standings: fetch fresh ---
 		if (PATH === "/standings") {
-			const data = await getSchedule();
+			const data = await fetchUpstream(SCHEDULE_URL);
 			const payload = buildStandingsFromSchedule(data);
 			console.log("[/standings] season", payload.season);
 			return respondWithCors(payload, 60);
 		}
 
-		// --- /playoffbracket: nutzt gecachten Schedule nur für das Jahr ---
+		// --- /playoffbracket: use cached season year only ---
 		if (PATH === "/playoffbracket") {
-			const data = await getSchedule();
-			const seasonString = data?.leagueSchedule?.seasonYear || "2025-26";
+			const seasonString = await getSeasonYear();
 			const year = seasonString.split("-")[0];
 			const playoffUrl =
 				`https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=${year}&State=2`;
 			return proxyWithCors(playoffUrl);
 		}
 
-		// --- /istbracket: nutzt gecachten Schedule nur für das Jahr ---
+		// --- /istbracket: use cached season year only ---
 		if (PATH === "/istbracket") {
-			const data = await getSchedule();
-			const seasonString = data?.leagueSchedule?.seasonYear || "2025-26";
+			const seasonString = await getSeasonYear();
 			const year = seasonString.split("-")[0];
 			const istBracketUrl =
 				`https://cdn.nba.com/static/json/staticData/brackets/${year}/ISTBracket.json`;
