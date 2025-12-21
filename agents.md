@@ -286,11 +286,10 @@ When making changes, always provide:
    - Mention possible side effects if relevant
 
 - Prefer code-first answers. Explanations should be concise and technical.
-- Trust established data shapes **at clear module or API boundaries**.
-- Avoid redundant guards **inside controlled flows** unless a concrete failure mode exists.
-- For data generated and consumed within the same module or lifecycle, do not add defensive
-  fallbacks or extra type checks.
-- Validate at boundaries, not everywhere.
+- Validate data only at clear module/API boundaries; avoid redundant guards inside controlled flows
+  unless a concrete failure mode exists.
+- For data generated and consumed within the same module or lifecycle, trust the structure and do
+  not add fallbacks or extra type checks.
 
 ---
 
