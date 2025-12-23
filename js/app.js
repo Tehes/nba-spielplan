@@ -112,7 +112,7 @@ const cupFinalEl = document.querySelector("#cup-final");
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
 const TOTAL_REGULAR_SEASON_GAMES = 1230;
 const AUTO_REFRESH_INTERVAL_MS = 1 * 60 * 1000; // 1 minute
-const CUP_FINAL_HIDE_MS = 8 * 24 * 60 * 60 * 1000; // 8 Tage
+const CUP_FINAL_HIDE_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
 
 // Load saved states
 checkboxPrimetime.checked = JSON.parse(
@@ -1752,7 +1752,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2025-12-11-v3";
+const SERVICE_WORKER_VERSION = "2025-12-24-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
