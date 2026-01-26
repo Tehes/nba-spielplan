@@ -165,7 +165,7 @@ function prepareGameData() {
 		const { isPostponed, isFinal, isLive } = getGameState(game, live, now);
 		const isToday = game.localDate >= todayStart && game.localDate < tomorrowStart;
 
-		if ((isToday && !isPostponed) || isLive) games.today.push(game);
+		if (isToday || isLive) games.today.push(game);
 		else if (isFinal) games.finished.push(game);
 		else if (game.localDate >= tomorrowStart && !isPostponed) games.scheduled.push(game);
 	});
@@ -390,7 +390,7 @@ function renderTodaysGames() {
 	if (games.today.length > 0) {
 		games.today.forEach((g) => {
 			const live = liveById.get(g.gameId);
-			const { isFinal, isLive } = getGameState(g, live, now);
+			const { isPostponed, isFinal, isLive } = getGameState(g, live, now);
 			const template = document.querySelector("#template-today");
 			const clone = template.content.cloneNode(true);
 			const card = clone.querySelector(".card");
@@ -489,7 +489,7 @@ function renderTodaysGames() {
 			} else {
 				// SCHEDULED
 				date.classList.remove("live");
-				date.textContent = g.time;
+				date.textContent = isPostponed ? "PPD" : g.time;
 				homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
 				visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 			}
@@ -540,7 +540,10 @@ function getGameState(game, live, now = new Date()) {
 	const start = game?.localDate instanceof Date ? game.localDate : new Date(game?.localDate);
 	const startMs = start?.getTime?.() ?? NaN;
 	const hasValidStart = Number.isFinite(startMs);
-	const isPostponed = game?.gameStatus === 4;
+	const statusText = (live?.gameStatusText || game?.gameStatusText || "").toUpperCase();
+	const isPostponed = game?.postponedStatus === "Y" ||
+		live?.postponedStatus === "Y" ||
+		statusText === "PPD";
 	const isFinal = game?.gameStatus === 3 || live?.gameStatus === 3;
 	const inLiveWindow = hasValidStart &&
 		!isFinal &&
@@ -1651,7 +1654,11 @@ function shouldReloadData() {
 function storeNextScheduledGame() {
 	const allScheduledGames = games.scheduled.concat(
 		games.today.filter((game) => game.gameStatus !== 3),
-	);
+	).filter((game) => {
+		const live = liveById.get(game.gameId);
+		const { isPostponed } = getGameState(game, live);
+		return !isPostponed;
+	});
 
 	if (allScheduledGames.length === 0) {
 		return;
