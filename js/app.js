@@ -53,7 +53,8 @@ const todaysScoreboardURL = "https://nba-spielplan.tehes.deno.net/scoreboard";
 const boxscoreURL = "https://nba-spielplan.tehes.deno.net/boxscore";
 const playByPlayURL = "https://nba-spielplan.tehes.deno.net/playbyplay";
 const istBracketURL = "https://nba-spielplan.tehes.deno.net/istbracket";
-const coreCacheUrls = new Set([scheduleURL, standingsURL, istBracketURL]);
+const playoffBracketURL = "https://nba-spielplan.tehes.deno.net/playoffbracket";
+const coreCacheUrls = new Set([scheduleURL, standingsURL, istBracketURL, playoffBracketURL]);
 
 // Data Holders
 let liveById = new Map();
@@ -64,6 +65,7 @@ let schedule;
 let standings;
 let games = {};
 let istBracket = null;
+let playoffBracket = null;
 
 let currentBoxscore = null;
 let currentPlayByPlay = null;
@@ -107,6 +109,11 @@ const cupEl = document.querySelector("#cup");
 const cupWestEl = document.querySelector("#cup-west");
 const cupEastEl = document.querySelector("#cup-east");
 const cupFinalEl = document.querySelector("#cup-final");
+const playoffsHeadlineEl = document.querySelector("#playoffs-headline");
+const playoffsEl = document.querySelector("#playoffs");
+const westernEl = document.querySelector("#western");
+const easternEl = document.querySelector("#eastern");
+const finalsEl = document.querySelector("#finals");
 
 // Constants
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
@@ -194,7 +201,7 @@ function updateLive(liveJson) {
 	const arr = liveJson?.scoreboard?.games ?? [];
 	liveById = new Map(arr.map((g) => [g.gameId, g]));
 	renderTodaysGames();
-	updateCupBracket();
+	updateBrackets();
 
 	if (!gameOverlayEl.classList.contains("hidden")) {
 		const gameId = gameOverlayEl.dataset.gameId;
@@ -228,17 +235,20 @@ function updateLive(liveJson) {
 NBA CUP
 ---------------------------------------------------------------------------------------------------*/
 
-function createMatchupNode(series, extraClass) {
+function createMatchupNode(series, extraClass, options = {}) {
 	const tmpl = document.getElementById("template-matchup");
 	const node = tmpl.content.firstElementChild.cloneNode(true);
 	if (extraClass) {
 		node.classList.add(extraClass);
 	}
+	node.dataset.round = series?.roundNumber ?? "";
 
 	const teamANameEl = node.querySelector(".teamA .teamname");
 	const teamBNameEl = node.querySelector(".teamB .teamname");
 	const teamAScoreEl = node.querySelector(".teamA .score");
 	const teamBScoreEl = node.querySelector(".teamB .score");
+	const scoreMode = options.scoreMode || "game";
+	const hasSeries = !!series;
 
 	// Defensive: handle falsy series
 	const status = Number(series?.nextGameStatus) || 0;
@@ -259,28 +269,36 @@ function createMatchupNode(series, extraClass) {
 	let topScoreNum = null;
 	let bottomScoreNum = null;
 
-	if (topId === highId) {
+	if (hasSeries && topId === highId) {
 		// Top row = high seed
 		topCode = highCode;
-		topScoreNum = isFinal ? Number(series?.highSeedScore) : null;
-	} else if (topId === lowId) {
+		topScoreNum = scoreMode === "series"
+			? Number(series?.highSeedSeriesWins)
+			: (isFinal ? Number(series?.highSeedScore) : null);
+	} else if (hasSeries && topId === lowId) {
 		// Top row = low seed
 		topCode = lowCode;
-		topScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
+		topScoreNum = scoreMode === "series"
+			? Number(series?.lowSeedSeriesWins)
+			: (isFinal ? Number(series?.lowSeedScore) : null);
 	}
 
-	if (bottomId === lowId) {
+	if (hasSeries && bottomId === lowId) {
 		// Bottom row = low seed
 		bottomCode = lowCode;
-		bottomScoreNum = isFinal ? Number(series?.lowSeedScore) : null;
-	} else if (bottomId === highId) {
+		bottomScoreNum = scoreMode === "series"
+			? Number(series?.lowSeedSeriesWins)
+			: (isFinal ? Number(series?.lowSeedScore) : null);
+	} else if (hasSeries && bottomId === highId) {
 		// Bottom row = high seed
 		bottomCode = highCode;
-		bottomScoreNum = isFinal ? Number(series?.highSeedScore) : null;
+		bottomScoreNum = scoreMode === "series"
+			? Number(series?.highSeedSeriesWins)
+			: (isFinal ? Number(series?.highSeedScore) : null);
 	}
 
-	const hasTopScore = isFinal && Number.isFinite(topScoreNum);
-	const hasBottomScore = isFinal && Number.isFinite(bottomScoreNum);
+	const hasTopScore = Number.isFinite(topScoreNum);
+	const hasBottomScore = Number.isFinite(bottomScoreNum);
 
 	teamANameEl.textContent = topCode || "";
 	teamANameEl.style.setProperty("background-color", `var(--${topCode})`);
@@ -376,6 +394,82 @@ function updateCupBracket() {
 	// Final in the middle
 	const finalNode = createMatchupNode(finalSeries, "final");
 	cupFinalEl.appendChild(finalNode);
+}
+
+function resetPlayoffBracket() {
+	westernEl.replaceChildren();
+	easternEl.replaceChildren();
+	finalsEl.replaceChildren();
+	playoffsEl.classList.add("hidden");
+	playoffsHeadlineEl.classList.add("hidden");
+}
+
+function appendPlayoffConference(columnEl, firstRoundSeries, semifinals, conferenceFinal) {
+	const sortedFirstRound = firstRoundSeries
+		.slice()
+		.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
+	const sortedSemifinals = semifinals
+		.slice()
+		.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
+	const playoffOptions = { scoreMode: "series" };
+
+	columnEl.appendChild(createMatchupNode(sortedFirstRound[0], null, playoffOptions));
+	columnEl.appendChild(
+		createMatchupNode(sortedSemifinals[0], "semi-conference-finals", playoffOptions),
+	);
+	columnEl.appendChild(createMatchupNode(sortedFirstRound[1], null, playoffOptions));
+	columnEl.appendChild(
+		createMatchupNode(conferenceFinal, "conference-finals", playoffOptions),
+	);
+	columnEl.appendChild(createMatchupNode(sortedFirstRound[2], null, playoffOptions));
+	columnEl.appendChild(
+		createMatchupNode(sortedSemifinals[1], "semi-conference-finals", playoffOptions),
+	);
+	columnEl.appendChild(createMatchupNode(sortedFirstRound[3], null, playoffOptions));
+}
+
+function updatePlayoffBracket() {
+	const series = playoffBracket?.bracket?.playoffBracketSeries || [];
+	if (!series.length) {
+		resetPlayoffBracket();
+		return;
+	}
+
+	const westFirstRound = series.filter((s) => (
+		s.roundNumber === 1 && s.seriesConference === "West"
+	));
+	const eastFirstRound = series.filter((s) => (
+		s.roundNumber === 1 && s.seriesConference === "East"
+	));
+	const westSemifinals = series.filter((s) => (
+		s.roundNumber === 2 && s.seriesConference === "West"
+	));
+	const eastSemifinals = series.filter((s) => (
+		s.roundNumber === 2 && s.seriesConference === "East"
+	));
+	const westConferenceFinal = series.find((s) => (
+		s.roundNumber === 3 && s.seriesConference === "West"
+	));
+	const eastConferenceFinal = series.find((s) => (
+		s.roundNumber === 3 && s.seriesConference === "East"
+	));
+	const nbaFinals = series.find((s) => s.roundNumber === 4);
+
+	westernEl.replaceChildren();
+	easternEl.replaceChildren();
+	finalsEl.replaceChildren();
+
+	playoffsHeadlineEl.classList.remove("hidden");
+	playoffsEl.classList.remove("hidden");
+
+	appendPlayoffConference(westernEl, westFirstRound, westSemifinals, westConferenceFinal);
+	appendPlayoffConference(easternEl, eastFirstRound, eastSemifinals, eastConferenceFinal);
+	finalsEl.appendChild(createMatchupNode(nbaFinals, null, { scoreMode: "series" }));
+}
+
+function updateBrackets() {
+	updateCupBracket();
+	updatePlayoffBracket();
 }
 
 /* --------------------------------------------------------------------------------------------------
@@ -1531,7 +1625,7 @@ function handleScheduleData(json) {
 			checkboxHidePastGames.checked = false;
 		}
 		renderMoreGames();
-		updateCupBracket();
+		updateBrackets();
 	} else {
 		console.log(
 			"Schedule data not available. Skipping schedule rendering.",
@@ -1564,7 +1658,17 @@ function handleIstBracketData(json) {
 	}
 
 	istBracket = json;
-	updateCupBracket();
+	updateBrackets();
+}
+
+function handlePlayoffBracketData(json) {
+	if (!json || !json.bracket || !Array.isArray(json.bracket.playoffBracketSeries)) {
+		console.log("Playoff bracket data not available. Skipping playoff bracket rendering.");
+		return;
+	}
+
+	playoffBracket = json;
+	updateBrackets();
 }
 
 function shouldRerender() {
@@ -1677,11 +1781,13 @@ async function loadData() {
 	storeNextScheduledGame();
 	await fetchData(standingsURL, handleStandingsData);
 	await fetchData(istBracketURL, handleIstBracketData);
+	await fetchData(playoffBracketURL, handlePlayoffBracketData);
 
 	if (shouldReloadData()) {
 		await fetchData(scheduleURL, handleScheduleData, true);
 		await fetchData(standingsURL, handleStandingsData, true);
 		await fetchData(istBracketURL, handleIstBracketData, true);
+		await fetchData(playoffBracketURL, handlePlayoffBracketData, true);
 	}
 }
 
@@ -1759,7 +1865,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-01-26-v1";
+const SERVICE_WORKER_VERSION = "2026-04-14-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
