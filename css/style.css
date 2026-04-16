@@ -254,10 +254,16 @@ PLAYOFFS and NBA CUP
 
 #playoffs,
 #cup {
+    --bracket-stroke-color: var(--divider-color);
+    --bracket-stroke-width: 2px;
+    --bracket-gap: 10px;
+    --bracket-matchup-height: 69px;
+    --bracket-round-link-height: 45px;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: var(--bracket-gap);
+    container-type: inline-size;
 }
 
 #playoffs>div,
@@ -266,18 +272,61 @@ PLAYOFFS and NBA CUP
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    flex: 0 1 32%;
-    gap: 10px;
+    flex: 0 1 40%;
+    gap: var(--bracket-gap);
+    position: relative;
 }
 
 #playoffs #finals,
 #cup #cup-final {
     align-items: center;
+    flex: 0 0 var(--bracket-matchup-width);
 }
 
 #playoffs #eastern,
 #cup #cup-east {
     direction: rtl;
+}
+
+#playoffs {
+    --bracket-matchup-width: 75px;
+    --bracket-column-width: min(
+        40cqw,
+        calc((100cqw - var(--bracket-matchup-width) - (var(--bracket-gap) * 2)) / 2)
+    );
+    --bracket-side-link-length: max(
+        0px,
+        calc(
+            (var(--bracket-column-width) / 2)
+            - var(--bracket-matchup-width)
+            - (var(--bracket-stroke-width) / 2)
+        )
+    );
+    --bracket-final-link-length: calc(
+        var(--bracket-gap) + (var(--bracket-matchup-width) / 2) - (var(--bracket-stroke-width) / 2)
+    );
+}
+
+#cup {
+    --bracket-matchup-width: clamp(75px, 20vw, 110px);
+    --bracket-column-width: min(
+        40cqw,
+        calc((100cqw - var(--bracket-matchup-width) - (var(--bracket-gap) * 2)) / 2)
+    );
+    --bracket-side-link-length: max(
+        0px,
+        calc(
+            var(--bracket-column-width)
+            - (var(--bracket-matchup-width) * 1.5)
+            - (var(--bracket-stroke-width) / 2)
+        )
+    );
+    --bracket-final-link-length: max(
+        var(--bracket-gap),
+        calc(
+            (100cqw - (var(--bracket-column-width) * 2) - var(--bracket-matchup-width)) / 2
+        )
+    );
 }
 
 #playoffs .matchup,
@@ -289,13 +338,8 @@ PLAYOFFS and NBA CUP
     background-color: var(--card-bg);
     border-radius: var(--card-corners);
     box-shadow: var(--card-shadow);
-    min-height: 69px;
-}
-
-#playoffs #eastern .matchup,
-#cup #cup-east .matchup {
-    --radius-first: var(--card-corners) 0 0 0;
-    --radius-last: 0 0 0 var(--card-corners);
+    min-height: var(--bracket-matchup-height);
+    position: relative;
 }
 
 #playoffs .semi-conference-finals {
@@ -311,14 +355,16 @@ PLAYOFFS and NBA CUP
     align-self: flex-end;
 }
 
-#playoffs :is(.teamA, .teamB) {
-    display: flex;
-    width: 75px;
+#playoffs #eastern .matchup,
+#cup #cup-east .matchup {
+    --radius-first: var(--card-corners) 0 0 0;
+    --radius-last: 0 0 0 var(--card-corners);
 }
 
+#playoffs :is(.teamA, .teamB),
 #cup :is(.teamA, .teamB) {
     display: flex;
-    width: clamp(75px, 20vw, 110px);
+    width: var(--bracket-matchup-width);
 }
 
 #playoffs :is(.teamA, .teamB)>div,
@@ -362,6 +408,153 @@ PLAYOFFS and NBA CUP
 #playoffs .matchup>div:last-child .teamname,
 #cup .matchup>div:last-child .teamname {
     border-radius: var(--radius-last);
+}
+
+#playoffs .round-1::after,
+#playoffs .round-2:is(.outer-bracket-left, .outer-bracket-right)::before,
+#playoffs .round-2:is(.pair-a, .pair-b)::after,
+#playoffs .round-3::before,
+#playoffs .round-3::after,
+#playoffs .round-4::before,
+#playoffs .round-4::after,
+#cup #cup-west .matchup:first-child::after,
+#cup #cup-west .matchup:last-child::after,
+#cup #cup-east .matchup:first-child::after,
+#cup #cup-east .matchup:last-child::after,
+#cup .west-semifinal::before,
+#cup .east-semifinal::before,
+#cup .final::before,
+#cup .final::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: -1;
+}
+
+#cup #cup-west .matchup:first-child::after,
+#cup #cup-east .matchup:first-child::after,
+#playoffs .round-1.slot-top::after {
+    top: 100%;
+    left: 50%;
+    width: var(--bracket-stroke-width);
+    height: var(--bracket-round-link-height);
+    transform: translateX(-50%);
+    background-color: var(--bracket-stroke-color);
+}
+
+#cup #cup-west .matchup:last-child::after,
+#cup #cup-east .matchup:last-child::after,
+#playoffs .round-1.slot-bottom::after {
+    bottom: 100%;
+    left: 50%;
+    width: var(--bracket-stroke-width);
+    height: var(--bracket-round-link-height);
+    transform: translateX(-50%);
+    background-color: var(--bracket-stroke-color);
+}
+
+#cup .west-semifinal::before,
+#cup .east-semifinal::before {
+    top: 50%;
+    width: var(--bracket-side-link-length);
+    height: var(--bracket-stroke-width);
+    transform: translateY(-50%);
+    background-color: var(--bracket-stroke-color);
+}
+
+#cup .west-semifinal::before {
+    right: 100%;
+}
+
+#cup .east-semifinal::before {
+    left: 100%;
+}
+
+#cup .final::before,
+#cup .final::after {
+    top: 50%;
+    width: var(--bracket-final-link-length);
+    height: var(--bracket-stroke-width);
+    transform: translateY(-50%);
+    background-color: var(--bracket-stroke-color);
+}
+
+#cup .final::before {
+    right: 100%;
+}
+
+#cup .final::after {
+    left: 100%;
+}
+
+#playoffs .round-2.outer-bracket-left::before {
+    top: 50%;
+    right: 100%;
+    width: var(--bracket-side-link-length);
+    height: var(--bracket-stroke-width);
+    transform: translateY(-50%);
+    background-color: var(--bracket-stroke-color);
+}
+
+#playoffs .round-2.outer-bracket-right::before {
+    top: 50%;
+    left: 100%;
+    width: var(--bracket-side-link-length);
+    height: var(--bracket-stroke-width);
+    transform: translateY(-50%);
+    background-color: var(--bracket-stroke-color);
+}
+
+#playoffs .conference-west .round-2:is(.pair-a, .pair-b)::after {
+    top: 50%;
+    left: 100%;
+    width: var(--bracket-side-link-length);
+    height: var(--bracket-stroke-width);
+    transform: translateY(-50%);
+    background-color: var(--bracket-stroke-color);
+}
+
+#playoffs .conference-east .round-2:is(.pair-a, .pair-b)::after {
+    top: 50%;
+    right: 100%;
+    width: var(--bracket-side-link-length);
+    height: var(--bracket-stroke-width);
+    transform: translateY(-50%);
+    background-color: var(--bracket-stroke-color);
+}
+
+#playoffs .round-3::before,
+#playoffs .round-3::after {
+    left: 50%;
+    width: var(--bracket-stroke-width);
+    height: 124px;
+    transform: translateX(-50%);
+    background-color: var(--bracket-stroke-color);
+}
+
+#playoffs .round-3::before {
+    bottom: 100%;
+}
+
+#playoffs .round-3::after {
+    top: 100%;
+}
+
+#playoffs .round-4::before,
+#playoffs .round-4::after {
+    top: 50%;
+    width: var(--bracket-final-link-length);
+    height: var(--bracket-stroke-width);
+    transform: translateY(-50%);
+    background-color: var(--bracket-stroke-color);
+}
+
+#playoffs .round-4::before {
+    right: 100%;
+}
+
+#playoffs .round-4::after {
+    left: 100%;
 }
 
 /*
