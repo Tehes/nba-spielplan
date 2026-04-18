@@ -114,6 +114,11 @@ async function proxyWithCors(url) {
 	return new Response(res.body, { status: res.status, headers });
 }
 
+function isRegularSeasonGame(game) {
+	// NBA game IDs encode the stage: 002 = regular season.
+	return game?.gameId?.startsWith("002") === true;
+}
+
 function buildStandingsFromSchedule(scheduleJson) {
 	const season = scheduleJson?.meta?.seasonYear ||
 		scheduleJson?.leagueSchedule?.seasonYear || "unknown";
@@ -162,12 +167,7 @@ function buildStandingsFromSchedule(scheduleJson) {
 	}
 
 	const done = games
-		.filter((g) =>
-			g?.gameStatus === 3 &&
-			g?.gameLabel !== "Preseason" &&
-			!(g?.gameLabel === "Emirates NBA Cup" &&
-				g?.gameSubLabel?.toLowerCase() === "championship")
-		)
+		.filter((g) => g?.gameStatus === 3 && isRegularSeasonGame(g))
 		.sort((a, b) => new Date(a.gameDateTimeUTC) - new Date(b.gameDateTimeUTC));
 
 	for (const g of done) {

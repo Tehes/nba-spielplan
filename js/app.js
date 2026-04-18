@@ -428,7 +428,7 @@ function prepareGameData() {
 				year: "numeric",
 			});
 			game.time = game.localDate.toLocaleTimeString(currentLocale, {
-				hour: "2-digit",
+				hour: "numeric",
 				minute: "2-digit",
 			});
 		}
@@ -450,13 +450,16 @@ function prepareGameData() {
 /* --------------------------------------------------------------------------------------------------
 PROGRESS BAR
 ---------------------------------------------------------------------------------------------------*/
+function isRegularSeasonGame(game) {
+	// NBA game IDs encode the stage: 002 = regular season.
+	return game?.gameId?.startsWith("002") === true;
+}
+
 function setProgressBar() {
-	const notPre = (g) => g.gameLabel !== "Preseason";
+	const done = (games.finished?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0) +
+		(games.today?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0);
 
-	const done = (games.finished?.filter(notPre).filter((g) => g.gameStatus === 3).length ?? 0) +
-		(games.today?.filter(notPre).filter((g) => g.gameStatus === 3).length ?? 0);
-
-	const pct = Math.floor((done * 100) / TOTAL_REGULAR_SEASON_GAMES);
+	const pct = Math.min(100, Math.floor((done * 100) / TOTAL_REGULAR_SEASON_GAMES));
 
 	progressValue.style.width = `${pct}%`;
 	progressValue.textContent = `${pct}%`;
