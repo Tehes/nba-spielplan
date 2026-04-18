@@ -167,6 +167,27 @@ h3 {
     margin: 10px 0 0 0;
 }
 
+.section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 10px;
+}
+
+.section-head h3 {
+    margin: 0;
+}
+
+.section-head select {
+    padding-top: 5px;
+    padding-bottom: 5px;
+    background-position: calc(100% - 20px) 50%,
+        calc(100% - 15px) 50%,
+        calc(100% - 2.5em) 50%;
+}
+
 h4 {
     margin: 15px 0 0 0;
     text-transform: uppercase;

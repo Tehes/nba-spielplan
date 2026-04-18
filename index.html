@@ -5,28 +5,29 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-title" content="NBA-Spielplan">
+	<meta name="apple-mobile-web-app-title" content="NBA-Spielplan" data-i18n-content="appName">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black">
 	<meta name="theme-color" content="hsl(0, 0%, 95%)" media="(prefers-color-scheme: light)">
 	<meta name="theme-color" content="hsl(0, 0%, 20%)" media="(prefers-color-scheme: dark)">
 
-	<title>NBA-Spielplan – schnell, werbefrei, offlinefähig</title>
+	<title data-i18n="documentTitle">NBA-Spielplan – schnell, werbefrei, offlinefähig</title>
 
 	<!-- SEO -->
-	<meta name="description"
+	<meta name="description" data-i18n-content="metaDescription"
 		content="Alle NBA-Spiele automatisch in deiner Zeitzone – mit Live-Scores und Prime-Time-Filter. Schnell, werbefrei, offline nutzbar. Einfach zum Homescreen hinzufügen und wie eine App starten.">
 
 	<!-- Open Graph -->
 	<meta property="og:type" content="website">
-	<meta property="og:title" content="NBA-Spielplan in deiner Zeitzone – schnell, werbefrei, offline nutzbar">
-	<meta property="og:description"
+	<meta property="og:title" data-i18n-content="ogTitle"
+		content="NBA-Spielplan in deiner Zeitzone – schnell, werbefrei, offline nutzbar">
+	<meta property="og:description" data-i18n-content="ogDescription"
 		content="Alle NBA-Spiele automatisch in deiner Zeitzone – schnell, werbefrei und auch offline nutzbar. Einfach zum Homescreen hinzufügen und wie eine App starten.">
 	<meta property="og:url" content="https://tehes.github.io/nba-spielplan/">
 	<meta property="og:image" content="https://tehes.github.io/nba-spielplan/img/og_image.png">
 
 	<link rel="apple-touch-icon" href="icons/180x180.png" />
 	<link rel="shortcut icon" href="icons/favicon.png">
-	<link rel="manifest" href="manifest.json">
+	<link rel="manifest" href="manifest.json" id="app-manifest">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link
@@ -37,15 +38,21 @@
 	<script defer src="https://cloud.umami.is/script.js" data-website-id="a22973c9-51e3-4ed8-b6ab-dcb37e1ec9a3"></script>
 </head>
 
-<body>
-	<div id="container">
-		<main>
-			<h3>Saisonfortschritt</h3>
-			<div id="progress-bar" class="meter-container">
-				<div id="progress-value" class="meter-fill"></div>
-			</div>
-			<h1 class="hidden" id="cup-headline">NBA Cup</h1>
-			<section id="cup" class="hidden">
+	<body>
+		<div id="container">
+			<main>
+					<div class="section-head">
+						<h3 data-i18n="seasonProgress">Saisonfortschritt</h3>
+						<select id="language-picker">
+							<option value="de">🇩🇪 Deutsch</option>
+							<option value="en">🇺🇸 English</option>
+						</select>
+					</div>
+				<div id="progress-bar" class="meter-container">
+					<div id="progress-value" class="meter-fill"></div>
+				</div>
+				<h1 class="hidden" id="cup-headline">NBA Cup</h1>
+				<section id="cup" class="hidden">
 				<div id="cup-west"></div>
 				<div id="cup-final"></div>
 				<div id="cup-east"></div>
@@ -56,21 +63,21 @@
 				<div id="finals"></div>
 				<div id="eastern"></div>
 			</section>
-			<h1>Heute</h1>
+			<h1 data-i18n="todayHeadline">Heute</h1>
 			<div class="options">
-				<label class="show-scores">Ergebnisse anzeigen
+				<label class="show-scores"><span data-i18n="showScores">Ergebnisse anzeigen</span>
 					<input type="checkbox" checked />
 					<span class="checkmark"></span>
-				</label>
-				<label class="show-rating">Spielbewertung anzeigen
-					<input type="checkbox" />
-					<span class="checkmark"></span>
-				</label>
-			</div>
+					</label>
+					<label class="show-rating"><span data-i18n="showRating">Spielbewertung anzeigen</span>
+						<input type="checkbox" checked />
+						<span class="checkmark"></span>
+					</label>
+				</div>
 			<div id="info">
-				<span>Info</span>
-				<span>Gast</span>
-				<span>Heim</span>
+				<span data-i18n="info">Info</span>
+				<span data-i18n="away">Gast</span>
+				<span data-i18n="home">Heim</span>
 			</div>
 			<section id="today">
 				<div class="card">
@@ -104,11 +111,11 @@
 					<div class="home-team"></div>
 				</div>
 			</section>
-			<div class="jump-link"><a href="#tables">Zur Tabelle</a></div>
-			<h2>weitere Spiele</h2>
+			<div class="jump-link"><a href="#tables" data-i18n="standingsJump">Zur Tabelle</a></div>
+			<h2 data-i18n="moreGames">weitere Spiele</h2>
 			<div class="options">
-				<select>
-					<option value="">Alle Teams</option>
+				<select id="team-picker">
+					<option value="" data-i18n="allTeams">Alle Teams</option>
 					<option value="ATL">Atlanta Hawks</option>
 					<option value="BOS">Boston Celtics</option>
 					<option value="BKN">Brooklyn Nets</option>
@@ -140,11 +147,11 @@
 					<option value="UTA">Utah Jazz</option>
 					<option value="WAS">Washington Wizards</option>
 				</select>
-				<label class="hide-past-games">vergangene Spiele ausblenden
+				<label class="hide-past-games"><span data-i18n="hidePastGames">vergangene Spiele ausblenden</span>
 					<input type="checkbox" checked />
 					<span class="checkmark"></span>
 				</label>
-				<label class="filter-primetime">Nur Prime Time Spiele
+				<label class="filter-primetime"><span data-i18n="primetimeOnly">Nur Prime Time Spiele</span>
 					<input type="checkbox" />
 					<span class="checkmark"></span>
 				</label>
@@ -189,12 +196,12 @@
 					<table class="standings">
 						<tr>
 							<th></th>
-							<th>Name</th>
+							<th data-i18n="standingsTeam">Name</th>
 							<th>W-L</th>
 							<th>GB</th>
 							<th>STR</th>
-							<th>Home</th>
-							<th>Away</th>
+							<th data-i18n="standingsHome">Home</th>
+							<th data-i18n="standingsAway">Away</th>
 						</tr>
 						<tr>
 							<td>1</td>
@@ -340,12 +347,12 @@
 					<table class="standings">
 						<tr>
 							<th></th>
-							<th>Name</th>
+							<th data-i18n="standingsTeam">Name</th>
 							<th>W-L</th>
 							<th>GB</th>
 							<th>STR</th>
-							<th>Home</th>
-							<th>Away</th>
+							<th data-i18n="standingsHome">Home</th>
+							<th data-i18n="standingsAway">Away</th>
 						</tr>
 						<tr>
 							<td>1</td>
@@ -489,7 +496,7 @@
 	</div>
 	<footer>
 		<p>made by Tehes</p>
-		<p><a href="#top">Zurück nach oben</a></p>
+		<p><a href="#top" data-i18n="backToTop">Zurück nach oben</a></p>
 		<div><a href="https://www.threads.net/@tehes83"><img src="svg/threads.svg" width="35" height="35"
 					alt="Threads Logo"></a><a href="https://github.com/tehes"><img src="svg/github.svg" width="35"
 					height="35" alt="Github Logo"></a></div>
@@ -499,7 +506,7 @@
 		<div class="close"><img src="img/close.svg" alt="close Icon"></div>
 		<div id="game-overlay-content">
 			<div id="game-excitement">
-				<h4>Spannung</h4>
+				<h4 data-i18n="excitement">Spannung</h4>
 				<div id="game-excitement-bar" class="meter-container">
 					<div id="game-excitement-value" class="meter-fill">0%</div>
 				</div>
@@ -515,7 +522,7 @@
 			</div>
 
 			<div id="boxscore-panel" class="panel is-active">
-				<h3>Viertelverlauf</h3>
+				<h3 data-i18n="quarterByQuarter">Viertelverlauf</h3>
 				<div id="periods">
 					<table class="periods-table">
 						<thead>
@@ -524,49 +531,49 @@
 						</tbody>
 					</table>
 				</div>
-				<h3>Team-Vergleich</h3>
+				<h3 data-i18n="teamComparison">Team-Vergleich</h3>
 				<div id="team-stats">
-					<h5>2 Punkte</h5>
+					<h5 data-i18n="twoPoints">2 Punkte</h5>
 					<div class="stat" data-stat="twoPointersMade">
 						<div class="bar away">50%</div>
 						<div class="bar home">50%</div>
 					</div>
-					<h5>3 Punkte</h5>
+					<h5 data-i18n="threePoints">3 Punkte</h5>
 					<div class="stat" data-stat="threePointersMade">
 						<div class="bar away">50%</div>
 						<div class="bar home">50%</div>
 					</div>
-					<h5>Freiwürfe</h5>
+					<h5 data-i18n="freeThrows">Freiwürfe</h5>
 					<div class="stat" data-stat="freeThrowsMade">
 						<div class="bar away">50%</div>
 						<div class="bar home">50%</div>
 					</div>
-					<h5>Rebounds</h5>
+					<h5 data-i18n="rebounds">Rebounds</h5>
 					<div class="stat" data-stat="reboundsTotal">
 						<div class="bar away">50%</div>
 						<div class="bar home">50%</div>
 					</div>
-					<h5>Assists</h5>
+					<h5 data-i18n="assists">Assists</h5>
 					<div class="stat" data-stat="assists">
 						<div class="bar away">50%</div>
 						<div class="bar home">50%</div>
 					</div>
-					<h5>Steals</h5>
+					<h5 data-i18n="steals">Steals</h5>
 					<div class="stat" data-stat="steals">
 						<div class="bar away">50%</div>
 						<div class="bar home">50%</div>
 					</div>
-					<h5>Blocks</h5>
+					<h5 data-i18n="blocks">Blocks</h5>
 					<div class="stat" data-stat="blocks">
 						<div class="bar away">50%</div>
 						<div class="bar home">50%</div>
 					</div>
-					<h5>Turnover</h5>
+					<h5 data-i18n="turnovers">Turnover</h5>
 					<div class="stat" data-stat="turnoversTotal">
 						<div class="bar away">50%</div>
 						<div class="bar home">50%</div>
 					</div>
-					<h5>Fouls</h5>
+					<h5 data-i18n="fouls">Fouls</h5>
 					<div class="stat" data-stat="foulsPersonal">
 						<div class="bar away">50%</div>
 						<div class="bar home">50%</div>
@@ -578,12 +585,12 @@
 		</div>
 
 		<div id="playbyplay-panel" class="panel">
-			<label class="show-only-made-shots">Zeige nur getroffene Würfe
+			<label class="show-only-made-shots"><span data-i18n="showMadeShotsOnly">Zeige nur getroffene Würfe</span>
 				<input type="checkbox" checked />
 				<span class="checkmark"></span>
 			</label>
 			<div id="playbyplay">
-				<p>Keine Play-by-Play-Daten verfügbar.</p>
+				<p data-i18n="noPlayByPlay">Keine Play-by-Play-Daten verfügbar.</p>
 			</div>
 		</div>
 	</div>
@@ -639,7 +646,7 @@
 				<table class="players-table starters">
 					<thead>
 						<tr>
-							<th>Starter</th>
+							<th data-i18n="starters">Starter</th>
 							<th>MIN</th>
 							<th>PTS</th>
 							<th>REB</th>
@@ -661,7 +668,7 @@
 				<table class="players-table bench">
 					<thead>
 						<tr>
-							<th>Bank</th>
+							<th data-i18n="bench">Bank</th>
 							<th>MIN</th>
 							<th>PTS</th>
 							<th>REB</th>

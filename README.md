@@ -1,4 +1,4 @@
-## NBA Schedule (german: nba-spielplan)
+# NBA Schedule (german: nba-spielplan)
 
 NBA Schedule is a lightweight Progressive Web App (PWA) that shows every NBA game in your local
 timezone, keeps live scores in sync, and lets you filter the schedule for exactly what you care
@@ -8,14 +8,17 @@ season year for bracket calls.
 
 ---
 
-### Check It Out
+## Check It Out
 
-Visit the live build at https://nba-spielplan.de/ and explore the schedule directly in
+Visit the live build at [nba-spielplan.de](https://nba-spielplan.de/) and explore the schedule directly in
 your browser.
+
+For English-speaking users, link directly to [nba-spielplan.de/?lang=en](https://nba-spielplan.de/?lang=en) to open the
+localized English UI immediately.
 
 ---
 
-### Feature Tour
+## Feature Tour
 
 - **Today view**
   - Shows every game scheduled for the current day in your timezone.
@@ -47,7 +50,10 @@ your browser.
     between visits until fresh data arrives.
 
 - **Quality-of-life touches**
-  - Preferences for “show scores” and “prime time only” persist in `localStorage`.
+  - German and English UI localization, with a language picker in the app header.
+  - English users can be sent straight to `https://nba-spielplan.de/?lang=en`.
+  - Preferences for language, “show scores”, “show game rating”, and “prime time only” persist in
+    `localStorage`.
   - Data automatically refreshes when the tab becomes visible or when a new day starts.
 
 - **Boxscore overlay**
@@ -85,7 +91,7 @@ your browser.
 
 ---
 
-### Data Flow & Backend
+## Data Flow & Backend
 
 The backend is powered by a Deno Deploy edge function (api/main.js), which proxies and sanitizes NBA
 endpoints:
@@ -108,7 +114,7 @@ app shell and API calls on the same origin.
 
 ---
 
-### Development
+## Development
 
 - Service Worker toggles live in `js/app.js`: set `useServiceWorker` to `false` for local debugging
   or bump `serviceWorkerVersion` to force a fresh cache on deploy.

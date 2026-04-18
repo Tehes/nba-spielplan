@@ -55,6 +55,148 @@ const playByPlayURL = "https://nba-spielplan.tehes.deno.net/playbyplay";
 const istBracketURL = "https://nba-spielplan.tehes.deno.net/istbracket";
 const playoffBracketURL = "https://nba-spielplan.tehes.deno.net/playoffbracket";
 const coreCacheUrls = new Set([scheduleURL, standingsURL, istBracketURL, playoffBracketURL]);
+const LANGUAGE_STORAGE_KEY = "nba-spielplan_lang";
+const SUPPORTED_LANGUAGES = new Set(["de", "en"]);
+const LOCALES = {
+	de: "de-DE",
+	en: "en-US",
+};
+const MANIFEST_BY_LANGUAGE = {
+	de: "manifest.json",
+	en: "manifest-en.json",
+};
+const messages = {
+	de: {
+		appName: "NBA-Spielplan",
+		documentTitle: "NBA-Spielplan – schnell, werbefrei, offlinefähig",
+		metaDescription:
+			"Alle NBA-Spiele automatisch in deiner Zeitzone – mit Live-Scores und Prime-Time-Filter. Schnell, werbefrei, offline nutzbar. Einfach zum Homescreen hinzufügen und wie eine App starten.",
+		ogTitle: "NBA-Spielplan in deiner Zeitzone – schnell, werbefrei, offline nutzbar",
+		ogDescription:
+			"Alle NBA-Spiele automatisch in deiner Zeitzone – schnell, werbefrei und auch offline nutzbar. Einfach zum Homescreen hinzufügen und wie eine App starten.",
+		seasonProgress: "Saisonfortschritt",
+		todayHeadline: "Heute",
+		showScores: "Ergebnisse anzeigen",
+		showRating: "Spielbewertung anzeigen",
+		info: "Info",
+		away: "Gast",
+		home: "Heim",
+		standingsJump: "Zur Tabelle",
+		moreGames: "weitere Spiele",
+		allTeams: "Alle Teams",
+		hidePastGames: "vergangene Spiele ausblenden",
+		primetimeOnly: "Nur Prime Time Spiele",
+		standingsTeam: "Name",
+		standingsHome: "Home",
+		standingsAway: "Away",
+		backToTop: "Zurück nach oben",
+		excitement: "Spannung",
+		quarterByQuarter: "Viertelverlauf",
+		teamComparison: "Team-Vergleich",
+		twoPoints: "2 Punkte",
+		threePoints: "3 Punkte",
+		freeThrows: "Freiwürfe",
+		rebounds: "Rebounds",
+		assists: "Assists",
+		steals: "Steals",
+		blocks: "Blocks",
+		turnovers: "Turnover",
+		fouls: "Fouls",
+		showMadeShotsOnly: "Zeige nur getroffene Würfe",
+		noPlayByPlay: "Keine Play-by-Play-Daten verfügbar.",
+		starters: "Starter",
+		bench: "Bank",
+		notScheduled: "Noch offen",
+		timePlaceholder: "HH:MM",
+		loading: "Lädt…",
+		final: "Beendet",
+		noGamesToday: "Heute finden keine Spiele statt.",
+		liveSoon: "in Kürze",
+		halftime: "Halbzeit",
+		endQuarter: "Ende Q{period}",
+		endOvertime: "Ende {label}",
+		loadingPlays: "Lade Spielaktionen…",
+		team: "Team",
+		total: "Gesamt",
+		jumpToToday: "zu den heutigen Spielen",
+		scheduledTime: "{time} Uhr",
+		ratingLabel: "Bewertung: {rating}/10 · {verdict}",
+		verdictInstantClassic: "Instant Classic",
+		verdictMustWatch: "Pflichtprogramm",
+		verdictVeryWatchable: "sehr sehenswert",
+		verdictWatchable: "sehenswert",
+		verdictSolid: "solide",
+		verdictLopsided: "eher einseitig",
+		verdictHighlightsOnly: "Highlights reichen",
+		verdictSkip: "skippen",
+	},
+	en: {
+		appName: "NBA Schedule",
+		documentTitle: "NBA Schedule – fast, ad-free, offline-ready",
+		metaDescription:
+			"All NBA games automatically in your time zone with live scores and a prime-time filter. Fast, ad-free, offline-ready. Add it to your home screen and launch it like an app.",
+		ogTitle: "NBA schedule in your time zone – fast, ad-free, offline-ready",
+		ogDescription:
+			"All NBA games automatically in your time zone with live scores and a prime-time filter. Fast, ad-free, and available offline. Add it to your home screen and launch it like an app.",
+		seasonProgress: "Season Progress",
+		todayHeadline: "Today",
+		showScores: "Show scores",
+		showRating: "Show game rating",
+		info: "Info",
+		away: "Away",
+		home: "Home",
+		standingsJump: "Jump to standings",
+		moreGames: "More games",
+		allTeams: "All teams",
+		hidePastGames: "Hide past games",
+		primetimeOnly: "Prime-time games only",
+		standingsTeam: "Team",
+		standingsHome: "Home",
+		standingsAway: "Away",
+		backToTop: "Back to top",
+		excitement: "Excitement",
+		quarterByQuarter: "Quarter by quarter",
+		teamComparison: "Team comparison",
+		twoPoints: "2 Points",
+		threePoints: "3 Points",
+		freeThrows: "Free throws",
+		rebounds: "Rebounds",
+		assists: "Assists",
+		steals: "Steals",
+		blocks: "Blocks",
+		turnovers: "Turnovers",
+		fouls: "Fouls",
+		showMadeShotsOnly: "Show made shots only",
+		noPlayByPlay: "No play-by-play data available.",
+		starters: "Starters",
+		bench: "Bench",
+		notScheduled: "TBD",
+		timePlaceholder: "HH:MM",
+		loading: "Loading…",
+		final: "Final",
+		noGamesToday: "No games today.",
+		liveSoon: "Starting soon",
+		halftime: "Halftime",
+		endQuarter: "End Q{period}",
+		endOvertime: "End {label}",
+		loadingPlays: "Loading play-by-play…",
+		team: "Team",
+		total: "Total",
+		jumpToToday: "jump to today's games",
+		scheduledTime: "{time}",
+		ratingLabel: "Rating: {rating}/10 · {verdict}",
+		verdictInstantClassic: "Instant Classic",
+		verdictMustWatch: "must-watch",
+		verdictVeryWatchable: "very watchable",
+		verdictWatchable: "worth watching",
+		verdictSolid: "solid",
+		verdictLopsided: "rather one-sided",
+		verdictHighlightsOnly: "highlights are enough",
+		verdictSkip: "skip it",
+	},
+};
+let currentLanguage = getInitialLanguage();
+let currentLocale = getLocale(currentLanguage);
 
 // Data Holders
 let liveById = new Map();
@@ -77,17 +219,14 @@ let standingsEast;
 let standingsWest;
 
 const renderedCoreCacheUrls = new Set();
-let lastCheckedDay = new Date().toLocaleDateString("de-DE", {
-	year: "numeric",
-	month: "2-digit",
-	day: "2-digit",
-});
+let lastCheckedDay = getCalendarDayKey(new Date());
 
 // DOM Elements
 const todayEl = document.querySelector("#today");
 const moreEl = document.querySelector("#more");
 const progressValue = document.querySelector("#progress-value");
-const teamPicker = document.querySelector("select");
+const languagePicker = document.querySelector("#language-picker");
+const teamPicker = document.querySelector("#team-picker");
 const checkboxShowScores = document.querySelector(".show-scores input");
 const checkboxShowRating = document.querySelector(".show-rating input");
 const checkboxHidePastGames = document.querySelector(".hide-past-games input");
@@ -114,6 +253,7 @@ const playoffsEl = document.querySelector("#playoffs");
 const westernEl = document.querySelector("#western");
 const easternEl = document.querySelector("#eastern");
 const finalsEl = document.querySelector("#finals");
+const manifestLink = document.querySelector("#app-manifest");
 
 // Constants
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
@@ -132,12 +272,132 @@ checkboxShowScores.checked = JSON.parse(
 );
 
 checkboxShowRating.checked = JSON.parse(
-	localStorage.getItem("nba-spielplan_showRating") || "false",
+	localStorage.getItem("nba-spielplan_showRating") || "true",
 );
 
 checkboxPlayByPlayMadeShots.checked = JSON.parse(
 	localStorage.getItem("nba-spielplan_pbp_madeShotsOnly") || "false",
 );
+
+function getInitialLanguage() {
+	const url = new URL(globalThis.location.href);
+	const urlLanguage = url.searchParams.get("lang");
+
+	if (SUPPORTED_LANGUAGES.has(urlLanguage)) {
+		return urlLanguage;
+	}
+
+	const storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+	if (SUPPORTED_LANGUAGES.has(storedLanguage)) {
+		return storedLanguage;
+	}
+
+	return navigator.language?.toLowerCase().startsWith("de") ? "de" : "en";
+}
+
+function getLocale(language) {
+	return LOCALES[language] || LOCALES.de;
+}
+
+function getCalendarDayKey(date) {
+	return [
+		date.getFullYear(),
+		String(date.getMonth() + 1).padStart(2, "0"),
+		String(date.getDate()).padStart(2, "0"),
+	].join("-");
+}
+
+function t(key, replacements = {}) {
+	const dictionary = messages[currentLanguage] || messages.de;
+	let text = dictionary[key] || messages.de[key] || key;
+
+	Object.entries(replacements).forEach(([name, value]) => {
+		text = text.split(`{${name}}`).join(String(value));
+	});
+
+	return text;
+}
+
+function syncLanguageUrl() {
+	const url = new URL(globalThis.location.href);
+
+	if (currentLanguage === "en") {
+		url.searchParams.set("lang", "en");
+	} else {
+		url.searchParams.delete("lang");
+	}
+
+	globalThis.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function applyStaticTranslations() {
+	document.documentElement.lang = currentLanguage;
+
+	document.querySelectorAll("[data-i18n]").forEach((element) => {
+		element.textContent = t(element.dataset.i18n);
+	});
+
+	document.querySelectorAll("[data-i18n-content]").forEach((element) => {
+		element.setAttribute("content", t(element.dataset.i18nContent));
+	});
+
+	const boxscoreTemplate = document.querySelector("#template-boxscore");
+	if (boxscoreTemplate) {
+		boxscoreTemplate.content.querySelector(".starters thead th").textContent = t("starters");
+		boxscoreTemplate.content.querySelector(".bench thead th").textContent = t("bench");
+	}
+
+	if (languagePicker) {
+		languagePicker.value = currentLanguage;
+	}
+
+	if (manifestLink) {
+		manifestLink.setAttribute("href", MANIFEST_BY_LANGUAGE[currentLanguage] || MANIFEST_BY_LANGUAGE.de);
+	}
+}
+
+function rerenderLocalizedUi() {
+	lastCheckedDay = getCalendarDayKey(new Date());
+
+	if (schedule) {
+		prepareGameData();
+		setProgressBar();
+		renderTodaysGames();
+		renderMoreGames();
+		updateBrackets();
+		storeNextScheduledGame();
+	}
+
+	if (standings) {
+		renderStandings();
+	}
+
+	if (currentBoxscore) {
+		renderBoxscore(currentBoxscore);
+	}
+
+	if (currentPlayByPlay) {
+		renderPlayByPlay(currentPlayByPlay);
+		updateGameExcitementMeter(currentPlayByPlay);
+	}
+}
+
+function applyLanguage() {
+	currentLocale = getLocale(currentLanguage);
+	localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
+	syncLanguageUrl();
+	applyStaticTranslations();
+	rerenderLocalizedUi();
+}
+
+function setLanguage(language) {
+	if (!SUPPORTED_LANGUAGES.has(language) || language === currentLanguage) {
+		return;
+	}
+
+	currentLanguage = language;
+	applyLanguage();
+}
 
 /* --------------------------------------------------------------------------------------------------
 PREPARATION
@@ -149,21 +409,25 @@ function prepareGameData() {
 	const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
+	games.today = [];
+	games.finished = [];
+	games.scheduled = [];
+
 	allGames.forEach((game) => {
 		game.localDate = new Date(game.gameDateTimeUTC);
 
 		// Format date and time for display
 		if (Number.isNaN(game.localDate.getTime())) {
-			game.date = "Noch offen";
-			game.time = "HH:MM";
+			game.date = t("notScheduled");
+			game.time = t("timePlaceholder");
 		} else {
-			game.date = game.localDate.toLocaleDateString("de-DE", {
+			game.date = game.localDate.toLocaleDateString(currentLocale, {
 				weekday: "short",
 				day: "2-digit",
 				month: "2-digit",
 				year: "numeric",
 			});
-			game.time = game.localDate.toLocaleTimeString("de-DE", {
+			game.time = game.localDate.toLocaleTimeString(currentLocale, {
 				hour: "2-digit",
 				minute: "2-digit",
 			});
@@ -577,17 +841,17 @@ function renderTodaysGames() {
 					if (cachedScore != null) {
 						date.textContent = `${(cachedScore / 10).toFixed(1)}/10`;
 					} else {
-						date.textContent = "Lädt…";
+						date.textContent = t("loading");
 						fetchExcitementForGame(g.gameId)
 							.then((score) => {
 								date.textContent = `${(score / 10).toFixed(1)}/10`;
 							})
 							.catch(() => {
-								date.textContent = "Beendet";
+								date.textContent = t("final");
 							});
 					}
 				} else {
-					date.textContent = "Beendet";
+					date.textContent = t("final");
 				}
 				if (checkboxShowScores.checked) {
 					const liveAway = live?.awayTeam?.score;
@@ -642,7 +906,7 @@ function renderTodaysGames() {
 			todayEl.appendChild(clone);
 		});
 	} else {
-		todayEl.textContent = "Heute finden keine Spiele statt.";
+		todayEl.textContent = t("noGamesToday");
 	}
 
 	if (needsPolling) {
@@ -727,7 +991,7 @@ function getLiveLabel(live) {
 
 	// Pregame
 	if (live.gameStatus === 1) {
-		return "in Kürze";
+		return t("liveSoon");
 	}
 
 	const period = Number(live.period);
@@ -740,12 +1004,12 @@ function getLiveLabel(live) {
 	// End of periods or OT
 	if (clockStr === "0:00") {
 		if (period === 2) {
-			return "Halbzeit";
+			return t("halftime");
 		}
 		if (!isOT) {
-			return `Ende Q${period}`;
+			return t("endQuarter", { period });
 		}
-		return `Ende ${otLabel}`;
+		return t("endOvertime", { label: otLabel });
 	}
 
 	// running time of periods
@@ -1058,24 +1322,26 @@ function updateGameExcitementMeter(playByPlayJson) {
 	gameExcitementValueEl.textContent = `${score}%`;
 
 	let label = "";
+	let verdictKey = "";
 	if (score >= 90) {
-		label = `Bewertung: ${rating}/10 · Instant Classic`;
+		verdictKey = "verdictInstantClassic";
 	} else if (score >= 80) {
-		label = `Bewertung: ${rating}/10 · Pflichtprogramm`;
+		verdictKey = "verdictMustWatch";
 	} else if (score >= 70) {
-		label = `Bewertung: ${rating}/10 · sehr sehenswert`;
+		verdictKey = "verdictVeryWatchable";
 	} else if (score >= 60) {
-		label = `Bewertung: ${rating}/10 · sehenswert`;
+		verdictKey = "verdictWatchable";
 	} else if (score >= 50) {
-		label = `Bewertung: ${rating}/10 · solide`;
+		verdictKey = "verdictSolid";
 	} else if (score >= 40) {
-		label = `Bewertung: ${rating}/10 · eher einseitig`;
+		verdictKey = "verdictLopsided";
 	} else if (score >= 30) {
-		label = `Bewertung: ${rating}/10 · Highlights reichen`;
+		verdictKey = "verdictHighlightsOnly";
 	} else {
-		label = `Bewertung: ${rating}/10 · skippen`;
+		verdictKey = "verdictSkip";
 	}
 
+	label = t("ratingLabel", { rating, verdict: t(verdictKey) });
 	gameExcitementLabelEl.textContent = label;
 	gameExcitementEl.classList.remove("hidden");
 }
@@ -1178,7 +1444,7 @@ function renderPlayByPlay(json) {
 	if (!actions.length) {
 		panel.replaceChildren();
 		const p = document.createElement("p");
-		p.textContent = "Lade Spielaktionen…";
+		p.textContent = t("loadingPlays");
 		panel.appendChild(p);
 		return;
 	}
@@ -1293,7 +1559,7 @@ function renderBoxscorePeriods(game) {
 
 	const headRow = document.createElement("tr");
 	const teamTh = document.createElement("th");
-	teamTh.textContent = "Team";
+	teamTh.textContent = t("team");
 	headRow.appendChild(teamTh);
 
 	let overtimeIndex = 1;
@@ -1309,7 +1575,7 @@ function renderBoxscorePeriods(game) {
 	});
 
 	const totalTh = document.createElement("th");
-	totalTh.textContent = "Gesamt";
+	totalTh.textContent = t("total");
 	headRow.appendChild(totalTh);
 
 	thead.appendChild(headRow);
@@ -1486,8 +1752,11 @@ function renderMoreGames() {
 
 	if (checkboxPrimetime.checked) {
 		gamesToDisplay = gamesToDisplay.filter((g) => {
-			const [hours, minutes] = g.time.split(":").map(Number);
-			const gameHour = hours + minutes / 60;
+			if (!(g.localDate instanceof Date) || Number.isNaN(g.localDate.getTime())) {
+				return false;
+			}
+
+			const gameHour = g.localDate.getHours() + g.localDate.getMinutes() / 60;
 
 			// Primetime
 			return gameHour >= 18 && gameHour < 24;
@@ -1507,7 +1776,7 @@ function renderMoreGames() {
 				const anchorTop = document.createElement("div");
 				anchorTop.classList.add("jump-link");
 				const anchorLink = document.createElement("a");
-				anchorLink.textContent = "zu den heutigen Spielen";
+				anchorLink.textContent = t("jumpToToday");
 				anchorTop.appendChild(anchorLink);
 				anchorLink.href = "#top";
 				moreEl.insertBefore(anchorTop, h3El);
@@ -1542,7 +1811,7 @@ function renderMoreGames() {
 		visitingAbbr.textContent = g.awayTeam.teamTricode;
 		visitingColor.style.setProperty("--team-color", `var(--${g.awayTeam.teamTricode})`);
 		card.dataset.abbr = `${g.awayTeam.teamTricode}/${g.homeTeam.teamTricode}`;
-		date.textContent = `${g.time} Uhr`;
+		date.textContent = t("scheduledTime", { time: g.time });
 		gameLabelEl.textContent = label ? subLabel ? `${label} – ${subLabel}` : label : subLabel;
 
 		if (g.gameStatus === 3) {
@@ -1717,11 +1986,7 @@ function handlePlayoffBracketData(json) {
 function shouldRerender() {
 	const now = new Date();
 
-	const todayString = now.toLocaleDateString("de-DE", {
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-	});
+	const todayString = getCalendarDayKey(now);
 
 	if (lastCheckedDay !== todayString) {
 		lastCheckedDay = todayString;
@@ -1835,12 +2100,16 @@ async function loadData() {
 }
 
 function init() {
+	applyLanguage();
 	backdropEl.addEventListener("click", closeGameOverlay);
 	gameOverlayCloseBtn.addEventListener("click", closeGameOverlay);
 	gameTabs.forEach((tab) => {
 		tab.addEventListener("click", () => switchTab(tab));
 	});
 	document.addEventListener("touchstart", function () {}, false);
+	languagePicker.addEventListener("change", () => {
+		setLanguage(languagePicker.value);
+	});
 	teamPicker.addEventListener("change", renderMoreGames);
 	checkboxHidePastGames.addEventListener("change", () => {
 		renderMoreGames();
@@ -1908,7 +2177,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-04-16-v1";
+const SERVICE_WORKER_VERSION = "2026-04-18-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
