@@ -1,7 +1,6 @@
 // === Constants ===
 const SCHEDULE_URL = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json";
-const SCOREBOARD_URL =
-	"https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json";
+const SCOREBOARD_URL = "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json";
 const BOXSCORE_BASE_URL = "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_";
 const PLAYBYPLAY_BASE_URL = "https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_";
 
@@ -12,9 +11,11 @@ const DEFAULT_HEADERS = {
 };
 
 const APP_ORIGIN = "https://tehes.github.io";
+const PROD_ORIGIN = "https://nba-spielplan.de";
 const DEV_ORIGIN = "http://127.0.0.1:5500";
 const ALLOWED_ORIGINS = new Set([
 	APP_ORIGIN,
+	PROD_ORIGIN,
 	DEV_ORIGIN,
 ]);
 
@@ -395,7 +396,7 @@ Deno.serve(async (req) => {
 	const PATH = url.pathname;
 	const origin = getOrigin(req);
 
-	if (origin && !ALLOWED_ORIGINS.has(origin)) {
+	if (!ALLOWED_ORIGINS.has(origin)) {
 		return new Response("Forbidden", {
 			status: 403,
 			headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
@@ -425,8 +426,7 @@ Deno.serve(async (req) => {
 		if (PATH === "/playoffbracket") {
 			const seasonString = await getSeasonYear();
 			const year = seasonString.split("-")[0];
-			const playoffUrl =
-				`https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=${year}&State=2`;
+			const playoffUrl = `https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=${year}&State=2`;
 			return proxyWithCors(playoffUrl, origin);
 		}
 
@@ -434,8 +434,7 @@ Deno.serve(async (req) => {
 		if (PATH === "/istbracket") {
 			const seasonString = await getSeasonYear();
 			const year = seasonString.split("-")[0];
-			const istBracketUrl =
-				`https://cdn.nba.com/static/json/staticData/brackets/${year}/ISTBracket.json`;
+			const istBracketUrl = `https://cdn.nba.com/static/json/staticData/brackets/${year}/ISTBracket.json`;
 			return proxyWithCors(istBracketUrl, origin);
 		}
 
