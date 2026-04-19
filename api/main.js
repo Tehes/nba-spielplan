@@ -11,10 +11,17 @@ const DEFAULT_HEADERS = {
 	"Accept": "application/json, text/plain, */*",
 };
 
-const CORS_HEADERS = {
-	"Access-Control-Allow-Origin": "*",
+const APP_ORIGIN = "https://tehes.github.io";
+const DEV_ORIGIN = "http://127.0.0.1:5500";
+const ALLOWED_ORIGINS = new Set([
+	APP_ORIGIN,
+	DEV_ORIGIN,
+]);
+
+const BASE_CORS_HEADERS = {
 	"Access-Control-Allow-Methods": "GET, OPTIONS",
 	"Access-Control-Allow-Headers": "Content-Type",
+	"Vary": "Origin",
 };
 
 const TEAM_META = {
@@ -93,21 +100,32 @@ async function fetchUpstream(url) {
 	return res.json();
 }
 
-function respondWithCors(data, cacheMaxAge = 0) {
-	const headers = {
+function withCors(origin, headers = {}) {
+	const corsHeaders = { ...BASE_CORS_HEADERS };
+	if (origin && ALLOWED_ORIGINS.has(origin)) {
+		corsHeaders["Access-Control-Allow-Origin"] = origin;
+	}
+	return { ...corsHeaders, ...headers };
+}
+
+function getOrigin(req) {
+	return req.headers.get("origin") || "";
+}
+
+function respondWithCors(data, origin, cacheMaxAge = 0) {
+	const headers = withCors(origin, {
 		"content-type": "application/json; charset=utf-8",
-		...CORS_HEADERS,
-	};
+	});
 	if (cacheMaxAge > 0) {
 		headers["Cache-Control"] = `public, max-age=${cacheMaxAge}, stale-while-revalidate=300`;
 	}
 	return new Response(JSON.stringify(data), { status: 200, headers });
 }
 
-async function proxyWithCors(url) {
+async function proxyWithCors(url, origin) {
 	const res = await fetch(url, { headers: DEFAULT_HEADERS });
 	const headers = new Headers(res.headers);
-	Object.entries(CORS_HEADERS).forEach(([k, v]) => headers.set(k, v));
+	Object.entries(withCors(origin)).forEach(([k, v]) => headers.set(k, v));
 	if (!headers.has("content-type")) {
 		headers.set("content-type", "application/json; charset=utf-8");
 	}
@@ -375,16 +393,24 @@ function buildStandingsFromSchedule(scheduleJson) {
 Deno.serve(async (req) => {
 	const url = new URL(req.url);
 	const PATH = url.pathname;
+	const origin = getOrigin(req);
+
+	if (origin && !ALLOWED_ORIGINS.has(origin)) {
+		return new Response("Forbidden", {
+			status: 403,
+			headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
+		});
+	}
 
 	// CORS preflight
 	if (req.method === "OPTIONS") {
-		return new Response(null, { status: 204, headers: CORS_HEADERS });
+		return new Response(null, { status: 204, headers: withCors(origin) });
 	}
 
 	try {
 		// --- /schedule: fetch fresh ---
 		if (PATH === "/schedule") {
-			return proxyWithCors(SCHEDULE_URL);
+			return proxyWithCors(SCHEDULE_URL, origin);
 		}
 
 		// --- /standings: fetch fresh ---
@@ -392,7 +418,7 @@ Deno.serve(async (req) => {
 			const data = await fetchUpstream(SCHEDULE_URL);
 			const payload = buildStandingsFromSchedule(data);
 			console.log("[/standings] season", payload.season);
-			return respondWithCors(payload, 60);
+			return respondWithCors(payload, origin, 60);
 		}
 
 		// --- /playoffbracket: use cached season year only ---
@@ -401,7 +427,7 @@ Deno.serve(async (req) => {
 			const year = seasonString.split("-")[0];
 			const playoffUrl =
 				`https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=${year}&State=2`;
-			return proxyWithCors(playoffUrl);
+			return proxyWithCors(playoffUrl, origin);
 		}
 
 		// --- /istbracket: use cached season year only ---
@@ -410,12 +436,12 @@ Deno.serve(async (req) => {
 			const year = seasonString.split("-")[0];
 			const istBracketUrl =
 				`https://cdn.nba.com/static/json/staticData/brackets/${year}/ISTBracket.json`;
-			return proxyWithCors(istBracketUrl);
+			return proxyWithCors(istBracketUrl, origin);
 		}
 
 		// --- /scoreboard: KEIN Cache (immer live) ---
 		if (PATH === "/scoreboard") {
-			return proxyWithCors(SCOREBOARD_URL);
+			return proxyWithCors(SCOREBOARD_URL, origin);
 		}
 
 		// --- /boxscore/:gameId: KEIN Cache (immer live) ---
@@ -426,15 +452,14 @@ Deno.serve(async (req) => {
 			if (!/^\d{10}$/.test(gameId)) {
 				return new Response("Invalid gameId", {
 					status: 400,
-					headers: {
-						...CORS_HEADERS,
+					headers: withCors(origin, {
 						"content-type": "text/plain; charset=utf-8",
-					},
+					}),
 				});
 			}
 
 			const boxscoreUrl = `${BOXSCORE_BASE_URL}${gameId}.json`;
-			return proxyWithCors(boxscoreUrl);
+			return proxyWithCors(boxscoreUrl, origin);
 		}
 
 		// --- /playbyplay/:gameId: KEIN Cache (immer live) ---
@@ -445,26 +470,25 @@ Deno.serve(async (req) => {
 			if (!/^\d{10}$/.test(gameId)) {
 				return new Response("Invalid gameId", {
 					status: 400,
-					headers: {
-						...CORS_HEADERS,
+					headers: withCors(origin, {
 						"content-type": "text/plain; charset=utf-8",
-					},
+					}),
 				});
 			}
 
 			const playbyplayUrl = `${PLAYBYPLAY_BASE_URL}${gameId}.json`;
-			return proxyWithCors(playbyplayUrl);
+			return proxyWithCors(playbyplayUrl, origin);
 		}
 
 		return new Response("Not Found", {
 			status: 404,
-			headers: { ...CORS_HEADERS, "content-type": "text/plain; charset=utf-8" },
+			headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
 		});
 	} catch (err) {
 		console.error("[error]", err);
 		return new Response(`Error: ${err.message}`, {
 			status: 500,
-			headers: { ...CORS_HEADERS, "content-type": "text/plain; charset=utf-8" },
+			headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
 		});
 	}
 });
