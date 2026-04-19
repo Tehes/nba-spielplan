@@ -85,7 +85,7 @@ const messages = {
 		moreGames: "weitere Spiele",
 		allTeams: "Alle Teams",
 		hidePastGames: "vergangene Spiele ausblenden",
-		primetimeOnly: "Nur Prime Time Spiele",
+		primetimeOnly: "Nur Prime-Time-Spiele",
 		standingsTeam: "Name",
 		standingsHome: "Home",
 		standingsAway: "Away",
@@ -175,7 +175,7 @@ const messages = {
 		loading: "Loading…",
 		final: "Final",
 		noGamesToday: "No games today.",
-		liveSoon: "Starting soon",
+		liveSoon: "Soon",
 		halftime: "Halftime",
 		endQuarter: "End Q{period}",
 		endOvertime: "End {label}",
@@ -352,7 +352,10 @@ function applyStaticTranslations() {
 	}
 
 	if (manifestLink) {
-		manifestLink.setAttribute("href", MANIFEST_BY_LANGUAGE[currentLanguage] || MANIFEST_BY_LANGUAGE.de);
+		manifestLink.setAttribute(
+			"href",
+			MANIFEST_BY_LANGUAGE[currentLanguage] || MANIFEST_BY_LANGUAGE.de,
+		);
 	}
 }
 
@@ -456,7 +459,8 @@ function isRegularSeasonGame(game) {
 }
 
 function setProgressBar() {
-	const done = (games.finished?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0) +
+	const done =
+		(games.finished?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0) +
 		(games.today?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0);
 
 	const pct = Math.min(100, Math.floor((done * 100) / TOTAL_REGULAR_SEASON_GAMES));
@@ -692,7 +696,11 @@ function appendPlayoffConference(columnEl, side, firstRoundSeries, semifinals, c
 		: "center-connector-right";
 
 	columnEl.appendChild(
-		createPlayoffMatchup(sortedFirstRound[0], ["round-1", "pair-a", "slot-top"], playoffOptions),
+		createPlayoffMatchup(
+			sortedFirstRound[0],
+			["round-1", "pair-a", "slot-top"],
+			playoffOptions,
+		),
 	);
 	columnEl.appendChild(
 		createPlayoffMatchup(
@@ -716,7 +724,11 @@ function appendPlayoffConference(columnEl, side, firstRoundSeries, semifinals, c
 		),
 	);
 	columnEl.appendChild(
-		createPlayoffMatchup(sortedFirstRound[2], ["round-1", "pair-b", "slot-top"], playoffOptions),
+		createPlayoffMatchup(
+			sortedFirstRound[2],
+			["round-1", "pair-b", "slot-top"],
+			playoffOptions,
+		),
 	);
 	columnEl.appendChild(
 		createPlayoffMatchup(
@@ -773,7 +785,13 @@ function updatePlayoffBracket() {
 	playoffsEl.classList.remove("hidden");
 
 	appendPlayoffConference(westernEl, "left", westFirstRound, westSemifinals, westConferenceFinal);
-	appendPlayoffConference(easternEl, "right", eastFirstRound, eastSemifinals, eastConferenceFinal);
+	appendPlayoffConference(
+		easternEl,
+		"right",
+		eastFirstRound,
+		eastSemifinals,
+		eastConferenceFinal,
+	);
 	finalsEl.appendChild(createPlayoffMatchup(nbaFinals, ["round-4"], { scoreMode: "series" }));
 }
 
@@ -2180,7 +2198,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-04-18-v1";
+const SERVICE_WORKER_VERSION = "2026-04-19-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
