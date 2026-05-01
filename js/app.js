@@ -2139,8 +2139,9 @@ async function loadData() {
 	await fetchData(playoffBracketURL, handlePlayoffBracketData);
 
 	let canStoreNextScheduledGame = scheduleLoaded;
+	const shouldRefreshCoreData = shouldReloadData();
 
-	if (shouldReloadData()) {
+	if (shouldRefreshCoreData) {
 		const scheduleReloaded = await fetchData(scheduleURL, handleScheduleData, true);
 		canStoreNextScheduledGame = scheduleReloaded;
 		if (scheduleReloaded) {
@@ -2148,9 +2149,10 @@ async function loadData() {
 			markCoreDataDirtyFromLive();
 		}
 		await fetchData(standingsURL, handleStandingsData, true);
-		await fetchData(istBracketURL, handleIstBracketData, true);
-		await fetchData(playoffBracketURL, handlePlayoffBracketData, true);
 	}
+
+	await fetchData(istBracketURL, handleIstBracketData, true);
+	await fetchData(playoffBracketURL, handlePlayoffBracketData, true);
 
 	if (canStoreNextScheduledGame) {
 		storeNextScheduledGame();
