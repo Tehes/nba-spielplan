@@ -19,14 +19,15 @@ async function fetchData(url, updateFunction, forceNetwork = false) {
 					renderedCoreCacheUrls.add(url);
 				}
 			}
-			return;
+			return true;
 		}
 	}
 
 	console.log("Fetching from network...");
 
 	try {
-		const networkResponse = await fetch(url);
+		const fetchOptions = forceNetwork ? { cache: "no-store" } : undefined;
+		const networkResponse = await fetch(url, fetchOptions);
 		if (networkResponse.ok) {
 			const clonedResponse = isCoreData ? networkResponse.clone() : null;
 			const json = await networkResponse.json();
@@ -35,11 +36,13 @@ async function fetchData(url, updateFunction, forceNetwork = false) {
 				cache.put(url, clonedResponse);
 			}
 			updateFunction(json);
+			return true;
 		} else {
 			throw new Error(`Network error! Status: ${networkResponse.status}`);
 		}
 	} catch (error) {
 		console.error("Fetching fresh data failed:", error);
+		return false;
 	}
 }
 
@@ -55,6 +58,7 @@ const playByPlayURL = "https://nba-spielplan.tehes.deno.net/playbyplay";
 const istBracketURL = "https://nba-spielplan.tehes.deno.net/istbracket";
 const playoffBracketURL = "https://nba-spielplan.tehes.deno.net/playoffbracket";
 const coreCacheUrls = new Set([scheduleURL, standingsURL, istBracketURL, playoffBracketURL]);
+const CORE_DATA_DIRTY_KEY = "nba_coreDataDirty";
 const LANGUAGE_STORAGE_KEY = "nba-spielplan_lang";
 const SUPPORTED_LANGUAGES = new Set(["de", "en"]);
 const LOCALES = {
@@ -474,6 +478,8 @@ function updateLive(liveJson) {
 	liveById = new Map(arr.map((g) => [g.gameId, g]));
 	renderTodaysGames();
 	updateBrackets();
+	markCoreDataDirtyFromLive();
+	storeNextScheduledGame();
 
 	if (!gameOverlayEl.classList.contains("hidden")) {
 		const gameId = gameOverlayEl.dataset.gameId;
@@ -2036,12 +2042,29 @@ function shouldRerender() {
 	return false;
 }
 
+function markCoreDataDirtyFromLive() {
+	const allGames = (games.finished ?? []).concat(games.today ?? [], games.scheduled ?? []);
+	const hasLiveFinalMissingInSchedule = allGames.some((game) => {
+		const live = liveById.get(game.gameId);
+		return live?.gameStatus === 3 && game.gameStatus !== 3;
+	});
+
+	if (hasLiveFinalMissingInSchedule) {
+		localStorage.setItem(CORE_DATA_DIRTY_KEY, "true");
+	}
+}
+
 function shouldReloadData() {
+	if (localStorage.getItem(CORE_DATA_DIRTY_KEY) === "true") {
+		console.log("Core data marked stale by live data. Data should be reloaded.");
+		return true;
+	}
+
 	const nextGame = JSON.parse(localStorage.getItem("nba_nextScheduledGame"));
 
 	if (nextGame) {
 		const nextGameDate = new Date(nextGame.localDate);
-		const expectedEndTime = new Date(nextGameDate.getTime() + GAME_MAX_DURATION_MS);
+		const maxLiveWindowEndTime = new Date(nextGameDate.getTime() + GAME_MAX_DURATION_MS);
 		const now = new Date();
 
 		console.log(
@@ -2053,8 +2076,8 @@ function shouldReloadData() {
 					hour: "2-digit",
 					minute: "2-digit",
 				})
-			} | Expected end: ${
-				expectedEndTime.toLocaleTimeString("de-DE", {
+			} | Max live window end: ${
+				maxLiveWindowEndTime.toLocaleTimeString("de-DE", {
 					hour: "2-digit",
 					minute: "2-digit",
 				})
@@ -2069,9 +2092,9 @@ function shouldReloadData() {
 			}`,
 		);
 
-		if (now > expectedEndTime) {
+		if (now > maxLiveWindowEndTime) {
 			console.log(
-				"Next scheduled game is in the past. Data should be reloaded.",
+				"Next scheduled game exceeded max live window. Data should be reloaded.",
 			);
 			return true;
 		} else {
@@ -2086,14 +2109,15 @@ function shouldReloadData() {
 
 function storeNextScheduledGame() {
 	const allScheduledGames = games.scheduled.concat(
-		games.today.filter((game) => game.gameStatus !== 3),
+		games.today,
 	).filter((game) => {
 		const live = liveById.get(game.gameId);
-		const { isPostponed } = getGameState(game, live);
-		return !isPostponed;
+		const { isPostponed, isFinal } = getGameState(game, live);
+		return !isPostponed && !isFinal;
 	});
 
 	if (allScheduledGames.length === 0) {
+		localStorage.removeItem("nba_nextScheduledGame");
 		return;
 	}
 
@@ -2106,17 +2130,30 @@ function storeNextScheduledGame() {
 }
 
 async function loadData() {
-	await fetchData(scheduleURL, handleScheduleData);
-	storeNextScheduledGame();
+	const scheduleLoaded = await fetchData(scheduleURL, handleScheduleData);
+	if (scheduleLoaded) {
+		markCoreDataDirtyFromLive();
+	}
 	await fetchData(standingsURL, handleStandingsData);
 	await fetchData(istBracketURL, handleIstBracketData);
 	await fetchData(playoffBracketURL, handlePlayoffBracketData);
 
+	let canStoreNextScheduledGame = scheduleLoaded;
+
 	if (shouldReloadData()) {
-		await fetchData(scheduleURL, handleScheduleData, true);
+		const scheduleReloaded = await fetchData(scheduleURL, handleScheduleData, true);
+		canStoreNextScheduledGame = scheduleReloaded;
+		if (scheduleReloaded) {
+			localStorage.removeItem(CORE_DATA_DIRTY_KEY);
+			markCoreDataDirtyFromLive();
+		}
 		await fetchData(standingsURL, handleStandingsData, true);
 		await fetchData(istBracketURL, handleIstBracketData, true);
 		await fetchData(playoffBracketURL, handlePlayoffBracketData, true);
+	}
+
+	if (canStoreNextScheduledGame) {
+		storeNextScheduledGame();
 	}
 }
 
@@ -2175,7 +2212,7 @@ function init() {
 	});
 
 	setInterval(() => {
-		if (shouldRerender()) {
+		if (shouldRerender() || shouldReloadData()) {
 			renderedCoreCacheUrls.clear();
 			loadData();
 		}
@@ -2198,7 +2235,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-04-19-v1";
+const SERVICE_WORKER_VERSION = "2026-05-01-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
