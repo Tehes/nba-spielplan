@@ -118,3 +118,17 @@ app shell and API calls on the same origin.
 
 - Service Worker toggles live in `js/app.js`: set `useServiceWorker` to `false` for local debugging
   or bump `serviceWorkerVersion` to force a fresh cache on deploy.
+
+## License and usage
+
+This project is source-available, not open source.
+
+You may view and modify the code for personal, educational, and non-commercial purposes.
+
+If you publicly redistribute this project or a modified version of it, you must:
+
+- link to the original project repository
+- include a visible attribution to the original project and author, where technically and contextually appropriate
+- clearly mark your version as modified and unofficial
+
+Commercial use, paid hosting, resale, and misleading rebranding are not allowed without prior written permission.
