@@ -464,8 +464,7 @@ function isRegularSeasonGame(game) {
 }
 
 function setProgressBar() {
-	const done =
-		(games.finished?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0) +
+	const done = (games.finished?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0) +
 		(games.today?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0);
 
 	const pct = Math.min(100, Math.floor((done * 100) / TOTAL_REGULAR_SEASON_GAMES));
@@ -698,9 +697,7 @@ function appendPlayoffConference(columnEl, side, firstRoundSeries, semifinals, c
 		.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
 	const playoffOptions = { scoreMode: "series" };
 	const outerBracketClass = side === "left" ? "outer-bracket-left" : "outer-bracket-right";
-	const centerConnectorClass = side === "left"
-		? "center-connector-left"
-		: "center-connector-right";
+	const centerConnectorClass = side === "left" ? "center-connector-left" : "center-connector-right";
 
 	columnEl.appendChild(
 		createPlayoffMatchup(
@@ -855,9 +852,7 @@ function renderTodaysGames() {
 			homeAbbr.textContent = g.homeTeam.teamTricode;
 			visitingAbbr.textContent = g.awayTeam.teamTricode;
 
-			gameLabelEl.textContent = label
-				? (subLabel ? `${label} – ${subLabel}` : label)
-				: subLabel;
+			gameLabelEl.textContent = label ? (subLabel ? `${label} – ${subLabel}` : label) : subLabel;
 
 			if (isLive) needsPolling = true;
 
@@ -2182,7 +2177,10 @@ function init() {
 	languagePicker.addEventListener("change", () => {
 		setLanguage(languagePicker.value);
 	});
-	teamPicker.addEventListener("change", renderMoreGames);
+	teamPicker.addEventListener("change", () => {
+		globalThis.umami?.track("NBA Schedule", { teamPicker: teamPicker.value || "all" });
+		renderMoreGames();
+	});
 	checkboxHidePastGames.addEventListener("change", () => {
 		renderMoreGames();
 		if (!checkboxHidePastGames.checked) {
@@ -2249,7 +2247,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-03-v3";
+const SERVICE_WORKER_VERSION = "2026-05-03-v4";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({
