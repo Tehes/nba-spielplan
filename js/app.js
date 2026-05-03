@@ -322,6 +322,10 @@ function t(key, replacements = {}) {
 	return text;
 }
 
+function trackNbaSchedule(event) {
+	globalThis.umami?.track("NBA Schedule", { event });
+}
+
 function syncLanguageUrl() {
 	const url = new URL(globalThis.location.href);
 
@@ -926,7 +930,7 @@ function renderTodaysGames() {
 			if (isFinal || isLive) {
 				card.dataset.clickable = "true";
 				card.addEventListener("click", () => {
-					openGameOverlay(g.gameId, g.awayTeam.teamTricode, g.homeTeam.teamTricode);
+					openGameOverlay(g.gameId, g.awayTeam.teamTricode, g.homeTeam.teamTricode, "today");
 				});
 			}
 
@@ -1380,6 +1384,8 @@ GAME OVERLAY
 function switchTab(tab) {
 	const targetId = tab.dataset.target;
 	const targetPanel = gameOverlay.querySelector(`#${targetId}`);
+	const view = targetId === "playbyplay-panel" ? "playByPlay" : "boxscore";
+	const wasActive = tab.classList.contains("is-active");
 
 	// Toggle tab buttons
 	gameOverlay.querySelectorAll(".tab").forEach((t) => {
@@ -1390,14 +1396,22 @@ function switchTab(tab) {
 	gameOverlay.querySelectorAll(".panel").forEach((panel) => {
 		panel.classList.toggle("is-active", panel === targetPanel);
 	});
+
+	if (!wasActive) {
+		trackNbaSchedule(`overlay:tab:${view}`);
+	}
 }
 
-function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
+function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode, source) {
+	const overlaySource = source === "today" || source === "more" ? source : "unknown";
+
 	backdropEl.classList.remove("hidden");
 	gameOverlayEl.classList.remove("hidden");
 	gameOverlayEl.dataset.gameId = gameId;
 	gameOverlayEl.dataset.awayTeam = awayTeamTricode || "";
 	gameOverlayEl.dataset.homeTeam = homeTeamTricode || "";
+	gameOverlayEl.dataset.source = overlaySource;
+	trackNbaSchedule(`overlay:open:${overlaySource}`);
 
 	// render cached data first (if matching)
 	if (currentBoxscore && currentBoxscore.game && currentBoxscore.game.gameId === gameId) {
@@ -1440,6 +1454,7 @@ function closeGameOverlay() {
 	gameOverlayEl.dataset.gameId = "";
 	gameOverlayEl.dataset.awayTeam = "";
 	gameOverlayEl.dataset.homeTeam = "";
+	gameOverlayEl.dataset.source = "";
 
 	// Reset UI
 	teamsEl.replaceChildren();
@@ -1853,7 +1868,7 @@ function renderMoreGames() {
 			card.dataset.gameId = g.gameId;
 			card.dataset.clickable = "true";
 			card.addEventListener("click", () => {
-				openGameOverlay(g.gameId, g.awayTeam.teamTricode, g.homeTeam.teamTricode);
+				openGameOverlay(g.gameId, g.awayTeam.teamTricode, g.homeTeam.teamTricode, "more");
 			});
 		} else {
 			homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
@@ -2161,6 +2176,10 @@ async function loadData() {
 
 function init() {
 	applyLanguage();
+	trackNbaSchedule(`settings:language:${currentLanguage}`);
+	trackNbaSchedule(`settings:primetime:${checkboxPrimetime.checked ? "on" : "off"}`);
+	trackNbaSchedule(`settings:hide_past:${checkboxHidePastGames.checked ? "on" : "off"}`);
+	trackNbaSchedule(`settings:made_shots_only:${checkboxPlayByPlayMadeShots.checked ? "on" : "off"}`);
 	backdropEl.addEventListener("click", closeGameOverlay);
 	gameOverlayCloseBtn.addEventListener("click", closeGameOverlay);
 	gameTabs.forEach((tab) => {
@@ -2197,6 +2216,9 @@ function init() {
 		localStorage.setItem(
 			"nba-spielplan_pbp_madeShotsOnly",
 			checkboxPlayByPlayMadeShots.checked,
+		);
+		trackNbaSchedule(
+			`playbyplay:made_shots_only:${checkboxPlayByPlayMadeShots.checked ? "on" : "off"}`,
 		);
 		if (currentPlayByPlay && gameOverlayEl.dataset.gameId === currentPlayByPlay.game.gameId) {
 			renderPlayByPlay(currentPlayByPlay);
@@ -2237,7 +2259,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-01-v1";
+const SERVICE_WORKER_VERSION = "2026-05-03-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 /* --------------------------------------------------------------------------------------------------
