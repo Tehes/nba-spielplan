@@ -60,6 +60,7 @@ const istBracketURL = "https://nba-spielplan.tehes.deno.net/istbracket";
 const playoffBracketURL = "https://nba-spielplan.tehes.deno.net/playoffbracket";
 const coreCacheUrls = new Set([scheduleURL, standingsURL, istBracketURL, playoffBracketURL]);
 const CORE_DATA_DIRTY_KEY = "nba_coreDataDirty";
+const NEXT_SCHEDULED_GAME_STORAGE_KEY = "nba_nextScheduledGame";
 const LANGUAGE_STORAGE_KEY = "nba-spielplan_lang";
 const SUPPORTED_LANGUAGES = new Set(["de", "en"]);
 const LOCALES = {
@@ -262,6 +263,8 @@ const manifestLink = document.querySelector("#app-manifest");
 
 // Constants
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
+const NEXT_SCHEDULED_GAME_MAX_LOOKAHEAD_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+const NEXT_SCHEDULED_GAME_GAP_REFRESH_MS = 30 * 60 * 1000; // 30 minutes
 const TOTAL_REGULAR_SEASON_GAMES = 1230;
 const AUTO_REFRESH_INTERVAL_MS = 1 * 60 * 1000; // 1 minute
 const CUP_FINAL_HIDE_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
@@ -2054,18 +2057,54 @@ function markCoreDataDirtyFromLive() {
 	}
 }
 
+function readStoredNextScheduledGame() {
+	const storedNextGame = localStorage.getItem(NEXT_SCHEDULED_GAME_STORAGE_KEY);
+
+	if (!storedNextGame) {
+		return null;
+	}
+
+	try {
+		return JSON.parse(storedNextGame);
+	} catch (error) {
+		console.warn("Stored next scheduled game is invalid. Removing stale cache marker.", error);
+		localStorage.removeItem(NEXT_SCHEDULED_GAME_STORAGE_KEY);
+		return null;
+	}
+}
+
 function shouldReloadData() {
 	if (localStorage.getItem(CORE_DATA_DIRTY_KEY) === "true") {
 		console.log("Core data marked stale by live data. Data should be reloaded.");
 		return true;
 	}
 
-	const nextGame = JSON.parse(localStorage.getItem("nba_nextScheduledGame"));
+	const nextGame = readStoredNextScheduledGame();
 
 	if (nextGame) {
 		const nextGameDate = new Date(nextGame.localDate);
-		const maxLiveWindowEndTime = new Date(nextGameDate.getTime() + GAME_MAX_DURATION_MS);
 		const now = new Date();
+
+		if (Number.isNaN(nextGameDate.getTime())) {
+			localStorage.removeItem(NEXT_SCHEDULED_GAME_STORAGE_KEY);
+			console.log("Stored next scheduled game has an invalid date. Data should be reloaded.");
+			return true;
+		}
+
+		if (nextGameDate.getTime() - now.getTime() > NEXT_SCHEDULED_GAME_MAX_LOOKAHEAD_MS) {
+			const refreshAfter = new Date(nextGame.refreshAfter);
+
+			if (Number.isNaN(refreshAfter.getTime()) || now.getTime() >= refreshAfter.getTime()) {
+				localStorage.removeItem(NEXT_SCHEDULED_GAME_STORAGE_KEY);
+				console.log("Distant next scheduled game cache marker expired. Data should be reloaded.");
+				return true;
+			}
+
+			console.log("Distant next scheduled game cache marker still valid.");
+			return false;
+		}
+
+		const maxLiveWindowEndTime = new Date(nextGameDate.getTime() + GAME_MAX_DURATION_MS);
 
 		console.log(
 			`Next game: ${
@@ -2117,7 +2156,7 @@ function storeNextScheduledGame() {
 	});
 
 	if (allScheduledGames.length === 0) {
-		localStorage.removeItem("nba_nextScheduledGame");
+		localStorage.removeItem(NEXT_SCHEDULED_GAME_STORAGE_KEY);
 		return;
 	}
 
@@ -2125,8 +2164,18 @@ function storeNextScheduledGame() {
 		const gameDate = new Date(game.localDate);
 		return gameDate < new Date(soonest.localDate) ? game : soonest;
 	});
+	const nextGameDate = new Date(nextGame.localDate);
+	const now = Date.now();
+	const storedNextGame = { ...nextGame };
 
-	localStorage.setItem("nba_nextScheduledGame", JSON.stringify(nextGame));
+	if (nextGameDate.getTime() - now > NEXT_SCHEDULED_GAME_MAX_LOOKAHEAD_MS) {
+		storedNextGame.refreshAfter = new Date(now + NEXT_SCHEDULED_GAME_GAP_REFRESH_MS).toISOString();
+		localStorage.setItem(NEXT_SCHEDULED_GAME_STORAGE_KEY, JSON.stringify(storedNextGame));
+		console.log("Next scheduled game is too far ahead. Storing short-lived cache marker.");
+		return;
+	}
+
+	localStorage.setItem(NEXT_SCHEDULED_GAME_STORAGE_KEY, JSON.stringify(storedNextGame));
 }
 
 async function loadData() {
@@ -2247,7 +2296,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-03-v4";
+const SERVICE_WORKER_VERSION = "2026-05-05-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({
