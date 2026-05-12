@@ -43,6 +43,7 @@ async function fetchData(url, updateFunction, forceNetwork = false) {
 		}
 	} catch (error) {
 		console.error("Fetching fresh data failed:", error);
+		markRequestFailed();
 		return false;
 	}
 }
@@ -81,6 +82,7 @@ const messages = {
 		ogDescription:
 			"Alle NBA-Spiele automatisch in deiner Zeitzone – schnell, werbefrei und auch offline nutzbar. Einfach zum Homescreen hinzufügen und wie eine App starten.",
 		seasonProgress: "Saisonfortschritt",
+		requestWarning: "Einige Daten konnten nicht aktualisiert werden. Bitte versuche es später erneut.",
 		todayHeadline: "Heute",
 		showScores: "Ergebnisse anzeigen",
 		showRating: "Spielbewertung anzeigen",
@@ -145,6 +147,7 @@ const messages = {
 		ogDescription:
 			"All NBA games automatically in your time zone with live scores and a prime-time filter. Fast, ad-free, and available offline. Add it to your home screen and launch it like an app.",
 		seasonProgress: "Season Progress",
+		requestWarning: "Some data could not be updated. Please try again later.",
 		todayHeadline: "Today",
 		showScores: "Show scores",
 		showRating: "Show game rating",
@@ -226,11 +229,13 @@ let standingsWest;
 
 const renderedCoreCacheUrls = new Set();
 let lastCheckedDay = getCalendarDayKey(new Date());
+let requestCycleFailed = false;
 
 // DOM Elements
 const todayEl = document.querySelector("#today");
 const moreEl = document.querySelector("#more");
 const progressValue = document.querySelector("#progress-value");
+const requestWarningEl = document.querySelector("#request-warning");
 const languagePicker = document.querySelector("#language-picker");
 const teamPicker = document.querySelector("#team-picker");
 const checkboxShowScores = document.querySelector(".show-scores input");
@@ -474,6 +479,19 @@ function setProgressBar() {
 
 	progressValue.style.width = `${pct}%`;
 	progressValue.textContent = `${pct}%`;
+}
+
+function showRequestWarning() {
+	requestWarningEl.classList.remove("hidden");
+}
+
+function hideRequestWarning() {
+	requestWarningEl.classList.add("hidden");
+}
+
+function markRequestFailed() {
+	requestCycleFailed = true;
+	showRequestWarning();
 }
 
 function updateLive(liveJson) {
@@ -2179,6 +2197,8 @@ function storeNextScheduledGame() {
 }
 
 async function loadData() {
+	requestCycleFailed = false;
+
 	const scheduleLoaded = await fetchData(scheduleURL, handleScheduleData);
 	if (scheduleLoaded) {
 		markCoreDataDirtyFromLive();
@@ -2205,6 +2225,10 @@ async function loadData() {
 
 	if (canStoreNextScheduledGame) {
 		storeNextScheduledGame();
+	}
+
+	if (!requestCycleFailed) {
+		hideRequestWarning();
 	}
 }
 
@@ -2296,7 +2320,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-05-v1";
+const SERVICE_WORKER_VERSION = "2026-05-12-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

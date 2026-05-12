@@ -27,6 +27,7 @@
     --card-corners: 5px;
 
     --live-color: light-dark(red, hsl(0, 100%, 35%));
+    --warning-bg: light-dark(hsl(45 100% 75%), hsl(40, 60%, 40%));
 
     --transition-duration: 0.3s;
 
@@ -132,6 +133,14 @@ body {
     overflow: clip;
     font-size: 0.9rem;
     height: 100%;
+}
+
+.request-warning {
+    margin: 20px 0 20px 0;
+    padding: 10px 12px;
+    background-color: var(--warning-bg);
+    border-radius: var(--card-corners);
+    box-shadow: var(--card-shadow);
 }
 
 .lower {
