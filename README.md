@@ -3,8 +3,8 @@
 NBA Schedule is a lightweight Progressive Web App (PWA) that shows every NBA game in your local
 timezone, keeps live scores in sync, and lets you filter the schedule for exactly what you care
 about—without ads or trackers. The UI is written in plain HTML/CSS/JS, backed by a tiny Deno edge
-function that shields the official NBA JSON feeds, handles derived standings, and caches only the
-season year for bracket calls.
+function that shields the official NBA JSON feeds, normalizes official standings with a
+schedule-derived fallback, and caches only the season year for standings and bracket calls.
 
 ---
 
@@ -99,7 +99,7 @@ endpoints:
 | Endpoint          | Purpose                                | Notes                                                                                      |
 | ----------------- | -------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `/schedule`       | Raw league schedule from `cdn.nba.com` | Fetched fresh per request; client Cache API handles reuse.                                 |
-| `/standings`      | Derived standings table                | Recomputed from the fresh schedule; client Cache API keeps the payload warm.               |
+| `/standings`      | Normalized conference standings        | Prefers the official NBA standings feed; falls back to schedule-derived standings.         |
 | `/scoreboard`     | Live in-day scoreboard feed            | Always proxied without caching; powers the boxscore overlay and in-day score updates.      |
 | `/playoffbracket` | Official bracket JSON                  | Uses a 24h-cached season year, then proxies the official bracket feed.                     |
 | `/istbracket`     | NBA Cup (IST) bracket JSON             | Uses a 24h-cached season year, then proxies the official ISTBracket feed.                  |
