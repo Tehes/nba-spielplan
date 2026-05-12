@@ -3,6 +3,7 @@ const SCHEDULE_URL = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV
 const SCOREBOARD_URL = "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json";
 const BOXSCORE_BASE_URL = "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_";
 const PLAYBYPLAY_BASE_URL = "https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_";
+const LEAGUE_STANDINGS_URL = "https://stats.nba.com/stats/leaguestandingsv3";
 
 const DEFAULT_HEADERS = {
 	"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0",
@@ -63,6 +64,40 @@ const TEAM_META = {
 	SAC: { conf: "W", div: "Pacific" },
 	SAS: { conf: "W", div: "Southwest" },
 	UTA: { conf: "W", div: "Northwest" },
+};
+
+// NBA stats standings use TeamID but the frontend styles teams by tricode.
+const TEAM_TRICODE_BY_ID = {
+	1610612737: "ATL",
+	1610612738: "BOS",
+	1610612739: "CLE",
+	1610612740: "NOP",
+	1610612741: "CHI",
+	1610612742: "DAL",
+	1610612743: "DEN",
+	1610612744: "GSW",
+	1610612745: "HOU",
+	1610612746: "LAC",
+	1610612747: "LAL",
+	1610612748: "MIA",
+	1610612749: "MIL",
+	1610612750: "MIN",
+	1610612751: "BKN",
+	1610612752: "NYK",
+	1610612753: "ORL",
+	1610612754: "IND",
+	1610612755: "PHI",
+	1610612756: "PHX",
+	1610612757: "POR",
+	1610612758: "SAC",
+	1610612759: "SAS",
+	1610612760: "OKC",
+	1610612761: "TOR",
+	1610612762: "UTA",
+	1610612763: "MEM",
+	1610612764: "WAS",
+	1610612765: "DET",
+	1610612766: "CHA",
 };
 
 const getMeta = (tricode) => TEAM_META[tricode] || { conf: "?", div: "?" };
@@ -140,6 +175,73 @@ async function proxyWithCors(url, origin) {
 	return new Response(res.body, { status: res.status, headers });
 }
 
+function getOfficialStandingsUrl(season) {
+	const params = new URLSearchParams({
+		GroupBy: "conf",
+		LeagueID: "00",
+		Season: season,
+		SeasonType: "Regular Season",
+		Section: "overall",
+	});
+	return `${LEAGUE_STANDINGS_URL}?${params.toString()}`;
+}
+
+function getCell(row, headerIndex, name) {
+	return row[headerIndex.get(name)];
+}
+
+function buildStandingsFromOfficialData(standingsJson, season) {
+	const resultSet = standingsJson?.resultSets?.find((set) => set?.name === "Standings");
+	const headers = resultSet?.headers ?? [];
+	const rows = resultSet?.rowSet ?? [];
+
+	if (!Array.isArray(headers) || !Array.isArray(rows) || rows.length === 0) {
+		throw new Error("Official standings response is missing standings rows");
+	}
+
+	const headerIndex = new Map(headers.map((header, index) => [header, index]));
+	const east = [];
+	const west = [];
+
+	// Keep this payload shape identical to buildStandingsFromSchedule().
+	for (const row of rows) {
+		const teamId = getCell(row, headerIndex, "TeamID");
+		const teamTricode = TEAM_TRICODE_BY_ID[teamId];
+		const conference = getCell(row, headerIndex, "Conference");
+		const target = conference === "East" ? east : conference === "West" ? west : null;
+
+		if (!teamTricode || !target) {
+			throw new Error(`Official standings response contains unknown team or conference: ${teamId}`);
+		}
+
+		target.push({
+			teamId,
+			teamTricode,
+			teamCity: getCell(row, headerIndex, "TeamCity"),
+			teamName: getCell(row, headerIndex, "TeamName"),
+			wins: Number(getCell(row, headerIndex, "WINS")) || 0,
+			losses: Number(getCell(row, headerIndex, "LOSSES")) || 0,
+			winPct: Number(getCell(row, headerIndex, "WinPCT")) || 0,
+			gb: Number(getCell(row, headerIndex, "ConferenceGamesBack")) || 0,
+			streak: getCell(row, headerIndex, "strCurrentStreak") || "—",
+			home: getCell(row, headerIndex, "HOME") || "0-0",
+			away: getCell(row, headerIndex, "ROAD") || "0-0",
+			neutral: getCell(row, headerIndex, "NEUTRAL") || "0-0",
+			conf: getCell(row, headerIndex, "ConferenceRecord") || "0-0",
+			div: getCell(row, headerIndex, "DivisionRecord") || "0-0",
+			diff: Number(getCell(row, headerIndex, "DiffTotalPoints")) || 0,
+			isDivisionLeader: getCell(row, headerIndex, "DivisionRank") === 1,
+		});
+	}
+
+	return {
+		season,
+		updatedAt: new Date().toISOString(),
+		east,
+		west,
+	};
+}
+
 function isRegularSeasonGame(game) {
 	// NBA game IDs encode the stage: 002 = regular season.
 	return game?.gameId?.startsWith("002") === true;
@@ -206,20 +308,20 @@ function buildStandingsFromSchedule(scheduleJson) {
 		const winner = homeWon ? home : away;
 		const loser = homeWon ? away : home;
 
-		// Punkte für Differenz
+		// Points for differential
 		home.ptsFor += hs;
 		home.ptsAgainst += as;
 		away.ptsFor += as;
 		away.ptsAgainst += hs;
 
-		// Win/Loss + Home/Away/Neutral
+		// Win/loss + home/away/neutral
 		if (isNeutral) {
-			// Gesamtbilanz & Streaks
+			// Overall record and streaks
 			winner.wins++;
 			loser.losses++;
 			winner.lastResults.push("W");
 			loser.lastResults.push("L");
-			// Neutral-Splits
+			// Neutral splits
 			winner.neutralW++;
 			loser.neutralL++;
 		} else if (homeWon) {
@@ -262,7 +364,7 @@ function buildStandingsFromSchedule(scheduleJson) {
 			}
 		}
 
-		// Head-to-Head Tabelle pflegen
+		// Update head-to-head records
 		const hvs = home.vs.get(away.teamId) || { w: 0, l: 0 };
 		const avs = away.vs.get(home.teamId) || { w: 0, l: 0 };
 		if (homeWon) {
@@ -281,7 +383,7 @@ function buildStandingsFromSchedule(scheduleJson) {
 
 	const all = Array.from(team.values());
 
-	// Division-Leader ermitteln – entries() → values()
+	// Determine division leaders
 	const divisionLeaders = new Set();
 	{
 		const byDivision = new Map();
@@ -302,7 +404,7 @@ function buildStandingsFromSchedule(scheduleJson) {
 		}
 	}
 
-	// --- Comparator mit (vereinfachten) NBA-Tie-Breakern für 2er-Gleichstand ---
+	// --- Comparator with simplified NBA tiebreakers for two-team ties ---
 	function compareTeams(a, b) {
 		const ap = a.wins + a.losses ? a.wins / (a.wins + a.losses) : 0;
 		const bp = b.wins + b.losses ? b.wins / (b.wins + b.losses) : 0;
@@ -314,15 +416,15 @@ function buildStandingsFromSchedule(scheduleJson) {
 		const aHBpct = (aHB.w + aHB.l) ? aHB.w / (aHB.w + aHB.l) : null;
 		const bHBpct = (bHB.w + bHB.l) ? bHB.w / (bHB.w + bHB.l) : null;
 		if (aHBpct !== null && bHBpct !== null && aHBpct !== bHBpct) {
-			return bHBpct - aHBpct; // höherer Head-to-Head-Prozentsatz zuerst
+			return bHBpct - aHBpct; // Higher head-to-head percentage first
 		}
 
-		// 2) Division-Sieger vor Nicht-Division-Sieger (gilt in Conference-Standings)
+		// 2) Division winner before non-division winner in conference standings
 		const aDivLeader = divisionLeaders.has(a.teamId);
 		const bDivLeader = divisionLeaders.has(b.teamId);
 		if (aDivLeader !== bDivLeader) return aDivLeader ? -1 : 1;
 
-		// 3) Division-Record (nur wenn gleiche Division)
+		// 3) Division record for teams in the same division
 		if (a.div && b.div && a.div === b.div) {
 			const aDivPct = (a.divW + a.divL) ? a.divW / (a.divW + a.divL) : 0;
 			const bDivPct = (b.divW + b.divL) ? b.divW / (b.divW + b.divL) : 0;
@@ -334,12 +436,12 @@ function buildStandingsFromSchedule(scheduleJson) {
 		const bConfPct = (b.confW + b.confL) ? b.confW / (b.confW + b.confL) : 0;
 		if (bConfPct !== aConfPct) return bConfPct - aConfPct;
 
-		// 5) Punktedifferenz (über alle Spiele)
+		// 5) Point differential across all games
 		const aDiff = a.ptsFor - a.ptsAgainst;
 		const bDiff = b.ptsFor - b.ptsAgainst;
 		if (bDiff !== aDiff) return bDiff - aDiff;
 
-		// Fallback stabil
+		// Stable fallback
 		if (b.wins !== a.wins) return b.wins - a.wins;
 		if (a.losses !== b.losses) return a.losses - b.losses;
 		return a.teamTricode.localeCompare(b.teamTricode);
@@ -423,9 +525,30 @@ Deno.serve(async (req) => {
 
 		// --- /standings: fetch fresh ---
 		if (PATH === "/standings") {
-			const data = await fetchUpstream(SCHEDULE_URL);
-			const payload = buildStandingsFromSchedule(data);
-			console.log("[/standings] season", payload.season);
+			try {
+				// Prefer the official NBA standings. If stats.nba.com fails, keep the app usable
+				// with the derived standings built from the schedule feed.
+				const seasonString = await getSeasonYear();
+				const standingsUrl = getOfficialStandingsUrl(seasonString);
+				const data = await fetchUpstream(standingsUrl);
+				const payload = buildStandingsFromOfficialData(data, seasonString);
+				console.log("[/standings] official season", payload.season);
+				return respondWithCors(payload, origin, 60);
+			} catch (err) {
+				console.warn("[/standings] official fallback", err);
+				const data = await fetchUpstream(SCHEDULE_URL);
+				const payload = buildStandingsFromSchedule(data);
+				console.log("[/standings] derived season", payload.season);
+				return respondWithCors(payload, origin, 60);
+			}
+		}
+
+		if (PATH === "/standings-official") {
+			const seasonString = await getSeasonYear();
+			const standingsUrl = getOfficialStandingsUrl(seasonString);
+			const data = await fetchUpstream(standingsUrl);
+			const payload = buildStandingsFromOfficialData(data, seasonString);
+			console.log("[/standings-official] season", payload.season);
 			return respondWithCors(payload, origin, 60);
 		}
 
@@ -445,16 +568,16 @@ Deno.serve(async (req) => {
 			return proxyWithCors(istBracketUrl, origin);
 		}
 
-		// --- /scoreboard: KEIN Cache (immer live) ---
+		// --- /scoreboard: no cache, always live ---
 		if (PATH === "/scoreboard") {
 			return proxyWithCors(SCOREBOARD_URL, origin);
 		}
 
-		// --- /boxscore/:gameId: KEIN Cache (immer live) ---
+		// --- /boxscore/:gameId: no cache, always live ---
 		if (PATH.startsWith("/boxscore/")) {
 			const gameId = PATH.slice("/boxscore/".length);
 
-			// einfache Validierung, damit kein Unsinn durchgeht
+			// Basic validation so invalid IDs do not reach the upstream feed.
 			if (!/^\d{10}$/.test(gameId)) {
 				return new Response("Invalid gameId", {
 					status: 400,
@@ -468,11 +591,11 @@ Deno.serve(async (req) => {
 			return proxyWithCors(boxscoreUrl, origin);
 		}
 
-		// --- /playbyplay/:gameId: KEIN Cache (immer live) ---
+		// --- /playbyplay/:gameId: no cache, always live ---
 		if (PATH.startsWith("/playbyplay/")) {
 			const gameId = PATH.slice("/playbyplay/".length);
 
-			// einfache Validierung, damit kein Unsinn durchgeht
+			// Basic validation so invalid IDs do not reach the upstream feed.
 			if (!/^\d{10}$/.test(gameId)) {
 				return new Response("Invalid gameId", {
 					status: 400,
