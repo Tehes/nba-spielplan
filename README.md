@@ -1,10 +1,10 @@
-# NBA Schedule (german: nba-spielplan)
+# NBA/WNBA Schedule (german: nba-spielplan)
 
-NBA Schedule is a lightweight Progressive Web App (PWA) that shows every NBA game in your local
-timezone, keeps live scores in sync, and lets you filter the schedule for exactly what you care
-about—without ads or trackers. The UI is written in plain HTML/CSS/JS, backed by a tiny Deno edge
-function that shields the official NBA JSON feeds, normalizes official standings with a
-schedule-derived fallback, and caches only the season year for standings and bracket calls.
+NBA/WNBA Schedule is a lightweight Progressive Web App (PWA) that shows NBA and WNBA games in your
+local timezone, keeps live scores in sync, and lets you filter the schedule for exactly what you
+care about—without ads or trackers. The UI is written in plain HTML/CSS/JS, backed by a tiny Deno
+edge function that shields the official NBA and WNBA JSON feeds, normalizes official standings with
+a schedule-derived fallback, and caches only the season year for standings and bracket calls.
 
 ---
 
@@ -15,6 +15,9 @@ your browser.
 
 For English-speaking users, link directly to [nba-spielplan.de/?lang=en](https://nba-spielplan.de/?lang=en) to open the
 localized English UI immediately.
+
+The app defaults to the NBA, but users can switch to the WNBA in the top menu. Direct links can use
+`?league=nba` or `?league=wnba`; the selected league is stored locally between visits.
 
 ---
 
@@ -34,11 +37,19 @@ localized English UI immediately.
     time” tip-offs (18:00–23:59 local time).
   - Uses team color accents so you can scan cards quickly.
 
+- **League menu**
+  - Top menu switches between NBA and WNBA schedules.
+  - Team filters, logos, colors, standings, boxscores, play-by-play data, and recap links follow the
+    active league.
+  - NBA remains the default for existing links and cached users.
+
 - **Season context**
-  - Progress bar keeps track of the percentage of the 1,230 regular-season games that are finished.
-  - Automatic standings tables for both conferences (W-L, games behind, streak, home/away splits).
+  - Progress bar keeps track of the percentage of finished regular-season games for the active
+    league.
+  - NBA conference standings and WNBA overall standings (W-L, games behind, streak, home/away
+    splits), with NBA divisions and WNBA conferences available as secondary views.
   - Dynamically generated playoff bracket that plugs in the top six seeds, projects play‑in winners,
-    and updates round-by-round once results are available.
+    and updates round-by-round once results are available for the NBA.
   - NBA Cup bracket (In-Season Tournament) that renders quarterfinals onward once the official
     bracket feed lists all matchups.
 
@@ -50,10 +61,10 @@ localized English UI immediately.
     between visits until fresh data arrives.
 
 - **Quality-of-life touches**
-  - German and English UI localization, with a language picker in the app header.
+  - German and English UI localization, with a language picker in the top menu.
   - English users can be sent straight to `https://nba-spielplan.de/?lang=en`.
-  - Preferences for language, “show scores”, “show game rating”, and “prime time only” persist in
-    `localStorage`.
+  - Preferences for league, language, “show scores”, “show game rating”, and “prime time only”
+    persist in `localStorage`.
   - Data automatically refreshes when the tab becomes visible or when a new day starts.
 
 - **Game detail overlay**
@@ -63,7 +74,8 @@ localized English UI immediately.
   - Shows full period scoring (Q1–Q4, OT1+).
   - Lists starters and bench with complete statlines (MIN, PTS, REB, AST, STL, BLK, TOV, PF, FG, 3P,
     FT).
-  - Adds a direct NBA.com recap link for finished games, opening the official game recap externally.
+  - Adds a direct NBA.com or WNBA.com recap link for finished games, opening the official game recap
+    externally.
   - Uses static HTML templates for fast client‑side rendering.
   - Works offline if the data was previously cached.
 
@@ -97,23 +109,24 @@ localized English UI immediately.
 ## Data Flow & Backend
 
 The backend is powered by a Deno Deploy edge function (api/main.js), which proxies and sanitizes NBA
-endpoints:
+and WNBA endpoints. NBA is the default; league-aware endpoints also accept `?league=nba` or
+`?league=wnba`.
 
-| Endpoint          | Purpose                                | Notes                                                                                      |
-| ----------------- | -------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `/schedule`       | Raw league schedule from `cdn.nba.com` | Fetched fresh per request; client Cache API handles reuse.                                 |
-| `/standings`      | Normalized conference standings        | Prefers the official NBA standings feed; falls back to schedule-derived standings.         |
-| `/scoreboard`     | Live in-day scoreboard feed            | Always proxied without caching; powers the game detail overlay and in-day score updates.   |
-| `/playoffbracket` | Official bracket JSON                  | Uses a 24h-cached season year, then proxies the official bracket feed.                     |
-| `/istbracket`     | NBA Cup (IST) bracket JSON             | Uses a 24h-cached season year, then proxies the official ISTBracket feed.                  |
-| `/boxscore/:id`   | Per-game boxscore                      | Uncached proxy to the NBA live boxscore JSON.                                              |
-| `/playbyplay/:id` | Per-game play-by-play                  | Uncached proxy to the NBA live play-by-play JSON.                                          |
+| Endpoint          | Purpose                         | Notes                                                                                      |
+| ----------------- | ------------------------------- | ------------------------------------------------------------------------------------------ |
+| `/schedule`       | Raw league schedule             | Fetched fresh per request; client Cache API handles reuse.                                 |
+| `/standings`      | Normalized standings            | Prefers the official standings feed; includes NBA divisions and falls back to schedule data. |
+| `/scoreboard`     | Live in-day scoreboard feed     | Always proxied without caching; powers the game detail overlay and in-day score updates.   |
+| `/playoffbracket` | Official NBA bracket JSON       | NBA-only; uses a 24h-cached season year, then proxies the official bracket feed.           |
+| `/istbracket`     | NBA Cup (IST) bracket JSON      | NBA-only; uses a 24h-cached season year, then proxies the official ISTBracket feed.        |
+| `/boxscore/:id`   | Per-game boxscore               | Uncached proxy to the active league's live boxscore JSON.                                  |
+| `/playbyplay/:id` | Per-game play-by-play           | Uncached proxy to the active league's live play-by-play JSON.                              |
 
 The frontend consumes these endpoints via `fetchData`, which first checks the Cache API before
 hitting the network. When games are live, the app polls `/scoreboard` every minute and merges the
-fresh scores into the already-rendered cards. The client caches `schedule`, `standings`, and
-`istbracket` responses (`nba-data-cache`) and the service worker uses stale-while-revalidate for the
-app shell and API calls on the same origin.
+fresh scores into the already-rendered cards. The client keeps NBA and WNBA cache keys separate for
+schedule, standings, scoreboard, and next-game markers. The service worker uses
+stale-while-revalidate for the app shell and API calls on the same origin.
 
 ---
 

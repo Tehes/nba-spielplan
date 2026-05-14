@@ -31,6 +31,7 @@
 
     --transition-duration: 0.3s;
 
+    /* NBA */
     --ATL: #e03a3e;
     --BKN: #000000;
     --BOS: #007a33;
@@ -61,6 +62,24 @@
     --TOR: #ce1141;
     --UTA: #f9a01b;
     --WAS: #002b5c;
+
+    /* WNBA */
+    --wnba-ATL: #E4173D;
+    --wnba-CHI: #4D90CD;
+    --wnba-CON: #f05023;
+    --wnba-DAL: #b6da17;
+    --wnba-GSV: #b896d4;
+    --wnba-IND: #e03a3e;
+    --wnba-LAS: #552C82;
+    --wnba-WAS: #002b5c;
+    --wnba-TOR: #B8CCEA;
+    --wnba-LVA: #010101;
+    --wnba-MIN: #305c98;
+    --wnba-NYL: #86CEBC;
+    --wnba-PDX: #C8102E;
+    --wnba-PHX: #e64e1d;
+    --wnba-SEA: #2a4c31;
+
     --undefined: color-mix(in hsl, var(--card-bg) 85%, black);
 }
 
@@ -179,9 +198,6 @@ h3 {
 .section-head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 16px;
     margin-top: 10px;
 }
 
@@ -189,12 +205,50 @@ h3 {
     margin: 0;
 }
 
-.section-head select {
+.top-menu {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 10px 0 20px 0;
+}
+
+.league-tabs {
+    display: flex;
+    border: 1px solid var(--text-color);
+    border-radius: var(--card-corners);
+    max-width: 320px;
+}
+
+.top-menu #language-picker {
     padding-top: 5px;
     padding-bottom: 5px;
     background-position: calc(100% - 20px) 50%,
         calc(100% - 15px) 50%,
         calc(100% - 2.5em) 50%;
+}
+
+.league-tabs .tab {
+    flex: 1 1 auto;
+    padding: 6px 30px;
+    background-color: transparent;
+    border: none;
+    color: var(--text-color);
+    font: inherit;
+    font-size: 1rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-align: center;
+}
+
+.league-tabs .tab+.tab {
+    border-left: 1px solid var(--text-color);
+}
+
+.league-tabs .tab.is-active {
+    background-color: var(--text-color);
+    color: var(--bg-color);
 }
 
 h4 {
@@ -869,19 +923,26 @@ ASIDE
 -------------------------------------------------------------------
 */
 
-aside>div {
-    margin-bottom: 30px;
-}
-
-aside div {
+#tables {
     width: calc(91vw - 800px);
     min-width: 200px;
     max-width: 400px;
 }
 
+#tables>div,
+.conference-standings,
+#tables>div #overall {
+    margin-bottom: 30px;
+}
 
+.conference-standings:last-child {
+    margin-bottom: 0;
+}
+
+#overall,
 #east,
-#west {
+#west,
+.division-standings-table {
     margin: 10px 0;
     padding: 10px;
     background-color: var(--card-bg);
@@ -945,7 +1006,22 @@ td {
     padding-right: 10px;
 }
 
-tr:where(:nth-of-type(7), :nth-of-type(11)) {
+.standings-conference-toggle,
+.standings-division-toggle {
+    margin: 10px 0 20px 0;
+    color: light-dark(var(--neutral700), var(--neutral300));
+}
+
+.division-standings-wrapper {
+    gap: 0 10%;
+}
+
+.division-standings-wrapper:not(.hidden) {
+    display: grid;
+}
+
+.standings--nba tbody tr:where(:nth-of-type(6), :nth-of-type(10)),
+.standings--wnba-overall tbody tr:nth-of-type(8) {
     border-bottom: 1px solid var(--divider-color);
 }
 
@@ -1302,21 +1378,29 @@ MEDIA QUERIES
         display: flex;
     }
 
-    aside {
+    #tables {
         width: 100%;
         max-width: 800px;
-        display: flex;
-        gap: 10%;
         margin-bottom: 30px;
     }
 
-    aside div {
-        flex: 1 0 45%;
-        max-width: unset;
+    .conference-standings-wrapper:not(.hidden) {
+        display: flex;
+        gap: 30px 10%;
     }
 
-    aside div+div {
-        margin-top: inherit;
+    .division-standings-wrapper {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .conference-standings {
+        flex: 1 0 45%;
+        min-width: 0;
+        margin-bottom: 0;
+    }
+
+    #tables>div:last-child {
+        margin-bottom: 0;
     }
 
     footer {
@@ -1349,11 +1433,16 @@ MEDIA QUERIES
 }
 
 @media (max-width: 480px) {
-    aside {
-        flex-wrap: wrap;
+    .conference-standings-wrapper:not(.hidden) {
+        flex-direction: column;
+        gap: 30px;
     }
 
-    aside div {
+    .conference-standings {
         flex: 1 0 100%;
+    }
+
+    .division-standings-wrapper {
+        grid-template-columns: 1fr;
     }
 }

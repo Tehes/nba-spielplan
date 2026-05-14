@@ -5,7 +5,7 @@ import { initServiceWorkerRegistration } from "./service-worker-registration.js"
 
 async function fetchData(url, updateFunction, forceNetwork = false) {
 	const cacheName = "nba-data-cache"; // never change "-data-" because its used in cleanup
-	const isCoreData = coreCacheUrls.has(url);
+	const isCoreData = getCoreCacheUrls().has(url);
 	const cache = isCoreData ? await caches.open(cacheName) : null;
 
 	if (!forceNetwork && cache) {
@@ -52,18 +52,46 @@ async function fetchData(url, updateFunction, forceNetwork = false) {
 Variables
 ---------------------------------------------------------------------------------------------------*/
 // API Endpoints
-const scheduleURL = "https://nba-spielplan.tehes.deno.net/schedule";
-const standingsURL = "https://nba-spielplan.tehes.deno.net/standings";
-const todaysScoreboardURL = "https://nba-spielplan.tehes.deno.net/scoreboard";
-const boxscoreURL = "https://nba-spielplan.tehes.deno.net/boxscore";
-const playByPlayURL = "https://nba-spielplan.tehes.deno.net/playbyplay";
-const istBracketURL = "https://nba-spielplan.tehes.deno.net/istbracket";
-const playoffBracketURL = "https://nba-spielplan.tehes.deno.net/playoffbracket";
-const coreCacheUrls = new Set([scheduleURL, standingsURL, istBracketURL, playoffBracketURL]);
-const CORE_DATA_DIRTY_KEY = "nba_coreDataDirty";
-const NEXT_SCHEDULED_GAME_STORAGE_KEY = "nba_nextScheduledGame";
+const API_BASE_URL = "https://nba-spielplan.tehes.deno.net";
 const LANGUAGE_STORAGE_KEY = "nba-spielplan_lang";
+const LEAGUE_STORAGE_KEY = "nba-spielplan_league";
+const STANDINGS_CACHE_VERSION = "3";
 const SUPPORTED_LANGUAGES = new Set(["de", "en"]);
+const LEAGUES = {
+	nba: {
+		id: "nba",
+		label: "NBA",
+		query: "",
+		storagePrefix: "nba",
+		logoPath: "img/NBA",
+		colorPrefix: "",
+		regularSeasonPrefix: "002",
+		totalRegularSeasonGames: 1230,
+		recapHost: "nba.com",
+		supportsBrackets: true,
+	},
+	wnba: {
+		id: "wnba",
+		label: "WNBA",
+		query: "?league=wnba",
+		storagePrefix: "wnba",
+		logoPath: "img/WNBA",
+		colorPrefix: "wnba-",
+		regularSeasonPrefix: "102",
+		totalRegularSeasonGames: 330,
+		recapHost: "wnba.com",
+		supportsBrackets: false,
+	},
+};
+const SUPPORTED_LEAGUES = new Set(Object.keys(LEAGUES));
+const NBA_DIVISION_ORDER = [
+	"Atlantic",
+	"Central",
+	"Southeast",
+	"Northwest",
+	"Pacific",
+	"Southwest",
+];
 const LOCALES = {
 	de: "de-DE",
 	en: "en-US",
@@ -97,6 +125,9 @@ const messages = {
 		standingsTeam: "Name",
 		standingsHome: "Home",
 		standingsAway: "Away",
+		overallStandings: "Gesamttabelle",
+		showConferenceStandings: "Konferenz-Tabellen anzeigen",
+		showDivisionStandings: "Division-Tabellen anzeigen",
 		backToTop: "Zurück nach oben",
 		overview: "Übersicht",
 		boxscore: "Boxscore",
@@ -129,6 +160,7 @@ const messages = {
 		endOvertime: "Ende {label}",
 		loadingPlays: "Lade Spielaktionen…",
 		watchRecap: "Recap auf NBA.com ansehen",
+		watchRecapHost: "Recap auf {host} ansehen",
 		team: "Team",
 		total: "Gesamt",
 		jumpToToday: "zu den heutigen Spielen",
@@ -167,6 +199,9 @@ const messages = {
 		standingsTeam: "Team",
 		standingsHome: "Home",
 		standingsAway: "Away",
+		overallStandings: "Overall standings",
+		showConferenceStandings: "Show conference standings",
+		showDivisionStandings: "Show division standings",
 		backToTop: "Back to top",
 		overview: "Overview",
 		boxscore: "Boxscore",
@@ -199,6 +234,7 @@ const messages = {
 		endOvertime: "End {label}",
 		loadingPlays: "Loading play-by-play…",
 		watchRecap: "Watch recap on NBA.com",
+		watchRecapHost: "Watch recap on {host}",
 		team: "Team",
 		total: "Total",
 		jumpToToday: "jump to today's games",
@@ -216,6 +252,7 @@ const messages = {
 };
 let currentLanguage = getInitialLanguage();
 let currentLocale = getLocale(currentLanguage);
+let currentLeague = getInitialLeague();
 
 // Data Holders
 let liveById = new Map();
@@ -224,7 +261,11 @@ const excitementCache = new Map();
 
 let schedule;
 let standings;
-let games = {};
+let games = {
+	today: [],
+	finished: [],
+	scheduled: [],
+};
 let istBracket = null;
 let playoffBracket = null;
 
@@ -233,7 +274,12 @@ let currentPlayByPlay = null;
 
 let eastData = [];
 let westData = [];
+let overallData = [];
+let divisionsData = {};
+let showConferenceStandings = false;
+let showDivisionStandings = false;
 
+let standingsOverall;
 let standingsEast;
 let standingsWest;
 
@@ -247,6 +293,14 @@ const moreEl = document.querySelector("#more");
 const progressValue = document.querySelector("#progress-value");
 const requestWarningEl = document.querySelector("#request-warning");
 const languagePicker = document.querySelector("#language-picker");
+const leagueTabs = document.querySelectorAll("#league-tabs .tab");
+const overallStandingsEl = document.querySelector("#overall-standings");
+const conferenceStandingsWrapperEl = document.querySelector(".conference-standings-wrapper");
+const conferenceStandingsEls = document.querySelectorAll(".conference-standings");
+const checkboxConferenceStandings = document.querySelector(".standings-conference-toggle input");
+const divisionStandingsEl = document.querySelector("#division-standings");
+const divisionStandingsToggleEl = document.querySelector(".standings-division-toggle");
+const checkboxDivisionStandings = document.querySelector(".standings-division-toggle input");
 const teamPicker = document.querySelector("#team-picker");
 const checkboxShowScores = document.querySelector(".show-scores input");
 const checkboxShowRating = document.querySelector(".show-rating input");
@@ -284,7 +338,6 @@ const manifestLink = document.querySelector("#app-manifest");
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
 const NEXT_SCHEDULED_GAME_MAX_LOOKAHEAD_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 const NEXT_SCHEDULED_GAME_GAP_REFRESH_MS = 30 * 60 * 1000; // 30 minutes
-const TOTAL_REGULAR_SEASON_GAMES = 1230;
 const AUTO_REFRESH_INTERVAL_MS = 1 * 60 * 1000; // 1 minute
 const CUP_FINAL_HIDE_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
 const FORCE_SHOW_CUP_BRACKET = false;
@@ -322,8 +375,111 @@ function getInitialLanguage() {
 	return navigator.language?.toLowerCase().startsWith("de") ? "de" : "en";
 }
 
+function getInitialLeague() {
+	const url = new URL(globalThis.location.href);
+	const urlLeague = url.searchParams.get("league");
+
+	if (SUPPORTED_LEAGUES.has(urlLeague)) {
+		localStorage.setItem(LEAGUE_STORAGE_KEY, urlLeague);
+		return urlLeague;
+	}
+
+	const storedLeague = localStorage.getItem(LEAGUE_STORAGE_KEY);
+	if (SUPPORTED_LEAGUES.has(storedLeague)) {
+		return storedLeague;
+	}
+
+	return "nba";
+}
+
 function getLocale(language) {
 	return LOCALES[language] || LOCALES.de;
+}
+
+function getCurrentLeague() {
+	return LEAGUES[currentLeague] || LEAGUES.nba;
+}
+
+function getLeagueApiUrl(path) {
+	const league = getCurrentLeague();
+	return `${API_BASE_URL}${path}${league.query}`;
+}
+
+function addApiQueryParam(url, key, value) {
+	const separator = url.includes("?") ? "&" : "?";
+	return `${url}${separator}${key}=${encodeURIComponent(value)}`;
+}
+
+function getScheduleUrl() {
+	return getLeagueApiUrl("/schedule");
+}
+
+function getStandingsUrl() {
+	return addApiQueryParam(getLeagueApiUrl("/standings"), "standingsVersion", STANDINGS_CACHE_VERSION);
+}
+
+function getScoreboardUrl() {
+	return getLeagueApiUrl("/scoreboard");
+}
+
+function getBoxscoreUrl(gameId) {
+	return getLeagueApiUrl(`/boxscore/${gameId}`);
+}
+
+function getPlayByPlayUrl(gameId) {
+	return getLeagueApiUrl(`/playbyplay/${gameId}`);
+}
+
+function getIstBracketUrl() {
+	return getLeagueApiUrl("/istbracket");
+}
+
+function getPlayoffBracketUrl() {
+	return getLeagueApiUrl("/playoffbracket");
+}
+
+function getCoreCacheUrls() {
+	const urls = [getScheduleUrl(), getStandingsUrl()];
+
+	if (getCurrentLeague().supportsBrackets) {
+		urls.push(getIstBracketUrl(), getPlayoffBracketUrl());
+	}
+
+	return new Set(urls);
+}
+
+function getCoreDataDirtyKey() {
+	return `${getCurrentLeague().storagePrefix}_coreDataDirty`;
+}
+
+function getNextScheduledGameStorageKey() {
+	return `${getCurrentLeague().storagePrefix}_nextScheduledGame`;
+}
+
+function getStandingsPreferenceStorageKey(preference) {
+	return `${getCurrentLeague().storagePrefix}_${preference}`;
+}
+
+function loadStandingsViewPreferences() {
+	showConferenceStandings = localStorage.getItem(
+		getStandingsPreferenceStorageKey("showConferenceStandings"),
+	) === "true";
+	showDivisionStandings = localStorage.getItem(
+		getStandingsPreferenceStorageKey("showDivisionStandings"),
+	) === "true";
+}
+
+function storeStandingsViewPreference(preference, value) {
+	localStorage.setItem(getStandingsPreferenceStorageKey(preference), String(value));
+}
+
+function getTeamColorValue(teamTricode) {
+	const league = getCurrentLeague();
+	return `var(--${league.colorPrefix}${teamTricode})`;
+}
+
+function getTeamLogoSrc(teamTricode) {
+	return `${getCurrentLeague().logoPath}/${teamTricode}.svg`;
 }
 
 function getCalendarDayKey(date) {
@@ -357,6 +513,18 @@ function syncLanguageUrl() {
 	globalThis.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
+function syncLeagueUrl() {
+	const url = new URL(globalThis.location.href);
+
+	if (currentLeague === "nba") {
+		url.searchParams.delete("league");
+	} else {
+		url.searchParams.set("league", currentLeague);
+	}
+
+	globalThis.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
 function applyStaticTranslations() {
 	document.documentElement.lang = currentLanguage;
 
@@ -378,6 +546,11 @@ function applyStaticTranslations() {
 		languagePicker.value = currentLanguage;
 	}
 
+	updateLeagueTabs();
+	updateStandingsViewControls();
+	updateTeamPicker();
+	updateGameRecapLink();
+
 	if (manifestLink) {
 		manifestLink.setAttribute(
 			"href",
@@ -392,6 +565,7 @@ function rerenderLocalizedUi() {
 	if (schedule) {
 		prepareGameData();
 		setProgressBar();
+		updateTeamPicker();
 		renderTodaysGames();
 		renderMoreGames();
 		updateBrackets();
@@ -428,6 +602,88 @@ function setLanguage(language) {
 
 	currentLanguage = language;
 	applyLanguage();
+}
+
+function updateLeagueTabs() {
+	leagueTabs.forEach((tab) => {
+		tab.classList.toggle("is-active", tab.dataset.league === currentLeague);
+	});
+}
+
+function updateStandingsViewControls() {
+	const showOverall = currentLeague === "wnba";
+	const showConferences = currentLeague !== "wnba" || showConferenceStandings;
+	const showDivisionToggle = currentLeague === "nba";
+	const showDivisions = showDivisionToggle && showDivisionStandings;
+
+	overallStandingsEl.classList.toggle("hidden", !showOverall);
+	conferenceStandingsWrapperEl.classList.toggle("hidden", !showConferences);
+	conferenceStandingsEls.forEach((section) => {
+		section.classList.toggle("hidden", !showConferences);
+	});
+	checkboxConferenceStandings.checked = showConferenceStandings;
+	divisionStandingsToggleEl.classList.toggle("hidden", !showDivisionToggle);
+	divisionStandingsEl.classList.toggle("hidden", !showDivisions);
+	checkboxDivisionStandings.checked = showDivisionStandings;
+
+	standingsWest?.classList.toggle("standings--nba", currentLeague === "nba");
+	standingsEast?.classList.toggle("standings--nba", currentLeague === "nba");
+}
+
+function resetStandingsRows() {
+	document.querySelectorAll(".standings tbody").forEach((tbody) => {
+		tbody.replaceChildren();
+	});
+	divisionStandingsEl.replaceChildren();
+}
+
+function resetLeagueData() {
+	stopLivePolling();
+	liveById = new Map();
+	excitementCache.clear();
+	schedule = null;
+	standings = null;
+	games = {
+		today: [],
+		finished: [],
+		scheduled: [],
+	};
+	istBracket = null;
+	playoffBracket = null;
+	currentBoxscore = null;
+	currentPlayByPlay = null;
+	eastData = [];
+	westData = [];
+	overallData = [];
+	divisionsData = {};
+	loadStandingsViewPreferences();
+	renderedCoreCacheUrls.clear();
+	todayEl.replaceChildren();
+	moreEl.replaceChildren();
+	progressValue.style.width = "0%";
+	progressValue.textContent = "0%";
+	resetCupBracket();
+	resetPlayoffBracket();
+	resetStandingsRows();
+	updateStandingsViewControls();
+	updateTeamPicker();
+	if (!gameOverlayEl.classList.contains("hidden")) {
+		closeGameOverlay();
+	}
+}
+
+function setLeague(league) {
+	if (!SUPPORTED_LEAGUES.has(league) || league === currentLeague) {
+		return;
+	}
+
+	currentLeague = league;
+	localStorage.setItem(LEAGUE_STORAGE_KEY, currentLeague);
+	syncLeagueUrl();
+	updateLeagueTabs();
+	resetLeagueData();
+	globalThis.umami?.track("NBA Schedule", { league: currentLeague });
+	loadData();
 }
 
 /* --------------------------------------------------------------------------------------------------
@@ -482,15 +738,14 @@ function prepareGameData() {
 PROGRESS BAR
 ---------------------------------------------------------------------------------------------------*/
 function isRegularSeasonGame(game) {
-	// NBA game IDs encode the stage: 002 = regular season.
-	return game?.gameId?.startsWith("002") === true;
+	return game?.gameId?.startsWith(getCurrentLeague().regularSeasonPrefix) === true;
 }
 
 function setProgressBar() {
 	const done = (games.finished?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0) +
 		(games.today?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0);
 
-	const pct = Math.min(100, Math.floor((done * 100) / TOTAL_REGULAR_SEASON_GAMES));
+	const pct = Math.min(100, Math.floor((done * 100) / getCurrentLeague().totalRegularSeasonGames));
 
 	progressValue.style.width = `${pct}%`;
 	progressValue.textContent = `${pct}%`;
@@ -524,7 +779,7 @@ function updateLive(liveJson) {
 		const liveGame = liveById.get(gameId);
 
 		if (liveGame?.gameStatus === 2) {
-			const bsUrl = `${boxscoreURL}/${gameId}`;
+			const bsUrl = getBoxscoreUrl(gameId);
 			fetchData(
 				bsUrl,
 				(json) => {
@@ -534,7 +789,7 @@ function updateLive(liveJson) {
 				true,
 			);
 
-			const pbpUrl = `${playByPlayURL}/${gameId}`;
+			const pbpUrl = getPlayByPlayUrl(gameId);
 			fetchData(
 				pbpUrl,
 				(pbpJson) => {
@@ -838,6 +1093,12 @@ function updatePlayoffBracket() {
 }
 
 function updateBrackets() {
+	if (!getCurrentLeague().supportsBrackets) {
+		resetCupBracket();
+		resetPlayoffBracket();
+		return;
+	}
+
 	updateCupBracket();
 	updatePlayoffBracket();
 }
@@ -879,11 +1140,11 @@ function renderTodaysGames() {
 			const subLabel = g.gameSubLabel;
 
 			// Team UI
-			homeTeam.style.setProperty("--team-color", `var(--${g.homeTeam.teamTricode})`);
-			visitingTeam.style.setProperty("--team-color", `var(--${g.awayTeam.teamTricode})`);
-			homeLogo.src = `img/${g.homeTeam.teamTricode}.svg`;
+			homeTeam.style.setProperty("--team-color", getTeamColorValue(g.homeTeam.teamTricode));
+			visitingTeam.style.setProperty("--team-color", getTeamColorValue(g.awayTeam.teamTricode));
+			homeLogo.src = getTeamLogoSrc(g.homeTeam.teamTricode);
 			homeLogo.onerror = () => (homeLogo.src = "img/no-logo.svg");
-			visitingLogo.src = `img/${g.awayTeam.teamTricode}.svg`;
+			visitingLogo.src = getTeamLogoSrc(g.awayTeam.teamTricode);
 			visitingLogo.onerror = () => (visitingLogo.src = "img/no-logo.svg");
 			homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
 			visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
@@ -980,7 +1241,7 @@ function renderTodaysGames() {
 }
 
 function fetchLiveOnce() {
-	fetchData(todaysScoreboardURL, updateLive, true);
+	fetchData(getScoreboardUrl(), updateLive, true);
 }
 
 function startLivePolling() {
@@ -1332,7 +1593,7 @@ function fetchExcitementForGame(gameId) {
 		return Promise.resolve(excitementCache.get(gameId));
 	}
 
-	const url = `${playByPlayURL}/${gameId}`;
+	const url = getPlayByPlayUrl(gameId);
 
 	return new Promise((resolve, reject) => {
 		fetchData(
@@ -1436,6 +1697,18 @@ function getNbaRecapUrl(gameId, awayTeamTricode, homeTeamTricode) {
 	return `https://www.nba.com/game/${away}-vs-${home}-${gameId}?watchRecap=true`;
 }
 
+function getWnbaRecapUrl(gameId) {
+	return `https://www.wnba.com/game/${gameId}?watchRecap=true`;
+}
+
+function getRecapUrl(gameId, awayTeamTricode, homeTeamTricode) {
+	if (currentLeague === "wnba") {
+		return getWnbaRecapUrl(gameId);
+	}
+
+	return getNbaRecapUrl(gameId, awayTeamTricode, homeTeamTricode);
+}
+
 function updateGameRecapLink() {
 	const gameId = gameOverlayEl.dataset.gameId;
 	const awayTeamTricode = gameOverlayEl.dataset.awayTeam;
@@ -1451,7 +1724,9 @@ function updateGameRecapLink() {
 		return;
 	}
 
-	gameRecapAnchorEl.href = getNbaRecapUrl(gameId, awayTeamTricode, homeTeamTricode);
+	const host = getCurrentLeague().recapHost;
+	gameRecapAnchorEl.href = getRecapUrl(gameId, awayTeamTricode, homeTeamTricode);
+	gameRecapAnchorEl.textContent = t("watchRecapHost", { host });
 	gameRecapLinkEl.classList.remove("hidden");
 }
 
@@ -1524,9 +1799,9 @@ function renderPreviousMatchups() {
 		const awayScoreEl = item.querySelector(".away-score");
 		const homeScoreEl = item.querySelector(".home-score");
 
-		awayEl.style.setProperty("--team-color", `var(--${awayTeam.teamTricode})`);
+		awayEl.style.setProperty("--team-color", getTeamColorValue(awayTeam.teamTricode));
 		awayEl.querySelector(".abbr").textContent = awayTeam.teamTricode;
-		homeEl.style.setProperty("--team-color", `var(--${homeTeam.teamTricode})`);
+		homeEl.style.setProperty("--team-color", getTeamColorValue(homeTeam.teamTricode));
 		homeEl.querySelector(".abbr").textContent = homeTeam.teamTricode;
 
 		awayScoreEl.textContent = hasScores ? awayScore : "–";
@@ -1569,8 +1844,8 @@ function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
 	const liveGame = liveById.get(gameId);
 	const forceFresh = liveGame?.gameStatus === 2;
 
-	const bsUrl = `${boxscoreURL}/${gameId}`;
-	const pbpUrl = `${playByPlayURL}/${gameId}`;
+	const bsUrl = getBoxscoreUrl(gameId);
+	const pbpUrl = getPlayByPlayUrl(gameId);
 	fetchData(
 		bsUrl,
 		(json) => {
@@ -1646,7 +1921,7 @@ function renderPlayByPlay(json) {
 		const item = template.content.firstElementChild.cloneNode(true);
 
 		if (action.teamTricode) {
-			item.style.setProperty("--team-color", `var(--${action.teamTricode})`);
+			item.style.setProperty("--team-color", getTeamColorValue(action.teamTricode));
 		}
 
 		const timeEl = item.querySelector(".time");
@@ -1725,8 +2000,8 @@ function renderBoxscoreTeamStats(game) {
 
 		homeBar.style.setProperty("width", `${Math.min(100, Math.max(0, homeShare))}%`);
 		awayBar.style.setProperty("width", `${Math.min(100, Math.max(0, awayShare))}%`);
-		homeBar.style.setProperty("--team-color", `var(--${homeTeam.teamTricode})`);
-		awayBar.style.setProperty("--team-color", `var(--${awayTeam.teamTricode})`);
+		homeBar.style.setProperty("--team-color", getTeamColorValue(homeTeam.teamTricode));
+		awayBar.style.setProperty("--team-color", getTeamColorValue(awayTeam.teamTricode));
 		homeBar.textContent = `${homeValue}`;
 		awayBar.textContent = `${awayValue}`;
 	});
@@ -1771,7 +2046,7 @@ function renderBoxscorePeriods(game) {
 		const row = document.createElement("tr");
 		const labelCell = document.createElement("td");
 		labelCell.textContent = team.teamTricode;
-		row.style.setProperty("--team-color", `var(--${team.teamTricode})`);
+		row.style.setProperty("--team-color", getTeamColorValue(team.teamTricode));
 		row.appendChild(labelCell);
 
 		periods.forEach((p) => {
@@ -1800,12 +2075,12 @@ function renderBoxscorePeriods(game) {
 function renderBoxscoreTeam(team) {
 	const template = document.querySelector("#template-boxscore");
 	const section = template.content.firstElementChild.cloneNode(true);
-	section.style.setProperty("--team-color", `var(--${team.teamTricode})`);
+	section.style.setProperty("--team-color", getTeamColorValue(team.teamTricode));
 
 	const teamLogo = section.querySelector(".team-logo");
 	const teamName = section.querySelector(".team-name");
 
-	teamLogo.src = `img/${team.teamTricode}.svg`;
+	teamLogo.src = getTeamLogoSrc(team.teamTricode);
 	teamLogo.alt = `${team.teamCity} ${team.teamName} Logo`;
 	teamLogo.onerror = () => {
 		teamLogo.src = "img/no-logo.svg";
@@ -1924,6 +2199,63 @@ function fillPlayersTable(tbody, players) {
 MORE GAMES
 ---------------------------------------------------------------------------------------------------*/
 
+function getTeamsForPicker() {
+	const teams = new Map();
+	const addTeam = (team) => {
+		if (!team?.teamTricode) {
+			return;
+		}
+
+		teams.set(team.teamTricode, {
+			teamTricode: team.teamTricode,
+			teamCity: team.teamCity || "",
+			teamName: team.teamName || "",
+		});
+	};
+
+	eastData.forEach(addTeam);
+	westData.forEach(addTeam);
+
+	if (!teams.size && schedule?.leagueSchedule?.gameDates) {
+		getScheduleGames().forEach((game) => {
+			addTeam(game.awayTeam);
+			addTeam(game.homeTeam);
+		});
+	}
+
+	return Array.from(teams.values()).sort((a, b) => {
+		const aName = `${a.teamCity} ${a.teamName}`.trim() || a.teamTricode;
+		const bName = `${b.teamCity} ${b.teamName}`.trim() || b.teamTricode;
+		return aName.localeCompare(bName);
+	});
+}
+
+function updateTeamPicker() {
+	if (!teamPicker) {
+		return;
+	}
+
+	const selectedTeam = teamPicker.value;
+	const teams = getTeamsForPicker();
+	teamPicker.replaceChildren();
+
+	const allOption = document.createElement("option");
+	allOption.value = "";
+	allOption.textContent = t("allTeams");
+	teamPicker.appendChild(allOption);
+
+	teams.forEach((team) => {
+		const option = document.createElement("option");
+		option.value = team.teamTricode;
+		option.textContent = `${team.teamCity} ${team.teamName}`.trim() || team.teamTricode;
+		teamPicker.appendChild(option);
+	});
+
+	if (teams.some((team) => team.teamTricode === selectedTeam)) {
+		teamPicker.value = selectedTeam;
+	}
+}
+
 function renderMoreGames() {
 	let dateHeadline = "";
 	moreEl.innerHTML = "";
@@ -1993,9 +2325,9 @@ function renderMoreGames() {
 		homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
 		visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
 		homeAbbr.textContent = g.homeTeam.teamTricode;
-		homeColor.style.setProperty("--team-color", `var(--${g.homeTeam.teamTricode})`);
+		homeColor.style.setProperty("--team-color", getTeamColorValue(g.homeTeam.teamTricode));
 		visitingAbbr.textContent = g.awayTeam.teamTricode;
-		visitingColor.style.setProperty("--team-color", `var(--${g.awayTeam.teamTricode})`);
+		visitingColor.style.setProperty("--team-color", getTeamColorValue(g.awayTeam.teamTricode));
 		card.dataset.abbr = `${g.awayTeam.teamTricode}/${g.homeTeam.teamTricode}`;
 		date.textContent = t("scheduledTime", { time: g.time });
 		gameLabelEl.textContent = label ? subLabel ? `${label} – ${subLabel}` : label : subLabel;
@@ -2075,32 +2407,149 @@ function scrollToLastPastHeadline() {
 STANDINGS
 ---------------------------------------------------------------------------------------------------*/
 
-function renderStandings() {
-	const rows = [
-		standingsWest.querySelectorAll("tr:not(:first-of-type)"),
-		standingsEast.querySelectorAll("tr:not(:first-of-type)"),
+function getOverallStandingsData() {
+	return eastData.concat(westData).slice().sort((a, b) => {
+		const aRank = Number(a.playoffRank) || Number.POSITIVE_INFINITY;
+		const bRank = Number(b.playoffRank) || Number.POSITIVE_INFINITY;
+
+		if (aRank !== bRank) {
+			return aRank - bRank;
+		}
+
+		if (b.winPct !== a.winPct) {
+			return b.winPct - a.winPct;
+		}
+
+		if (b.wins !== a.wins) {
+			return b.wins - a.wins;
+		}
+
+		if (a.losses !== b.losses) {
+			return a.losses - b.losses;
+		}
+
+		if (b.diff !== a.diff) {
+			return b.diff - a.diff;
+		}
+
+		return a.teamTricode.localeCompare(b.teamTricode);
+	});
+}
+
+function createStandingsTable() {
+	const table = document.createElement("table");
+	const thead = document.createElement("thead");
+	const tbody = document.createElement("tbody");
+	const headerRow = document.createElement("tr");
+	const headers = [
+		"",
+		t("standingsTeam"),
+		"W-L",
+		"GB",
+		"STR",
+		t("standingsHome"),
+		t("standingsAway"),
 	];
 
-	const dataByConf = [westData, eastData];
+	table.className = "standings";
 
-	for (let confIdx = 0; confIdx < rows.length; confIdx++) {
-		const rowsForTable = rows[confIdx];
-		const data = dataByConf[confIdx];
+	headers.forEach((label) => {
+		const th = document.createElement("th");
+		th.textContent = label;
+		headerRow.appendChild(th);
+	});
 
-		rowsForTable.forEach((row, index) => {
-			const team = data[index];
-			if (!team) return;
+	thead.appendChild(headerRow);
+	table.append(thead, tbody);
 
-			const cells = row.querySelectorAll("td");
-			row.style.setProperty("--team-color", `var(--${team.teamTricode})`);
-			cells[1].textContent = team.teamTricode;
-			cells[2].textContent = `${team.wins}-${team.losses}`; // W-L
-			cells[3].textContent = team.gb;
-			cells[4].textContent = team.streak;
-			cells[5].textContent = team.home;
-			cells[6].textContent = team.away;
+	return table;
+}
+
+function renderStandingsTable(table, data, options = {}) {
+	const rankKey = options.rankKey || null;
+	const gbKey = options.gbKey || "gb";
+	const tbody = table.querySelector("tbody");
+	const rows = data.map((team, index) => {
+		const row = document.createElement("tr");
+		row.style.setProperty("--team-color", getTeamColorValue(team.teamTricode));
+
+		[
+			rankKey ? team[rankKey] || index + 1 : index + 1,
+			team.teamTricode,
+			`${team.wins}-${team.losses}`,
+			team[gbKey] ?? team.gb,
+			team.streak,
+			team.home,
+			team.away,
+		].forEach((value) => {
+			const cell = document.createElement("td");
+			cell.textContent = value;
+			row.appendChild(cell);
 		});
+
+		return row;
+	});
+
+	tbody.replaceChildren(...rows);
+}
+
+function renderDivisionStandings() {
+	divisionStandingsEl.replaceChildren();
+
+	if (currentLeague !== "nba") {
+		return;
 	}
+
+	NBA_DIVISION_ORDER.forEach((division) => {
+		const data = divisionsData[division];
+
+		if (!data?.length) {
+			return;
+		}
+
+		const section = document.createElement("div");
+		const heading = document.createElement("h3");
+		const tableWrapper = document.createElement("div");
+		const table = createStandingsTable();
+
+		section.className = "division-standings";
+		heading.textContent = division;
+		tableWrapper.className = "division-standings-table";
+
+		renderStandingsTable(table, data, {
+			rankKey: "divisionRank",
+			gbKey: "divisionGb",
+		});
+
+		tableWrapper.appendChild(table);
+		section.append(heading, tableWrapper);
+		divisionStandingsEl.appendChild(section);
+	});
+}
+
+function renderStandings() {
+	const tables = [
+		{ table: standingsWest, data: westData },
+		{ table: standingsEast, data: eastData },
+	];
+
+	updateStandingsViewControls();
+
+	if (!standingsOverall || !standingsWest || !standingsEast) {
+		return;
+	}
+
+	overallData = getOverallStandingsData();
+	renderStandingsTable(standingsOverall, overallData, {
+		rankKey: "playoffRank",
+		gbKey: "leagueGb",
+	});
+
+	tables.forEach(({ table, data }) => {
+		renderStandingsTable(table, data);
+	});
+
+	renderDivisionStandings();
 }
 
 /* --------------------------------------------------------------------------------------------------
@@ -2144,10 +2593,14 @@ function handleStandingsData(json) {
 	// Store new-format arrays directly
 	eastData = standings.east.slice();
 	westData = standings.west.slice();
+	overallData = getOverallStandingsData();
+	divisionsData = standings.divisions || {};
 
+	standingsOverall = document.querySelector("#overall table");
 	standingsEast = document.querySelector("#east table");
 	standingsWest = document.querySelector("#west table");
 
+	updateTeamPicker();
 	renderStandings();
 }
 
@@ -2211,12 +2664,12 @@ function markCoreDataDirtyFromLive() {
 	});
 
 	if (hasLiveFinalMissingInSchedule) {
-		localStorage.setItem(CORE_DATA_DIRTY_KEY, "true");
+		localStorage.setItem(getCoreDataDirtyKey(), "true");
 	}
 }
 
 function readStoredNextScheduledGame() {
-	const storedNextGame = localStorage.getItem(NEXT_SCHEDULED_GAME_STORAGE_KEY);
+	const storedNextGame = localStorage.getItem(getNextScheduledGameStorageKey());
 
 	if (!storedNextGame) {
 		return null;
@@ -2226,13 +2679,13 @@ function readStoredNextScheduledGame() {
 		return JSON.parse(storedNextGame);
 	} catch (error) {
 		console.warn("Stored next scheduled game is invalid. Removing stale cache marker.", error);
-		localStorage.removeItem(NEXT_SCHEDULED_GAME_STORAGE_KEY);
+		localStorage.removeItem(getNextScheduledGameStorageKey());
 		return null;
 	}
 }
 
 function shouldReloadData() {
-	if (localStorage.getItem(CORE_DATA_DIRTY_KEY) === "true") {
+	if (localStorage.getItem(getCoreDataDirtyKey()) === "true") {
 		console.log("Core data marked stale by live data. Data should be reloaded.");
 		return true;
 	}
@@ -2244,7 +2697,7 @@ function shouldReloadData() {
 		const now = new Date();
 
 		if (Number.isNaN(nextGameDate.getTime())) {
-			localStorage.removeItem(NEXT_SCHEDULED_GAME_STORAGE_KEY);
+			localStorage.removeItem(getNextScheduledGameStorageKey());
 			console.log("Stored next scheduled game has an invalid date. Data should be reloaded.");
 			return true;
 		}
@@ -2253,7 +2706,7 @@ function shouldReloadData() {
 			const refreshAfter = new Date(nextGame.refreshAfter);
 
 			if (Number.isNaN(refreshAfter.getTime()) || now.getTime() >= refreshAfter.getTime()) {
-				localStorage.removeItem(NEXT_SCHEDULED_GAME_STORAGE_KEY);
+				localStorage.removeItem(getNextScheduledGameStorageKey());
 				console.log("Distant next scheduled game cache marker expired. Data should be reloaded.");
 				return true;
 			}
@@ -2314,7 +2767,7 @@ function storeNextScheduledGame() {
 	});
 
 	if (allScheduledGames.length === 0) {
-		localStorage.removeItem(NEXT_SCHEDULED_GAME_STORAGE_KEY);
+		localStorage.removeItem(getNextScheduledGameStorageKey());
 		return;
 	}
 
@@ -2328,40 +2781,48 @@ function storeNextScheduledGame() {
 
 	if (nextGameDate.getTime() - now > NEXT_SCHEDULED_GAME_MAX_LOOKAHEAD_MS) {
 		storedNextGame.refreshAfter = new Date(now + NEXT_SCHEDULED_GAME_GAP_REFRESH_MS).toISOString();
-		localStorage.setItem(NEXT_SCHEDULED_GAME_STORAGE_KEY, JSON.stringify(storedNextGame));
+		localStorage.setItem(getNextScheduledGameStorageKey(), JSON.stringify(storedNextGame));
 		console.log("Next scheduled game is too far ahead. Storing short-lived cache marker.");
 		return;
 	}
 
-	localStorage.setItem(NEXT_SCHEDULED_GAME_STORAGE_KEY, JSON.stringify(storedNextGame));
+	localStorage.setItem(getNextScheduledGameStorageKey(), JSON.stringify(storedNextGame));
 }
 
 async function loadData() {
 	requestCycleFailed = false;
 
-	const scheduleLoaded = await fetchData(scheduleURL, handleScheduleData);
+	const scheduleLoaded = await fetchData(getScheduleUrl(), handleScheduleData);
 	if (scheduleLoaded) {
 		markCoreDataDirtyFromLive();
 	}
-	await fetchData(standingsURL, handleStandingsData);
-	await fetchData(istBracketURL, handleIstBracketData);
-	await fetchData(playoffBracketURL, handlePlayoffBracketData);
+	await fetchData(getStandingsUrl(), handleStandingsData);
+
+	if (getCurrentLeague().supportsBrackets) {
+		await fetchData(getIstBracketUrl(), handleIstBracketData);
+		await fetchData(getPlayoffBracketUrl(), handlePlayoffBracketData);
+	} else {
+		resetCupBracket();
+		resetPlayoffBracket();
+	}
 
 	let canStoreNextScheduledGame = scheduleLoaded;
 	const shouldRefreshCoreData = shouldReloadData();
 
 	if (shouldRefreshCoreData) {
-		const scheduleReloaded = await fetchData(scheduleURL, handleScheduleData, true);
+		const scheduleReloaded = await fetchData(getScheduleUrl(), handleScheduleData, true);
 		canStoreNextScheduledGame = scheduleReloaded;
 		if (scheduleReloaded) {
-			localStorage.removeItem(CORE_DATA_DIRTY_KEY);
+			localStorage.removeItem(getCoreDataDirtyKey());
 			markCoreDataDirtyFromLive();
 		}
-		await fetchData(standingsURL, handleStandingsData, true);
+		await fetchData(getStandingsUrl(), handleStandingsData, true);
 	}
 
-	await fetchData(istBracketURL, handleIstBracketData, true);
-	await fetchData(playoffBracketURL, handlePlayoffBracketData, true);
+	if (getCurrentLeague().supportsBrackets) {
+		await fetchData(getIstBracketUrl(), handleIstBracketData, true);
+		await fetchData(getPlayoffBracketUrl(), handlePlayoffBracketData, true);
+	}
 
 	if (canStoreNextScheduledGame) {
 		storeNextScheduledGame();
@@ -2373,13 +2834,17 @@ async function loadData() {
 }
 
 function init() {
+	loadStandingsViewPreferences();
 	applyLanguage();
 	globalThis.umami?.track("NBA Schedule", {
+		league: currentLeague,
 		language: currentLanguage,
 		showScores: checkboxShowScores.checked,
 		showExcitementRating: checkboxShowRating.checked,
 		hidePastGames: checkboxHidePastGames.checked,
 		primeTimeOnly: checkboxPrimetime.checked,
+		showConferenceStandings,
+		showDivisionStandings,
 	});
 	backdropEl.addEventListener("click", closeGameOverlay);
 	gameOverlayCloseBtn.addEventListener("click", closeGameOverlay);
@@ -2390,8 +2855,26 @@ function init() {
 	languagePicker.addEventListener("change", () => {
 		setLanguage(languagePicker.value);
 	});
+	leagueTabs.forEach((tab) => {
+		tab.addEventListener("click", () => {
+			setLeague(tab.dataset.league);
+		});
+	});
+	checkboxConferenceStandings.addEventListener("change", () => {
+		showConferenceStandings = checkboxConferenceStandings.checked;
+		storeStandingsViewPreference("showConferenceStandings", showConferenceStandings);
+		updateStandingsViewControls();
+	});
+	checkboxDivisionStandings.addEventListener("change", () => {
+		showDivisionStandings = checkboxDivisionStandings.checked;
+		storeStandingsViewPreference("showDivisionStandings", showDivisionStandings);
+		updateStandingsViewControls();
+	});
 	teamPicker.addEventListener("change", () => {
-		globalThis.umami?.track("NBA Schedule", { teamPicker: teamPicker.value || "all" });
+		globalThis.umami?.track("NBA Schedule", {
+			league: currentLeague,
+			teamPicker: teamPicker.value || "all",
+		});
 		renderMoreGames();
 	});
 	checkboxHidePastGames.addEventListener("change", () => {
@@ -2460,7 +2943,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-14-v4";
+const SERVICE_WORKER_VERSION = "2026-05-14-v16";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

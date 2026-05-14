@@ -43,12 +43,18 @@
 <body>
 	<div id="container">
 		<main>
-			<div class="section-head">
-				<h3 data-i18n="seasonProgress">Saisonfortschritt</h3>
+			<div class="top-menu">
+				<nav id="league-tabs" class="league-tabs">
+					<button type="button" class="tab is-active" data-league="nba">NBA</button>
+					<button type="button" class="tab" data-league="wnba">WNBA</button>
+				</nav>
 				<select id="language-picker">
 					<option value="de">🇩🇪 DE</option>
 					<option value="en">🇺🇸 EN</option>
 				</select>
+			</div>
+			<div class="section-head">
+				<h3 data-i18n="seasonProgress">Saisonfortschritt</h3>
 			</div>
 			<div id="progress-bar" class="meter-container">
 				<div id="progress-value" class="meter-fill"></div>
@@ -195,308 +201,74 @@
 			</section>
 		</main>
 		<aside id="tables">
-			<div>
-				<h3>Western Conference</h3>
-				<div id="west">
-					<table class="standings">
-						<tr>
-							<th></th>
-							<th data-i18n="standingsTeam">Name</th>
-							<th>W-L</th>
-							<th>GB</th>
-							<th>STR</th>
-							<th data-i18n="standingsHome">Home</th>
-							<th data-i18n="standingsAway">Away</th>
-						</tr>
-						<tr>
-							<td>1</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>2</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>3</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>4</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>5</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>6</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>7</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>8</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>9</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>10</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>11</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>12</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>13</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>14</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>15</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
+			<div id="overall-standings" class="hidden">
+				<h3 data-i18n="overallStandings">Gesamttabelle</h3>
+				<div id="overall">
+					<table class="standings standings--wnba-overall">
+						<thead>
+							<tr>
+								<th></th>
+								<th data-i18n="standingsTeam">Name</th>
+								<th>W-L</th>
+								<th>GB</th>
+								<th>STR</th>
+								<th data-i18n="standingsHome">Home</th>
+								<th data-i18n="standingsAway">Away</th>
+							</tr>
+						</thead>
+						<tbody></tbody>
 					</table>
 				</div>
+				<label class="standings-conference-toggle"><span data-i18n="showConferenceStandings">Konferenz-Tabellen anzeigen</span>
+					<input type="checkbox" />
+					<span class="checkmark"></span>
+				</label>
 			</div>
-			<div>
-				<h3>Eastern Conference</h3>
-				<div id="east">
-					<table class="standings">
-						<tr>
-							<th></th>
-							<th data-i18n="standingsTeam">Name</th>
-							<th>W-L</th>
-							<th>GB</th>
-							<th>STR</th>
-							<th data-i18n="standingsHome">Home</th>
-							<th data-i18n="standingsAway">Away</th>
-						</tr>
-						<tr>
-							<td>1</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>2</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>3</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>4</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>5</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>6</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>7</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>8</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>9</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>10</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>11</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>12</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>13</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>14</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-						<tr>
-							<td>15</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-						</tr>
-					</table>
+			<div class="conference-standings-wrapper">
+				<div class="conference-standings">
+					<h3>Western Conference</h3>
+					<div id="west">
+						<table class="standings standings--nba">
+							<thead>
+								<tr>
+									<th></th>
+									<th data-i18n="standingsTeam">Name</th>
+									<th>W-L</th>
+									<th>GB</th>
+									<th>STR</th>
+									<th data-i18n="standingsHome">Home</th>
+									<th data-i18n="standingsAway">Away</th>
+								</tr>
+							</thead>
+							<tbody></tbody>
+						</table>
+					</div>
+				</div>
+				<div class="conference-standings">
+					<h3>Eastern Conference</h3>
+					<div id="east">
+						<table class="standings standings--nba">
+							<thead>
+								<tr>
+									<th></th>
+									<th data-i18n="standingsTeam">Name</th>
+									<th>W-L</th>
+									<th>GB</th>
+									<th>STR</th>
+									<th data-i18n="standingsHome">Home</th>
+									<th data-i18n="standingsAway">Away</th>
+								</tr>
+							</thead>
+							<tbody></tbody>
+						</table>
+					</div>
 				</div>
 			</div>
+			<label class="standings-division-toggle hidden"><span data-i18n="showDivisionStandings">Division-Tabellen anzeigen</span>
+				<input type="checkbox" />
+				<span class="checkmark"></span>
+			</label>
+			<div id="division-standings" class="division-standings-wrapper hidden"></div>
 		</aside>
 	</div>
 	<footer>
