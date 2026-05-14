@@ -205,9 +205,9 @@ function getLeague(url) {
 	return LEAGUES[leagueId] || null;
 }
 
-function getOfficialStandingsUrl(season, league) {
+function getOfficialStandingsUrl(season, league, groupBy = "conf") {
 	const params = new URLSearchParams({
-		GroupBy: "conf",
+		GroupBy: groupBy,
 		LeagueID: league.leagueId,
 		Season: season,
 		SeasonType: "Regular Season",
@@ -218,6 +218,33 @@ function getOfficialStandingsUrl(season, league) {
 
 function getCell(row, headerIndex, name) {
 	return row[headerIndex.get(name)];
+}
+
+function createStandingsTeam(row, headerIndex, teamTricode) {
+	return {
+		teamId: getCell(row, headerIndex, "TeamID"),
+		teamTricode,
+		teamCity: getCell(row, headerIndex, "TeamCity"),
+		teamName: getCell(row, headerIndex, "TeamName"),
+		wins: Number(getCell(row, headerIndex, "WINS")) || 0,
+		losses: Number(getCell(row, headerIndex, "LOSSES")) || 0,
+		winPct: Number(getCell(row, headerIndex, "WinPCT")) || 0,
+		gb: Number(getCell(row, headerIndex, "ConferenceGamesBack")) || 0,
+		playoffRank: Number(getCell(row, headerIndex, "PlayoffRank")) || 0,
+		leagueRank: Number(getCell(row, headerIndex, "LeagueRank")) || 0,
+		leagueGb: Number(getCell(row, headerIndex, "LeagueGamesBack")) || 0,
+		divisionRank: Number(getCell(row, headerIndex, "DivisionRank")) || 0,
+		divisionGb: Number(getCell(row, headerIndex, "DivisionGamesBack")) || 0,
+		streak: getCell(row, headerIndex, "strCurrentStreak") || "—",
+		home: getCell(row, headerIndex, "HOME") || "0-0",
+		away: getCell(row, headerIndex, "ROAD") || "0-0",
+		neutral: getCell(row, headerIndex, "NEUTRAL") || "0-0",
+		conf: getCell(row, headerIndex, "ConferenceRecord") || "0-0",
+		div: getCell(row, headerIndex, "DivisionRecord") || "0-0",
+		division: getCell(row, headerIndex, "Division") || "",
+		diff: Number(getCell(row, headerIndex, "DiffTotalPoints")) || 0,
+		isDivisionLeader: getCell(row, headerIndex, "DivisionRank") === 1,
+	};
 }
 
 function buildStandingsFromOfficialData(standingsJson, season, league) {
@@ -245,27 +272,7 @@ function buildStandingsFromOfficialData(standingsJson, season, league) {
 			throw new Error(`Official standings response contains unknown team or conference: ${teamId}`);
 		}
 
-		target.push({
-			teamId,
-			teamTricode,
-			teamCity: getCell(row, headerIndex, "TeamCity"),
-			teamName: getCell(row, headerIndex, "TeamName"),
-			wins: Number(getCell(row, headerIndex, "WINS")) || 0,
-			losses: Number(getCell(row, headerIndex, "LOSSES")) || 0,
-			winPct: Number(getCell(row, headerIndex, "WinPCT")) || 0,
-			gb: Number(getCell(row, headerIndex, "ConferenceGamesBack")) || 0,
-			playoffRank: Number(getCell(row, headerIndex, "PlayoffRank")) || 0,
-			leagueRank: Number(getCell(row, headerIndex, "LeagueRank")) || 0,
-			leagueGb: Number(getCell(row, headerIndex, "LeagueGamesBack")) || 0,
-			streak: getCell(row, headerIndex, "strCurrentStreak") || "—",
-			home: getCell(row, headerIndex, "HOME") || "0-0",
-			away: getCell(row, headerIndex, "ROAD") || "0-0",
-			neutral: getCell(row, headerIndex, "NEUTRAL") || "0-0",
-			conf: getCell(row, headerIndex, "ConferenceRecord") || "0-0",
-			div: getCell(row, headerIndex, "DivisionRecord") || "0-0",
-			diff: Number(getCell(row, headerIndex, "DiffTotalPoints")) || 0,
-			isDivisionLeader: getCell(row, headerIndex, "DivisionRank") === 1,
-		});
+		target.push(createStandingsTeam(row, headerIndex, teamTricode));
 	}
 
 	return {
@@ -274,6 +281,38 @@ function buildStandingsFromOfficialData(standingsJson, season, league) {
 		east,
 		west,
 	};
+}
+
+function buildDivisionsFromOfficialData(standingsJson, league) {
+	const resultSet = standingsJson?.resultSets?.find((set) => set?.name === "Standings");
+	const headers = resultSet?.headers ?? [];
+	const rows = resultSet?.rowSet ?? [];
+
+	if (!Array.isArray(headers) || !Array.isArray(rows) || rows.length === 0) {
+		throw new Error("Official division standings response is missing standings rows");
+	}
+
+	const headerIndex = new Map(headers.map((header, index) => [header, index]));
+	const divisions = {};
+	const teamTricodeById = TEAM_TRICODE_BY_ID_BY_LEAGUE[league.id];
+
+	for (const row of rows) {
+		const teamId = getCell(row, headerIndex, "TeamID");
+		const teamTricode = teamTricodeById[teamId];
+		const division = getCell(row, headerIndex, "Division");
+
+		if (!teamTricode || !division) {
+			throw new Error(`Official division standings response contains unknown team or division: ${teamId}`);
+		}
+
+		if (!divisions[division]) {
+			divisions[division] = [];
+		}
+
+		divisions[division].push(createStandingsTeam(row, headerIndex, teamTricode));
+	}
+
+	return divisions;
 }
 
 function isRegularSeasonGame(game, league) {
@@ -590,6 +629,11 @@ Deno.serve(async (req) => {
 				const standingsUrl = getOfficialStandingsUrl(seasonString, league);
 				const data = await fetchUpstream(standingsUrl, league, true);
 				const payload = buildStandingsFromOfficialData(data, seasonString, league);
+				if (league.id === "nba") {
+					const divisionsUrl = getOfficialStandingsUrl(seasonString, league, "div");
+					const divisionsData = await fetchUpstream(divisionsUrl, league, true);
+					payload.divisions = buildDivisionsFromOfficialData(divisionsData, league);
+				}
 				console.log("[/standings] official season", league.id, payload.season);
 				return respondWithCors(payload, origin, 60);
 			} catch (err) {
@@ -606,6 +650,11 @@ Deno.serve(async (req) => {
 			const standingsUrl = getOfficialStandingsUrl(seasonString, league);
 			const data = await fetchUpstream(standingsUrl, league, true);
 			const payload = buildStandingsFromOfficialData(data, seasonString, league);
+			if (league.id === "nba") {
+				const divisionsUrl = getOfficialStandingsUrl(seasonString, league, "div");
+				const divisionsData = await fetchUpstream(divisionsUrl, league, true);
+				payload.divisions = buildDivisionsFromOfficialData(divisionsData, league);
+			}
 			console.log("[/standings-official] season", league.id, payload.season);
 			return respondWithCors(payload, origin, 60);
 		}
