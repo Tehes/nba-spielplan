@@ -124,6 +124,7 @@ const messages = {
 		endQuarter: "Ende Q{period}",
 		endOvertime: "Ende {label}",
 		loadingPlays: "Lade Spielaktionen…",
+		watchRecap: "Recap auf NBA.com ansehen",
 		team: "Team",
 		total: "Gesamt",
 		jumpToToday: "zu den heutigen Spielen",
@@ -189,6 +190,7 @@ const messages = {
 		endQuarter: "End Q{period}",
 		endOvertime: "End {label}",
 		loadingPlays: "Loading play-by-play…",
+		watchRecap: "Watch recap on NBA.com",
 		team: "Team",
 		total: "Total",
 		jumpToToday: "jump to today's games",
@@ -254,6 +256,8 @@ const gameTabs = gameOverlay.querySelectorAll(".tab");
 const gameExcitementEl = document.querySelector("#game-excitement");
 const gameExcitementValueEl = document.querySelector("#game-excitement-value");
 const gameExcitementLabelEl = document.querySelector("#game-excitement-label");
+const gameRecapLinkEl = document.querySelector("#game-recap-link");
+const gameRecapAnchorEl = gameRecapLinkEl.querySelector("a");
 const cupHeadlineEl = document.querySelector("#cup-headline");
 const cupEl = document.querySelector("#cup");
 const cupWestEl = document.querySelector("#cup-west");
@@ -503,6 +507,8 @@ function updateLive(liveJson) {
 	storeNextScheduledGame();
 
 	if (!gameOverlayEl.classList.contains("hidden")) {
+		updateGameRecapLink();
+
 		const gameId = gameOverlayEl.dataset.gameId;
 		const liveGame = liveById.get(gameId);
 
@@ -1412,12 +1418,39 @@ function switchTab(tab) {
 	});
 }
 
+function getNbaRecapUrl(gameId, awayTeamTricode, homeTeamTricode) {
+	const away = awayTeamTricode.toLowerCase();
+	const home = homeTeamTricode.toLowerCase();
+
+	return `https://www.nba.com/game/${away}-vs-${home}-${gameId}?watchRecap=true`;
+}
+
+function updateGameRecapLink() {
+	const gameId = gameOverlayEl.dataset.gameId;
+	const awayTeamTricode = gameOverlayEl.dataset.awayTeam;
+	const homeTeamTricode = gameOverlayEl.dataset.homeTeam;
+	const allGames = (games.finished ?? []).concat(games.today ?? [], games.scheduled ?? []);
+	const game = allGames.find((g) => g.gameId === gameId);
+	const live = liveById.get(gameId);
+	const { isFinal } = getGameState(game, live);
+
+	if (!gameId || !awayTeamTricode || !homeTeamTricode || !isFinal) {
+		gameRecapLinkEl.classList.add("hidden");
+		gameRecapAnchorEl.removeAttribute("href");
+		return;
+	}
+
+	gameRecapAnchorEl.href = getNbaRecapUrl(gameId, awayTeamTricode, homeTeamTricode);
+	gameRecapLinkEl.classList.remove("hidden");
+}
+
 function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
 	backdropEl.classList.remove("hidden");
 	gameOverlayEl.classList.remove("hidden");
 	gameOverlayEl.dataset.gameId = gameId;
 	gameOverlayEl.dataset.awayTeam = awayTeamTricode || "";
 	gameOverlayEl.dataset.homeTeam = homeTeamTricode || "";
+	updateGameRecapLink();
 
 	// render cached data first (if matching)
 	if (currentBoxscore && currentBoxscore.game && currentBoxscore.game.gameId === gameId) {
@@ -1460,6 +1493,7 @@ function closeGameOverlay() {
 	gameOverlayEl.dataset.gameId = "";
 	gameOverlayEl.dataset.awayTeam = "";
 	gameOverlayEl.dataset.homeTeam = "";
+	updateGameRecapLink();
 
 	// Reset UI
 	teamsEl.replaceChildren();
@@ -2320,7 +2354,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-12-v1";
+const SERVICE_WORKER_VERSION = "2026-05-14-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

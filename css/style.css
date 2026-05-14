@@ -1045,6 +1045,11 @@ GAME OVERLAY
     margin: 6px 0 0 0;
 }
 
+#game-overlay #game-recap-link:not(.hidden) {
+    display: flex;
+    margin-bottom: 30px;
+}
+
 #game-overlay #periods,
 #game-overlay #team-stats {
     margin-bottom: 30px;

@@ -61,6 +61,7 @@ localized English UI immediately.
   - Shows full period scoring (Q1–Q4, OT1+).
   - Lists starters and bench with complete statlines (MIN, PTS, REB, AST, STL, BLK, TOV, PF, FG, 3P,
     FT).
+  - Adds a direct NBA.com recap link for finished games, opening the official game recap externally.
   - Uses static HTML templates for fast client‑side rendering.
   - Works offline if the data was previously cached.
 
