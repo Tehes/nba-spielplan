@@ -1050,6 +1050,59 @@ GAME OVERLAY
     margin-bottom: 30px;
 }
 
+#previous-matchups-section {
+    margin-bottom: 30px;
+}
+
+#previous-matchups {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 10px;
+}
+
+#previous-matchups .previous-matchup {
+    display: flex;
+    flex: 0 0 auto;
+    scroll-snap-align: center;
+    justify-content: flex-start;
+    align-items: stretch;
+    padding: 10px;
+    background-color: var(--progress-background);
+    border-radius: var(--card-corners);
+    gap: 8px;
+}
+
+#previous-matchups .previous-matchup-date {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    color: light-dark(var(--neutral700), var(--neutral300));
+    white-space: nowrap;
+}
+
+#previous-matchups .previous-matchup-team {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: left;
+}
+
+#previous-matchups .color {
+    width: 4px;
+    min-height: 1.8rem;
+    align-self: stretch;
+    background-color: var(--team-color, var(--neutral400));
+}
+
+#previous-matchups .score {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
 #game-overlay #periods,
 #game-overlay #team-stats {
     margin-bottom: 30px;

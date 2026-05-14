@@ -58,6 +58,7 @@ localized English UI immediately.
 
 - **Boxscore overlay**
   - Opens when clicking any live or finished game.
+  - Shows previous head-to-head matchups between the two teams before the selected game.
   - Shows full period scoring (Q1–Q4, OT1+).
   - Lists starters and bench with complete statlines (MIN, PTS, REB, AST, STL, BLK, TOV, PF, FG, 3P,
     FT).

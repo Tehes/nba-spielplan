@@ -101,6 +101,7 @@ const messages = {
 		excitement: "Spannung",
 		quarterByQuarter: "Viertelverlauf",
 		teamComparison: "Team-Vergleich",
+		previousMatchups: "Letzte Duelle",
 		twoPoints: "2 Punkte",
 		threePoints: "3 Punkte",
 		freeThrows: "Freiwürfe",
@@ -167,6 +168,7 @@ const messages = {
 		excitement: "Excitement",
 		quarterByQuarter: "Quarter by quarter",
 		teamComparison: "Team comparison",
+		previousMatchups: "Previous matchups",
 		twoPoints: "2 Points",
 		threePoints: "3 Points",
 		freeThrows: "Free throws",
@@ -251,6 +253,8 @@ const gameOverlayCloseBtn = gameOverlayEl.querySelector(".close");
 const periodsEl = document.querySelector("#periods");
 const teamStatsEl = document.querySelector("#team-stats");
 const teamsEl = document.querySelector("#teams");
+const previousMatchupsSectionEl = document.querySelector("#previous-matchups-section");
+const previousMatchupsEl = document.querySelector("#previous-matchups");
 const gameOverlay = document.getElementById("game-overlay");
 const gameTabs = gameOverlay.querySelectorAll(".tab");
 const gameExcitementEl = document.querySelector("#game-excitement");
@@ -385,6 +389,7 @@ function rerenderLocalizedUi() {
 		renderTodaysGames();
 		renderMoreGames();
 		updateBrackets();
+		renderPreviousMatchups();
 		storeNextScheduledGame();
 	}
 
@@ -1444,6 +1449,98 @@ function updateGameRecapLink() {
 	gameRecapLinkEl.classList.remove("hidden");
 }
 
+function getScheduleGames() {
+	return schedule?.leagueSchedule?.gameDates?.flatMap((date) => date.games || []) || [];
+}
+
+function getGameLocalDate(game) {
+	const localDate = game?.localDate instanceof Date ? game.localDate : new Date(game?.gameDateTimeUTC);
+
+	if (Number.isNaN(localDate.getTime())) {
+		return null;
+	}
+
+	return localDate;
+}
+
+function renderPreviousMatchups() {
+	const gameId = gameOverlayEl.dataset.gameId;
+	const currentGame = getScheduleGames().find((game) => game.gameId === gameId);
+	const currentDate = getGameLocalDate(currentGame);
+	const currentAway = currentGame?.awayTeam?.teamTricode;
+	const currentHome = currentGame?.homeTeam?.teamTricode;
+
+	previousMatchupsEl.replaceChildren();
+
+	if (!gameId || !currentGame || !currentDate || !currentAway || !currentHome) {
+		previousMatchupsSectionEl.classList.add("hidden");
+		return;
+	}
+
+	const previousGames = getScheduleGames()
+		.filter((game) => {
+			const gameDate = getGameLocalDate(game);
+			const away = game.awayTeam?.teamTricode;
+			const home = game.homeTeam?.teamTricode;
+			const isSamePair = (away === currentAway && home === currentHome) ||
+				(away === currentHome && home === currentAway);
+
+			return game.gameId !== gameId && gameDate && gameDate < currentDate && isSamePair;
+		})
+		.sort((a, b) => getGameLocalDate(b) - getGameLocalDate(a));
+
+	if (!previousGames.length) {
+		previousMatchupsSectionEl.classList.add("hidden");
+		return;
+	}
+
+	const template = document.querySelector("#template-previous-matchup");
+
+	previousGames.forEach((game) => {
+		const item = template.content.firstElementChild.cloneNode(true);
+		const gameDate = getGameLocalDate(game);
+		const awayTeam = game.awayTeam;
+		const homeTeam = game.homeTeam;
+		const awayScore = awayTeam.score;
+		const homeScore = homeTeam.score;
+		const hasScores = awayScore !== null && awayScore !== undefined && awayScore !== "" &&
+			homeScore !== null && homeScore !== undefined && homeScore !== "";
+
+		item.querySelector(".previous-matchup-date").textContent = gameDate.toLocaleDateString(currentLocale, {
+			weekday: "short",
+			day: "2-digit",
+			month: "2-digit",
+			year: "numeric",
+		});
+
+		const awayEl = item.querySelector(".away");
+		const homeEl = item.querySelector(".home");
+		const awayScoreEl = item.querySelector(".away-score");
+		const homeScoreEl = item.querySelector(".home-score");
+
+		awayEl.style.setProperty("--team-color", `var(--${awayTeam.teamTricode})`);
+		awayEl.querySelector(".abbr").textContent = awayTeam.teamTricode;
+		homeEl.style.setProperty("--team-color", `var(--${homeTeam.teamTricode})`);
+		homeEl.querySelector(".abbr").textContent = homeTeam.teamTricode;
+
+		awayScoreEl.textContent = hasScores ? awayScore : "–";
+		homeScoreEl.textContent = hasScores ? homeScore : "–";
+
+		if (hasScores) {
+			const awayScoreNumber = Number(awayScore);
+			const homeScoreNumber = Number(homeScore);
+			if (Number.isFinite(awayScoreNumber) && Number.isFinite(homeScoreNumber)) {
+				awayScoreEl.classList.toggle("lower", awayScoreNumber < homeScoreNumber);
+				homeScoreEl.classList.toggle("lower", homeScoreNumber < awayScoreNumber);
+			}
+		}
+
+		previousMatchupsEl.appendChild(item);
+	});
+
+	previousMatchupsSectionEl.classList.remove("hidden");
+}
+
 function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
 	backdropEl.classList.remove("hidden");
 	gameOverlayEl.classList.remove("hidden");
@@ -1451,6 +1548,7 @@ function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
 	gameOverlayEl.dataset.awayTeam = awayTeamTricode || "";
 	gameOverlayEl.dataset.homeTeam = homeTeamTricode || "";
 	updateGameRecapLink();
+	renderPreviousMatchups();
 
 	// render cached data first (if matching)
 	if (currentBoxscore && currentBoxscore.game && currentBoxscore.game.gameId === gameId) {
@@ -1494,6 +1592,7 @@ function closeGameOverlay() {
 	gameOverlayEl.dataset.awayTeam = "";
 	gameOverlayEl.dataset.homeTeam = "";
 	updateGameRecapLink();
+	renderPreviousMatchups();
 
 	// Reset UI
 	teamsEl.replaceChildren();
@@ -2020,6 +2119,7 @@ function handleScheduleData(json) {
 		}
 		renderMoreGames();
 		updateBrackets();
+		renderPreviousMatchups();
 	} else {
 		console.log(
 			"Schedule data not available. Skipping schedule rendering.",
@@ -2354,7 +2454,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-14-v1";
+const SERVICE_WORKER_VERSION = "2026-05-14-v3";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

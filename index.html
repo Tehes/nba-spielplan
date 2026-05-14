@@ -536,6 +536,10 @@
 						</tbody>
 					</table>
 				</div>
+				<div id="previous-matchups-section" class="hidden">
+					<h3 data-i18n="previousMatchups">Letzte Duelle</h3>
+					<div id="previous-matchups"></div>
+				</div>
 				<h3 data-i18n="teamComparison">Team-Vergleich</h3>
 				<div id="team-stats">
 					<h5 data-i18n="twoPoints">2 Punkte</h5>
@@ -712,6 +716,21 @@
 						<span class="score-value"></span>
 					</span>
 				</div>
+			</div>
+		</div>
+	</template>
+	<template id="template-previous-matchup">
+		<div class="previous-matchup">
+			<div class="previous-matchup-date"></div>
+			<div class="previous-matchup-team away">
+				<span class="color"></span>
+				<span class="abbr"></span>
+				<span class="score away-score"></span>
+			</div>
+			<div class="previous-matchup-team home">
+				<span class="color"></span>
+				<span class="abbr"></span>
+				<span class="score home-score"></span>
 			</div>
 		</div>
 	</template>
