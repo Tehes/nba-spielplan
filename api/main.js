@@ -254,6 +254,9 @@ function buildStandingsFromOfficialData(standingsJson, season, league) {
 			losses: Number(getCell(row, headerIndex, "LOSSES")) || 0,
 			winPct: Number(getCell(row, headerIndex, "WinPCT")) || 0,
 			gb: Number(getCell(row, headerIndex, "ConferenceGamesBack")) || 0,
+			playoffRank: Number(getCell(row, headerIndex, "PlayoffRank")) || 0,
+			leagueRank: Number(getCell(row, headerIndex, "LeagueRank")) || 0,
+			leagueGb: Number(getCell(row, headerIndex, "LeagueGamesBack")) || 0,
 			streak: getCell(row, headerIndex, "strCurrentStreak") || "—",
 			home: getCell(row, headerIndex, "HOME") || "0-0",
 			away: getCell(row, headerIndex, "ROAD") || "0-0",
@@ -479,6 +482,18 @@ function buildStandingsFromSchedule(scheduleJson, league) {
 		return a.teamTricode.localeCompare(b.teamTricode);
 	}
 
+	const leagueRows = all.slice().sort(compareTeams);
+	const leagueLeader = leagueRows[0];
+	const leagueLeaderWins = leagueLeader?.wins ?? 0;
+	const leagueLeaderLosses = leagueLeader?.losses ?? 0;
+	const leagueRanks = new Map(leagueRows.map((row, index) => {
+		const gb = leagueLeader ? ((leagueLeaderWins - row.wins) + (row.losses - leagueLeaderLosses)) / 2 : 0;
+		return [row.teamId, {
+			rank: index + 1,
+			gb: +gb.toFixed(1),
+		}];
+	}));
+
 	const finalize = (rows) => {
 		rows.sort(compareTeams);
 
@@ -507,6 +522,9 @@ function buildStandingsFromSchedule(scheduleJson, league) {
 				losses: r.losses,
 				winPct,
 				gb: +gb.toFixed(1),
+				playoffRank: leagueRanks.get(r.teamId)?.rank || 0,
+				leagueRank: leagueRanks.get(r.teamId)?.rank || 0,
+				leagueGb: leagueRanks.get(r.teamId)?.gb || 0,
 				streak: sChar ? `${sChar} ${streak}` : "—",
 				home: `${r.homeW}-${r.homeL}`,
 				away: `${r.awayW}-${r.awayL}`,
