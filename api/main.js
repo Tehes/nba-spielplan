@@ -1,21 +1,38 @@
 // === Constants ===
-const SCHEDULE_URL = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_14.json";
-const SCOREBOARD_URL = "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json";
-const BOXSCORE_BASE_URL = "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_";
-const PLAYBYPLAY_BASE_URL = "https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_";
 const LEAGUE_STANDINGS_URL = "https://stats.nba.com/stats/leaguestandingsv3";
 
-const DEFAULT_HEADERS = {
+const BASE_UPSTREAM_HEADERS = {
 	"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0",
 	"Accept": "*/*",
 	"Accept-Language": "en-US,en;q=0.9",
 	"Accept-Encoding": "gzip, deflate, br, zstd",
-	"Referer": "https://www.nba.com/",
-	"Origin": "https://www.nba.com",
 	"Sec-Fetch-Dest": "empty",
 	"Sec-Fetch-Mode": "cors",
 	"Sec-Fetch-Site": "same-site",
 	"Priority": "u=4",
+};
+
+const LEAGUES = {
+	nba: {
+		id: "nba",
+		leagueId: "00",
+		scheduleUrl: "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_14.json",
+		scoreboardUrl: "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
+		boxscoreBaseUrl: "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_",
+		playByPlayBaseUrl: "https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_",
+		regularSeasonPrefix: "002",
+		origin: "https://www.nba.com",
+	},
+	wnba: {
+		id: "wnba",
+		leagueId: "10",
+		scheduleUrl: "https://cdn.wnba.com/static/json/staticData/scheduleLeagueV2_14.json",
+		scoreboardUrl: "https://cdn.wnba.com/static/json/liveData/scoreboard/todaysScoreboard_10.json",
+		boxscoreBaseUrl: "https://cdn.wnba.com/static/json/liveData/boxscore/boxscore_",
+		playByPlayBaseUrl: "https://cdn.wnba.com/static/json/liveData/playbyplay/playbyplay_",
+		regularSeasonPrefix: "102",
+		origin: "https://www.wnba.com",
+	},
 };
 
 const APP_ORIGIN = "https://tehes.github.io";
@@ -33,7 +50,8 @@ const BASE_CORS_HEADERS = {
 	"Vary": "Origin",
 };
 
-const TEAM_DATA = {
+const TEAM_DATA_BY_LEAGUE = {
+	nba: {
 	ATL: { teamId: 1610612737, conf: "E", div: "Southeast" },
 	BOS: { teamId: 1610612738, conf: "E", div: "Atlantic" },
 	BKN: { teamId: 1610612751, conf: "E", div: "Atlantic" },
@@ -64,52 +82,88 @@ const TEAM_DATA = {
 	SAC: { teamId: 1610612758, conf: "W", div: "Pacific" },
 	SAS: { teamId: 1610612759, conf: "W", div: "Southwest" },
 	UTA: { teamId: 1610612762, conf: "W", div: "Northwest" },
+	},
+	wnba: {
+		ATL: { teamId: 1611661330, conf: "E", div: "" },
+		CHI: { teamId: 1611661329, conf: "E", div: "" },
+		CON: { teamId: 1611661323, conf: "E", div: "" },
+		DAL: { teamId: 1611661321, conf: "W", div: "" },
+		GSV: { teamId: 1611661331, conf: "W", div: "" },
+		IND: { teamId: 1611661325, conf: "E", div: "" },
+		LAS: { teamId: 1611661320, conf: "W", div: "" },
+		LVA: { teamId: 1611661319, conf: "W", div: "" },
+		MIN: { teamId: 1611661324, conf: "W", div: "" },
+		NYL: { teamId: 1611661313, conf: "E", div: "" },
+		PDX: { teamId: 1611661327, conf: "W", div: "" },
+		PHX: { teamId: 1611661317, conf: "W", div: "" },
+		SEA: { teamId: 1611661328, conf: "W", div: "" },
+		TOR: { teamId: 1611661332, conf: "W", div: "" },
+		WAS: { teamId: 1611661322, conf: "E", div: "" },
+	},
 };
 
 // NBA stats standings use TeamID but the frontend styles teams by tricode.
-const TEAM_TRICODE_BY_ID = Object.fromEntries(
-	Object.entries(TEAM_DATA).map(([tricode, team]) => [team.teamId, tricode]),
+const TEAM_TRICODE_BY_ID_BY_LEAGUE = Object.fromEntries(
+	Object.entries(TEAM_DATA_BY_LEAGUE).map(([leagueId, teams]) => [
+		leagueId,
+		Object.fromEntries(Object.entries(teams).map(([tricode, team]) => [team.teamId, tricode])),
+	]),
 );
 
-const getMeta = (tricode) => TEAM_DATA[tricode] || { conf: "?", div: "?" };
+const getMeta = (tricode, league) => TEAM_DATA_BY_LEAGUE[league.id]?.[tricode] || { conf: "?", div: "?" };
 
 // === Cache (only for Season Year) ===
-let cachedSeasonYear = null;
-let seasonYearCachedAt = 0;
+const cachedSeasonYears = new Map();
 const SEASON_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
-async function getSeasonYear() {
+async function getSeasonYear(league) {
 	const now = Date.now();
+	const cached = cachedSeasonYears.get(league.id);
 
-	if (cachedSeasonYear && (now - seasonYearCachedAt) < SEASON_TTL_MS) {
-		console.log("[cache hit] seasonYear", cachedSeasonYear);
-		return cachedSeasonYear;
+	if (cached && (now - cached.cachedAt) < SEASON_TTL_MS) {
+		console.log("[cache hit] seasonYear", league.id, cached.seasonYear);
+		return cached.seasonYear;
 	}
 
 	try {
-		console.log("[cache miss] fetching seasonYear via schedule");
-		const schedule = await fetchUpstream(SCHEDULE_URL);
+		console.log("[cache miss] fetching seasonYear via schedule", league.id);
+		const schedule = await fetchUpstream(league.scheduleUrl, league);
 		const seasonYear = schedule?.leagueSchedule?.seasonYear;
 
 		if (!seasonYear) {
 			throw new Error("Season year missing in schedule response");
 		}
 
-		cachedSeasonYear = seasonYear;
-		seasonYearCachedAt = now;
+		cachedSeasonYears.set(league.id, { seasonYear, cachedAt: now });
 		return seasonYear;
 	} catch (err) {
-		if (cachedSeasonYear) {
-			console.log("[seasonYear fallback] using last known good", cachedSeasonYear);
-			return cachedSeasonYear;
+		if (cached) {
+			console.log("[seasonYear fallback] using last known good", league.id, cached.seasonYear);
+			return cached.seasonYear;
 		}
 		throw err;
 	}
 }
 
 // === Helper Functions ===
-async function fetchUpstream(url) {
-	const res = await fetch(url, { headers: DEFAULT_HEADERS });
+function getUpstreamHeaders(league, isStats = false) {
+	const headers = {
+		...BASE_UPSTREAM_HEADERS,
+		"Referer": `${league.origin}/`,
+		"Origin": league.origin,
+	};
+
+	if (isStats) {
+		headers["Sec-Fetch-Site"] = "cross-site";
+		headers["x-nba-stats-origin"] = "stats";
+		headers["x-nba-stats-token"] = "true";
+	}
+
+	return headers;
+}
+
+async function fetchUpstream(url, league, isStats = false) {
+	const res = await fetch(url, { headers: getUpstreamHeaders(league, isStats) });
 	if (!res.ok) throw new Error(`Upstream error (${res.status}): ${url}`);
 	return res.json();
 }
@@ -136,8 +190,8 @@ function respondWithCors(data, origin, cacheMaxAge = 0) {
 	return new Response(JSON.stringify(data), { status: 200, headers });
 }
 
-async function proxyWithCors(url, origin) {
-	const res = await fetch(url, { headers: DEFAULT_HEADERS });
+async function proxyWithCors(url, origin, league, isStats = false) {
+	const res = await fetch(url, { headers: getUpstreamHeaders(league, isStats) });
 	const headers = new Headers(res.headers);
 	Object.entries(withCors(origin)).forEach(([k, v]) => headers.set(k, v));
 	if (!headers.has("content-type")) {
@@ -146,10 +200,15 @@ async function proxyWithCors(url, origin) {
 	return new Response(res.body, { status: res.status, headers });
 }
 
-function getOfficialStandingsUrl(season) {
+function getLeague(url) {
+	const leagueId = url.searchParams.get("league") || "nba";
+	return LEAGUES[leagueId] || null;
+}
+
+function getOfficialStandingsUrl(season, league) {
 	const params = new URLSearchParams({
 		GroupBy: "conf",
-		LeagueID: "00",
+		LeagueID: league.leagueId,
 		Season: season,
 		SeasonType: "Regular Season",
 		Section: "overall",
@@ -161,7 +220,7 @@ function getCell(row, headerIndex, name) {
 	return row[headerIndex.get(name)];
 }
 
-function buildStandingsFromOfficialData(standingsJson, season) {
+function buildStandingsFromOfficialData(standingsJson, season, league) {
 	const resultSet = standingsJson?.resultSets?.find((set) => set?.name === "Standings");
 	const headers = resultSet?.headers ?? [];
 	const rows = resultSet?.rowSet ?? [];
@@ -173,11 +232,12 @@ function buildStandingsFromOfficialData(standingsJson, season) {
 	const headerIndex = new Map(headers.map((header, index) => [header, index]));
 	const east = [];
 	const west = [];
+	const teamTricodeById = TEAM_TRICODE_BY_ID_BY_LEAGUE[league.id];
 
 	// Keep this payload shape identical to buildStandingsFromSchedule().
 	for (const row of rows) {
 		const teamId = getCell(row, headerIndex, "TeamID");
-		const teamTricode = TEAM_TRICODE_BY_ID[teamId];
+		const teamTricode = teamTricodeById[teamId];
 		const conference = getCell(row, headerIndex, "Conference");
 		const target = conference === "East" ? east : conference === "West" ? west : null;
 
@@ -213,12 +273,12 @@ function buildStandingsFromOfficialData(standingsJson, season) {
 	};
 }
 
-function isRegularSeasonGame(game) {
-	// NBA game IDs encode the stage: 002 = regular season.
-	return game?.gameId?.startsWith("002") === true;
+function isRegularSeasonGame(game, league) {
+	// NBA/WNBA game IDs encode the stage in the first three digits.
+	return game?.gameId?.startsWith(league.regularSeasonPrefix) === true;
 }
 
-function buildStandingsFromSchedule(scheduleJson) {
+function buildStandingsFromSchedule(scheduleJson, league) {
 	const season = scheduleJson?.meta?.seasonYear ||
 		scheduleJson?.leagueSchedule?.seasonYear || "unknown";
 	const dates = scheduleJson?.leagueSchedule?.gameDates ?? [];
@@ -228,7 +288,7 @@ function buildStandingsFromSchedule(scheduleJson) {
 	const ensure = (t) => {
 		if (!t || !t.teamId) return null;
 		if (!team.has(t.teamId)) {
-			const meta = getMeta(t.teamTricode);
+			const meta = getMeta(t.teamTricode, league);
 			team.set(t.teamId, {
 				teamId: t.teamId,
 				teamTricode: t.teamTricode,
@@ -266,7 +326,7 @@ function buildStandingsFromSchedule(scheduleJson) {
 	}
 
 	const done = games
-		.filter((g) => g?.gameStatus === 3 && isRegularSeasonGame(g))
+		.filter((g) => g?.gameStatus === 3 && isRegularSeasonGame(g, league))
 		.sort((a, b) => new Date(a.gameDateTimeUTC) - new Date(b.gameDateTimeUTC));
 
 	for (const g of done) {
@@ -359,6 +419,7 @@ function buildStandingsFromSchedule(scheduleJson) {
 	{
 		const byDivision = new Map();
 		for (const t of all) {
+			if (!t.div) continue;
 			if (!byDivision.has(t.div)) byDivision.set(t.div, []);
 			byDivision.get(t.div).push(t);
 		}
@@ -475,6 +536,7 @@ Deno.serve(async (req) => {
 	const url = new URL(req.url);
 	const PATH = url.pathname;
 	const origin = getOrigin(req);
+	const league = getLeague(url);
 
 	if (!ALLOWED_ORIGINS.has(origin)) {
 		return new Response("Forbidden", {
@@ -488,60 +550,79 @@ Deno.serve(async (req) => {
 		return new Response(null, { status: 204, headers: withCors(origin) });
 	}
 
+	if (!league) {
+		return new Response("Invalid league", {
+			status: 400,
+			headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
+		});
+	}
+
 	try {
 		// --- /schedule: fetch fresh ---
 		if (PATH === "/schedule") {
-			return proxyWithCors(SCHEDULE_URL, origin);
+			return proxyWithCors(league.scheduleUrl, origin, league);
 		}
 
 		// --- /standings: fetch fresh ---
 		if (PATH === "/standings") {
 			try {
-				// Prefer the official NBA standings. If stats.nba.com fails, keep the app usable
+				// Prefer the official standings. If stats.nba.com fails, keep the app usable
 				// with the derived standings built from the schedule feed.
-				const seasonString = await getSeasonYear();
-				const standingsUrl = getOfficialStandingsUrl(seasonString);
-				const data = await fetchUpstream(standingsUrl);
-				const payload = buildStandingsFromOfficialData(data, seasonString);
-				console.log("[/standings] official season", payload.season);
+				const seasonString = await getSeasonYear(league);
+				const standingsUrl = getOfficialStandingsUrl(seasonString, league);
+				const data = await fetchUpstream(standingsUrl, league, true);
+				const payload = buildStandingsFromOfficialData(data, seasonString, league);
+				console.log("[/standings] official season", league.id, payload.season);
 				return respondWithCors(payload, origin, 60);
 			} catch (err) {
-				console.warn("[/standings] official fallback", err);
-				const data = await fetchUpstream(SCHEDULE_URL);
-				const payload = buildStandingsFromSchedule(data);
-				console.log("[/standings] derived season", payload.season);
+				console.warn("[/standings] official fallback", league.id, err);
+				const data = await fetchUpstream(league.scheduleUrl, league);
+				const payload = buildStandingsFromSchedule(data, league);
+				console.log("[/standings] derived season", league.id, payload.season);
 				return respondWithCors(payload, origin, 60);
 			}
 		}
 
 		if (PATH === "/standings-official") {
-			const seasonString = await getSeasonYear();
-			const standingsUrl = getOfficialStandingsUrl(seasonString);
-			const data = await fetchUpstream(standingsUrl);
-			const payload = buildStandingsFromOfficialData(data, seasonString);
-			console.log("[/standings-official] season", payload.season);
+			const seasonString = await getSeasonYear(league);
+			const standingsUrl = getOfficialStandingsUrl(seasonString, league);
+			const data = await fetchUpstream(standingsUrl, league, true);
+			const payload = buildStandingsFromOfficialData(data, seasonString, league);
+			console.log("[/standings-official] season", league.id, payload.season);
 			return respondWithCors(payload, origin, 60);
 		}
 
 		// --- /playoffbracket: use cached season year only ---
 		if (PATH === "/playoffbracket") {
-			const seasonString = await getSeasonYear();
+			if (league.id !== "nba") {
+				return new Response("Bracket not available for league", {
+					status: 400,
+					headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
+				});
+			}
+			const seasonString = await getSeasonYear(league);
 			const year = seasonString.split("-")[0];
 			const playoffUrl = `https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=${year}&State=2`;
-			return proxyWithCors(playoffUrl, origin);
+			return proxyWithCors(playoffUrl, origin, league, true);
 		}
 
 		// --- /istbracket: use cached season year only ---
 		if (PATH === "/istbracket") {
-			const seasonString = await getSeasonYear();
+			if (league.id !== "nba") {
+				return new Response("Bracket not available for league", {
+					status: 400,
+					headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
+				});
+			}
+			const seasonString = await getSeasonYear(league);
 			const year = seasonString.split("-")[0];
 			const istBracketUrl = `https://cdn.nba.com/static/json/staticData/brackets/${year}/ISTBracket.json`;
-			return proxyWithCors(istBracketUrl, origin);
+			return proxyWithCors(istBracketUrl, origin, league);
 		}
 
 		// --- /scoreboard: no cache, always live ---
 		if (PATH === "/scoreboard") {
-			return proxyWithCors(SCOREBOARD_URL, origin);
+			return proxyWithCors(league.scoreboardUrl, origin, league);
 		}
 
 		// --- /boxscore/:gameId: no cache, always live ---
@@ -558,8 +639,8 @@ Deno.serve(async (req) => {
 				});
 			}
 
-			const boxscoreUrl = `${BOXSCORE_BASE_URL}${gameId}.json`;
-			return proxyWithCors(boxscoreUrl, origin);
+			const boxscoreUrl = `${league.boxscoreBaseUrl}${gameId}.json`;
+			return proxyWithCors(boxscoreUrl, origin, league);
 		}
 
 		// --- /playbyplay/:gameId: no cache, always live ---
@@ -576,8 +657,8 @@ Deno.serve(async (req) => {
 				});
 			}
 
-			const playbyplayUrl = `${PLAYBYPLAY_BASE_URL}${gameId}.json`;
-			return proxyWithCors(playbyplayUrl, origin);
+			const playbyplayUrl = `${league.playByPlayBaseUrl}${gameId}.json`;
+			return proxyWithCors(playbyplayUrl, origin, league);
 		}
 
 		return new Response("Not Found", {
