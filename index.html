@@ -518,15 +518,18 @@
 				<p id="game-excitement-label"></p>
 			</div>
 			<div class="tabs">
-				<button type="button" class="tab is-active" data-target="boxscore-panel">
+				<button type="button" class="tab is-active" data-target="overview-panel" data-i18n="overview">
+					Übersicht
+				</button>
+				<button type="button" class="tab" data-target="boxscore-panel" data-i18n="boxscore">
 					Boxscore
 				</button>
-				<button type="button" class="tab" data-target="playbyplay-panel">
+				<button type="button" class="tab" data-target="playbyplay-panel" data-i18n="playByPlay">
 					Play by Play
 				</button>
 			</div>
 
-			<div id="boxscore-panel" class="panel is-active">
+			<div id="overview-panel" class="panel is-active">
 				<h3 data-i18n="quarterByQuarter">Viertelverlauf</h3>
 				<div id="periods">
 					<table class="periods-table">
@@ -591,7 +594,8 @@
 				<p id="game-recap-link" class="jump-link hidden">
 					<a href="" target="_blank" rel="noopener" data-i18n="watchRecap">Recap auf NBA.com ansehen</a>
 				</p>
-				<h3>Boxscore</h3>
+			</div>
+			<div id="boxscore-panel" class="panel">
 				<div id="teams"></div>
 			</div>
 		</div>

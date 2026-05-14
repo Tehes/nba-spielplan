@@ -26,7 +26,7 @@ localized English UI immediately.
     final states.
   - Polls the live scoreboard every minute while at least one game is live, overlaying in-progress
     scores.
-  - Cards are clickable and open the built-in boxscore + play-by-play overlay.
+  - Cards are clickable and open the built-in overview, boxscore, and play-by-play overlay.
 
 - **More games view**
   - Lists recent results plus upcoming games, grouped by date.
@@ -56,8 +56,9 @@ localized English UI immediately.
     `localStorage`.
   - Data automatically refreshes when the tab becomes visible or when a new day starts.
 
-- **Boxscore overlay**
+- **Game detail overlay**
   - Opens when clicking any live or finished game.
+  - Splits game details into Overview, Boxscore, and Play-by-Play tabs.
   - Shows previous head-to-head matchups between the two teams before the selected game.
   - Shows full period scoring (Q1–Q4, OT1+).
   - Lists starters and bench with complete statlines (MIN, PTS, REB, AST, STL, BLK, TOV, PF, FG, 3P,
@@ -102,7 +103,7 @@ endpoints:
 | ----------------- | -------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `/schedule`       | Raw league schedule from `cdn.nba.com` | Fetched fresh per request; client Cache API handles reuse.                                 |
 | `/standings`      | Normalized conference standings        | Prefers the official NBA standings feed; falls back to schedule-derived standings.         |
-| `/scoreboard`     | Live in-day scoreboard feed            | Always proxied without caching; powers the boxscore overlay and in-day score updates.      |
+| `/scoreboard`     | Live in-day scoreboard feed            | Always proxied without caching; powers the game detail overlay and in-day score updates.   |
 | `/playoffbracket` | Official bracket JSON                  | Uses a 24h-cached season year, then proxies the official bracket feed.                     |
 | `/istbracket`     | NBA Cup (IST) bracket JSON             | Uses a 24h-cached season year, then proxies the official ISTBracket feed.                  |
 | `/boxscore/:id`   | Per-game boxscore                      | Uncached proxy to the NBA live boxscore JSON.                                              |

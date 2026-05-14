@@ -1185,11 +1185,11 @@ body:has(#game-overlay:not(.hidden)) {
     border: 1px solid var(--text-color);
     border-radius: var(--card-corners);
     margin: 10px auto 0 auto;
-    max-width: 400px;
+    max-width: 520px;
 }
 
 #game-overlay .tab {
-    flex: 0 0 50%;
+    flex: 1 1 auto;
     padding: 6px 10px;
     background-color: transparent;
     border: none;

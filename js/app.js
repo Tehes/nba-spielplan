@@ -98,6 +98,9 @@ const messages = {
 		standingsHome: "Home",
 		standingsAway: "Away",
 		backToTop: "Zurück nach oben",
+		overview: "Übersicht",
+		boxscore: "Boxscore",
+		playByPlay: "Play by Play",
 		excitement: "Spannung",
 		quarterByQuarter: "Viertelverlauf",
 		teamComparison: "Team-Vergleich",
@@ -165,6 +168,9 @@ const messages = {
 		standingsHome: "Home",
 		standingsAway: "Away",
 		backToTop: "Back to top",
+		overview: "Overview",
+		boxscore: "Boxscore",
+		playByPlay: "Play by Play",
 		excitement: "Excitement",
 		quarterByQuarter: "Quarter by quarter",
 		teamComparison: "Team comparison",
@@ -2454,7 +2460,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-14-v3";
+const SERVICE_WORKER_VERSION = "2026-05-14-v4";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({
