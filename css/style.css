@@ -76,7 +76,7 @@
     --wnba-LVA: #010101;
     --wnba-MIN: #305c98;
     --wnba-NYL: #86CEBC;
-    --wnba-PDX: #C8102E;
+    --wnba-PDX: #010101;
     --wnba-PHX: #e64e1d;
     --wnba-SEA: #2a4c31;
 
@@ -152,6 +152,7 @@ body {
     overflow: clip;
     font-size: 0.9rem;
     height: 100%;
+    min-width: fit-content;
 }
 
 .request-warning {
@@ -631,7 +632,7 @@ TODAY
 
 #today .game-label {
     background-color: var(--progress-background);
-    flex: 0 0 100%;
+    flex: 1 0 auto;
     text-align: center;
     padding: 2px 0;
     border-radius: 0 0 var(--card-corners) var(--card-corners);

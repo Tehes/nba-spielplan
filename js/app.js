@@ -84,6 +84,46 @@ const LEAGUES = {
 	},
 };
 const SUPPORTED_LEAGUES = new Set(Object.keys(LEAGUES));
+const EXCITEMENT_RATING_PROFILES = {
+	nba: {
+		closeMargin: 5,
+		blowoutMargin: 20,
+		closenessDenominator: 20,
+		bigDeficitThreshold: 10,
+		mediumDeficitThreshold: 15,
+		largeDeficitThreshold: 20,
+		comebackCloseMargin: 3,
+		comebackMediumMargin: 6,
+		lateCloseMargin: 5,
+		lateMediumMargin: 8,
+		crunchHighMargin: 3,
+		crunchMediumMargin: 7,
+		crunchLightMargin: 12,
+		crunchSeconds: 300,
+		offenseMaxMargin: 10,
+		offenseMinTotal: 180,
+		offenseRange: 50,
+	},
+	wnba: {
+		closeMargin: 5,
+		blowoutMargin: 17,
+		closenessDenominator: 17,
+		bigDeficitThreshold: 8,
+		mediumDeficitThreshold: 13,
+		largeDeficitThreshold: 17,
+		comebackCloseMargin: 3,
+		comebackMediumMargin: 6,
+		lateCloseMargin: 5,
+		lateMediumMargin: 7,
+		crunchHighMargin: 3,
+		crunchMediumMargin: 6,
+		crunchLightMargin: 10,
+		crunchSeconds: 300,
+		offenseMaxMargin: 8,
+		offenseMinTotal: 150,
+		offenseRange: 42,
+	},
+};
 const NBA_DIVISION_ORDER = [
 	"Atlantic",
 	"Central",
@@ -400,8 +440,8 @@ function getCurrentLeague() {
 	return LEAGUES[currentLeague] || LEAGUES.nba;
 }
 
-function getLeagueApiUrl(path) {
-	const league = getCurrentLeague();
+function getLeagueApiUrl(path, leagueId = currentLeague) {
+	const league = LEAGUES[leagueId] || LEAGUES.nba;
 	return `${API_BASE_URL}${path}${league.query}`;
 }
 
@@ -426,8 +466,12 @@ function getBoxscoreUrl(gameId) {
 	return getLeagueApiUrl(`/boxscore/${gameId}`);
 }
 
-function getPlayByPlayUrl(gameId) {
-	return getLeagueApiUrl(`/playbyplay/${gameId}`);
+function getPlayByPlayUrl(gameId, leagueId = currentLeague) {
+	return getLeagueApiUrl(`/playbyplay/${gameId}`, leagueId);
+}
+
+function getExcitementCacheKey(leagueId, gameId) {
+	return `${leagueId}:${gameId}`;
 }
 
 function getIstBracketUrl() {
@@ -1159,7 +1203,8 @@ function renderTodaysGames() {
 				// FINAL
 				date.classList.remove("live");
 				if (checkboxShowRating.checked) {
-					const cachedScore = excitementCache.get(g.gameId);
+					const cacheKey = getExcitementCacheKey(currentLeague, g.gameId);
+					const cachedScore = excitementCache.get(cacheKey);
 					if (cachedScore != null) {
 						date.textContent = `${(cachedScore / 10).toFixed(1)}/10`;
 					} else {
@@ -1347,18 +1392,20 @@ function getLiveLabel(live) {
 /* --------------------------------------------------------------------------------------------------
 GAME EXCITEMENT RATING
 ---------------------------------------------------------------------------------------------------*/
-function computeGameExcitement(playByPlayJson) {
+function computeGameExcitement(playByPlayJson, leagueId = currentLeague) {
 	const actions = playByPlayJson?.game?.actions;
 
 	if (!Array.isArray(actions) || actions.length === 0) {
 		return 0;
 	}
 
+	const profile = EXCITEMENT_RATING_PROFILES[leagueId] || EXCITEMENT_RATING_PROFILES.nba;
+
 	// Helpers
 	function computeMarginFactor(margin) {
-		if (margin <= 5) return 1;
-		if (margin >= 20) return 0;
-		return 1 - (margin - 5) / 15;
+		if (margin <= profile.closeMargin) return 1;
+		if (margin >= profile.blowoutMargin) return 0;
+		return 1 - (margin - profile.closeMargin) / (profile.blowoutMargin - profile.closeMargin);
 	}
 
 	function computeOvertimeBonus(maxPeriod) {
@@ -1368,23 +1415,23 @@ function computeGameExcitement(playByPlayJson) {
 		return 0;
 	}
 
-	function computeTeamComebackIntensity(teamComeback, bigDeficitThreshold) {
-		if (teamComeback.maxDeficit < bigDeficitThreshold) return 0;
+	function computeTeamComebackIntensity(teamComeback) {
+		if (teamComeback.maxDeficit < profile.bigDeficitThreshold) return 0;
 		if (!Number.isFinite(teamComeback.bestDiff)) return 0;
 
 		let sizeFactor = 0;
-		if (teamComeback.maxDeficit >= 20) {
+		if (teamComeback.maxDeficit >= profile.largeDeficitThreshold) {
 			sizeFactor = 1;
-		} else if (teamComeback.maxDeficit >= 15) {
+		} else if (teamComeback.maxDeficit >= profile.mediumDeficitThreshold) {
 			sizeFactor = 0.8;
-		} else if (teamComeback.maxDeficit >= 10) {
+		} else if (teamComeback.maxDeficit >= profile.bigDeficitThreshold) {
 			sizeFactor = 0.6;
 		}
 
 		let distanceFactor = 0;
-		if (teamComeback.bestDiff <= 3) {
+		if (teamComeback.bestDiff <= profile.comebackCloseMargin) {
 			distanceFactor = 1;
-		} else if (teamComeback.bestDiff <= 6) {
+		} else if (teamComeback.bestDiff <= profile.comebackMediumMargin) {
 			distanceFactor = 0.6;
 		}
 
@@ -1443,8 +1490,6 @@ function computeGameExcitement(playByPlayJson) {
 	const finalMargin = Math.abs(finalHomeScore - finalAwayScore);
 	const marginFactor = computeMarginFactor(finalMargin);
 
-	const BIG_DEFICIT_THRESHOLD = 10;
-
 	const comebackHome = {
 		maxDeficit: 0,
 		bestDiff: Infinity,
@@ -1469,7 +1514,7 @@ function computeGameExcitement(playByPlayJson) {
 
 	scoringEvents.forEach((ev) => {
 		const diff = Math.abs(ev.homeScore - ev.awayScore);
-		const closeness = Math.max(0, 1 - diff / 20);
+		const closeness = Math.max(0, 1 - diff / profile.closenessDenominator);
 		closenessSum += closeness;
 
 		const leaderDiff = ev.homeScore - ev.awayScore;
@@ -1492,7 +1537,7 @@ function computeGameExcitement(playByPlayJson) {
 				-leaderDiff,
 				diff,
 				ev.period,
-				BIG_DEFICIT_THRESHOLD,
+				profile.bigDeficitThreshold,
 			);
 		} else if (leaderDiff > 0) {
 			updateComebackTracking(
@@ -1500,20 +1545,20 @@ function computeGameExcitement(playByPlayJson) {
 				leaderDiff,
 				diff,
 				ev.period,
-				BIG_DEFICIT_THRESHOLD,
+				profile.bigDeficitThreshold,
 			);
 		}
 
 		if (ev.period >= 4) {
 			minLateDiff = Math.min(minLateDiff, diff);
 			const secondsRemaining = parseClockToSeconds(ev.clock);
-			if (Number.isFinite(secondsRemaining) && secondsRemaining <= 300) {
+			if (Number.isFinite(secondsRemaining) && secondsRemaining <= profile.crunchSeconds) {
 				totalCrunchEvents++;
-				if (diff <= 3) {
+				if (diff <= profile.crunchHighMargin) {
 					countHighCrunch++;
-				} else if (diff <= 7) {
+				} else if (diff <= profile.crunchMediumMargin) {
 					countMediumCrunch++;
-				} else if (diff <= 12) {
+				} else if (diff <= profile.crunchLightMargin) {
 					countLightCrunch++;
 				}
 			}
@@ -1523,7 +1568,11 @@ function computeGameExcitement(playByPlayJson) {
 	const avgCloseness = closenessSum / scoringEvents.length;
 	const closenessScore = Math.round(avgCloseness * 40);
 	const swingsScore = Math.min(25, leadChanges * 2 + ties);
-	const lateGameCloseness = minLateDiff <= 5 ? 1 : minLateDiff <= 8 ? 0.5 : 0;
+	const lateGameCloseness = minLateDiff <= profile.lateCloseMargin
+		? 1
+		: minLateDiff <= profile.lateMediumMargin
+		? 0.5
+		: 0;
 
 	let crunchTimeScore = 0;
 	if (totalCrunchEvents > 0) {
@@ -1535,8 +1584,8 @@ function computeGameExcitement(playByPlayJson) {
 		crunchTimeScore = Math.round(rawClamped * 1.25 * (0.7 + 0.3 * marginFactor));
 	}
 
-	const homeIntensity = computeTeamComebackIntensity(comebackHome, BIG_DEFICIT_THRESHOLD);
-	const awayIntensity = computeTeamComebackIntensity(comebackAway, BIG_DEFICIT_THRESHOLD);
+	const homeIntensity = computeTeamComebackIntensity(comebackHome);
+	const awayIntensity = computeTeamComebackIntensity(comebackAway);
 
 	const homeWon = finalHomeScore > finalAwayScore;
 	const awayWon = finalAwayScore > finalHomeScore;
@@ -1567,8 +1616,8 @@ function computeGameExcitement(playByPlayJson) {
 	const totalPoints = finalHomeScore + finalAwayScore;
 
 	let offenseScore = 0;
-	if (finalMargin <= 10 && totalPoints > 180) {
-		const offenseBase = Math.min(5, ((totalPoints - 180) / 50) * 5);
+	if (finalMargin <= profile.offenseMaxMargin && totalPoints > profile.offenseMinTotal) {
+		const offenseBase = Math.min(5, ((totalPoints - profile.offenseMinTotal) / profile.offenseRange) * 5);
 		offenseScore = Math.round(offenseBase * marginFactor);
 	}
 
@@ -1589,19 +1638,22 @@ function computeGameExcitement(playByPlayJson) {
 }
 
 function fetchExcitementForGame(gameId) {
-	if (excitementCache.has(gameId)) {
-		return Promise.resolve(excitementCache.get(gameId));
+	const leagueId = currentLeague;
+	const cacheKey = getExcitementCacheKey(leagueId, gameId);
+
+	if (excitementCache.has(cacheKey)) {
+		return Promise.resolve(excitementCache.get(cacheKey));
 	}
 
-	const url = getPlayByPlayUrl(gameId);
+	const url = getPlayByPlayUrl(gameId, leagueId);
 
 	return new Promise((resolve, reject) => {
 		fetchData(
 			url,
 			(pbpJson) => {
 				try {
-					const score = computeGameExcitement(pbpJson);
-					excitementCache.set(gameId, score);
+					const score = computeGameExcitement(pbpJson, leagueId);
+					excitementCache.set(cacheKey, score);
 					resolve(score);
 				} catch (err) {
 					reject(err);
@@ -2943,7 +2995,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-14-v16";
+const SERVICE_WORKER_VERSION = "2026-05-15-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({
