@@ -337,6 +337,18 @@ main div span {
     cursor: pointer;
 }
 
+.broadcast-label:not(:empty)::before {
+    content: "";
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-right: 0.45em;
+    border-top: 0.38em solid transparent;
+    border-bottom: 0.38em solid transparent;
+    border-left: 0.55em solid currentColor;
+    transform: translateY(0.05em);
+}
+
 /*
 -------------------------------------------------------------------
 PLAYOFFS and NBA CUP
