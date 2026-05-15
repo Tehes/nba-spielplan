@@ -55,6 +55,7 @@ Variables
 const API_BASE_URL = "https://nba-spielplan.tehes.deno.net";
 const LANGUAGE_STORAGE_KEY = "nba-spielplan_lang";
 const LEAGUE_STORAGE_KEY = "nba-spielplan_league";
+const SCHEDULE_CACHE_VERSION = "2";
 const STANDINGS_CACHE_VERSION = "3";
 const SUPPORTED_LANGUAGES = new Set(["de", "en"]);
 const LEAGUES = {
@@ -451,7 +452,7 @@ function addApiQueryParam(url, key, value) {
 }
 
 function getScheduleUrl() {
-	return getLeagueApiUrl("/schedule");
+	return addApiQueryParam(getLeagueApiUrl("/schedule"), "scheduleVersion", SCHEDULE_CACHE_VERSION);
 }
 
 function getStandingsUrl() {
@@ -524,6 +525,38 @@ function getTeamColorValue(teamTricode) {
 
 function getTeamLogoSrc(teamTricode) {
 	return `${getCurrentLeague().logoPath}/${teamTricode}.svg`;
+}
+
+function getBroadcastLabels(game) {
+	if (currentLanguage !== "de") {
+		return [];
+	}
+
+	const labels = new Set();
+	const broadcasters = [
+		...(game.broadcasters?.intlTvBroadcasters || []),
+		...(game.broadcasters?.intlOttBroadcasters || []),
+	];
+
+	broadcasters.forEach((broadcaster) => {
+		const display = broadcaster.broadcasterDisplay || "";
+		const abbreviation = broadcaster.broadcasterAbbreviation || "";
+
+		if (
+			display.startsWith("Sky Sport") ||
+			abbreviation.startsWith("SKYGermany") ||
+			abbreviation.startsWith("SkyGermany")
+		) {
+			labels.add("Sky");
+			return;
+		}
+
+		if (display) {
+			labels.add(display);
+		}
+	});
+
+	return Array.from(labels);
 }
 
 function getCalendarDayKey(date) {
@@ -1180,6 +1213,7 @@ function renderTodaysGames() {
 			const visitingScore = visitingTeam.querySelector(".score");
 			const date = clone.querySelector(".date");
 			const gameLabelEl = clone.querySelector(".game-label");
+			const broadcastLabelEl = clone.querySelector(".broadcast-label");
 			const label = g.gameLabel || g.gameSubtype || "";
 			const subLabel = g.gameSubLabel;
 
@@ -1190,12 +1224,13 @@ function renderTodaysGames() {
 			homeLogo.onerror = () => (homeLogo.src = "img/no-logo.svg");
 			visitingLogo.src = getTeamLogoSrc(g.awayTeam.teamTricode);
 			visitingLogo.onerror = () => (visitingLogo.src = "img/no-logo.svg");
-			homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
-			visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
+			homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`.trim();
+			visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`.trim();
 			homeAbbr.textContent = g.homeTeam.teamTricode;
 			visitingAbbr.textContent = g.awayTeam.teamTricode;
 
 			gameLabelEl.textContent = label ? (subLabel ? `${label} – ${subLabel}` : label) : subLabel;
+			broadcastLabelEl.textContent = getBroadcastLabels(g).join(" · ");
 
 			if (isLive) needsPolling = true;
 
@@ -2371,11 +2406,12 @@ function renderMoreGames() {
 		const visitingScore = visitingTeam.querySelector(".score");
 		const date = clone.querySelector(".date");
 		const gameLabelEl = clone.querySelector(".game-label");
+		const broadcastLabelEl = clone.querySelector(".broadcast-label");
 		const label = (g.gameLabel || "").trim();
 		const subLabel = (g.gameSubLabel || "").trim();
 
-		homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`;
-		visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`;
+		homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`.trim();
+		visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`.trim();
 		homeAbbr.textContent = g.homeTeam.teamTricode;
 		homeColor.style.setProperty("--team-color", getTeamColorValue(g.homeTeam.teamTricode));
 		visitingAbbr.textContent = g.awayTeam.teamTricode;
@@ -2383,6 +2419,7 @@ function renderMoreGames() {
 		card.dataset.abbr = `${g.awayTeam.teamTricode}/${g.homeTeam.teamTricode}`;
 		date.textContent = t("scheduledTime", { time: g.time });
 		gameLabelEl.textContent = label ? subLabel ? `${label} – ${subLabel}` : label : subLabel;
+		broadcastLabelEl.textContent = getBroadcastLabels(g).join(" · ");
 
 		if (g.gameStatus === 3) {
 			homeScore.textContent = g.homeTeam.score ?? "";
@@ -2995,7 +3032,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-15-v1";
+const SERVICE_WORKER_VERSION = "2026-05-16-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

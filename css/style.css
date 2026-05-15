@@ -308,6 +308,11 @@ section {
     display: none;
 }
 
+.card .abbr:empty::before,
+.card .name:empty::before {
+    content: "TBD";
+}
+
 .date:empty::before {
     content: "loading";
     color: var(--text-muted);
@@ -319,11 +324,12 @@ main div span {
 
 .hidden,
 .card .game-label:empty,
+.card .broadcast-label:empty,
 .card :where(.wl, .score):empty {
     display: none;
 }
 
-.card:has(.game-label:not(:empty)) {
+.card:has(.game-label:not(:empty), .broadcast-label:not(:empty)) {
     flex-wrap: wrap;
 }
 
@@ -630,13 +636,24 @@ TODAY
     gap: 20px;
 }
 
-#today .game-label {
+#today .game-label,
+#today .broadcast-label {
     background-color: var(--progress-background);
     flex: 1 0 auto;
     text-align: center;
-    padding: 2px 0;
+    padding: 2px 0.5rem;
     border-radius: 0 0 var(--card-corners) var(--card-corners);
     font-size: 0.9rem;
+}
+
+#today .game-label:not(:empty)+.broadcast-label:not(:empty) {
+    border-left: 1px solid var(--progress-background);
+    border-radius: 0 0 var(--card-corners) 0;
+    max-width: fit-content;
+}
+
+#today .game-label:not(:empty):has(+ .broadcast-label:not(:empty)) {
+    border-radius: 0 0 0 var(--card-corners);
 }
 
 #today .visiting-team+.home-team {
@@ -826,14 +843,20 @@ MORE
     background-color: var(--team-color, var(--neutral400));
 }
 
-#more .game-label {
-    flex: 0 0 100%;
+#more .game-label,
+#more .broadcast-label {
+    flex: 1 0 auto;
     background-color: light-dark(hsla(0, 0%, 0%, 0.05), hsla(0, 0%, 0%, 0.15));
     text-align: center;
     border-radius: var(--card-corners);
     font-size: 0.9rem;
     margin-top: 10px;
     color: light-dark(var(--neutral700), var(--neutral300));
+    padding: 0 0.5rem;
+}
+
+#more .game-label:not(:empty)+.broadcast-label:not(:empty) {
+    margin-left: 8px;
 }
 
 .options {
