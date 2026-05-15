@@ -864,11 +864,12 @@ MORE
     font-size: 0.9rem;
     margin-top: 10px;
     color: light-dark(var(--neutral700), var(--neutral300));
-    padding: 0 0.5rem;
+    padding: 0 1rem;
 }
 
 #more .game-label:not(:empty)+.broadcast-label:not(:empty) {
     margin-left: 8px;
+    max-width: fit-content;
 }
 
 .options {
