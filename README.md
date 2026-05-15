@@ -36,6 +36,7 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
   - Filters by franchise (team picker), hides already played games, or restricts the list to “prime
     time” tip-offs (18:00–23:59 local time).
   - Uses team color accents so you can scan cards quickly.
+  - Shows German broadcast labels for NBA and WNBA games in the German UI where available.
 
 - **League menu**
   - Top menu switches between NBA and WNBA schedules.
