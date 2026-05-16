@@ -153,6 +153,10 @@ const messages = {
 		seasonProgress: "Saisonfortschritt",
 		requestWarning: "Einige Daten konnten nicht aktualisiert werden. Bitte versuche es später erneut.",
 		todayHeadline: "Heute",
+		yesterdayHeadline: "Gestern",
+		tomorrowHeadline: "Morgen",
+		previousDay: "Vorheriger Tag",
+		nextDay: "Nächster Tag",
 		showScores: "Ergebnisse anzeigen",
 		showRating: "Spielbewertung anzeigen",
 		info: "Info",
@@ -195,6 +199,7 @@ const messages = {
 		loading: "Lädt…",
 		final: "Beendet",
 		noGamesToday: "Heute finden keine Spiele statt.",
+		noGamesSelectedDay: "An diesem Tag finden keine Spiele statt.",
 		liveSoon: "in Kürze",
 		halftime: "Halbzeit",
 		endQuarter: "Ende Q{period}",
@@ -205,6 +210,7 @@ const messages = {
 		team: "Team",
 		total: "Gesamt",
 		jumpToToday: "zu den heutigen Spielen",
+		jumpToSelectedDay: "zum gewählten Tag",
 		scheduledTime: "{time} Uhr",
 		ratingLabel: "Bewertung: {rating}/10 · {verdict}",
 		verdictInstantClassic: "Instant Classic",
@@ -227,6 +233,10 @@ const messages = {
 		seasonProgress: "Season Progress",
 		requestWarning: "Some data could not be updated. Please try again later.",
 		todayHeadline: "Today",
+		yesterdayHeadline: "Yesterday",
+		tomorrowHeadline: "Tomorrow",
+		previousDay: "Previous day",
+		nextDay: "Next day",
 		showScores: "Show scores",
 		showRating: "Show game rating",
 		info: "Info",
@@ -269,6 +279,7 @@ const messages = {
 		loading: "Loading…",
 		final: "Final",
 		noGamesToday: "No games today.",
+		noGamesSelectedDay: "No games on this day.",
 		liveSoon: "Soon",
 		halftime: "Halftime",
 		endQuarter: "End Q{period}",
@@ -279,6 +290,7 @@ const messages = {
 		team: "Team",
 		total: "Total",
 		jumpToToday: "jump to today's games",
+		jumpToSelectedDay: "jump to selected day",
 		scheduledTime: "{time}",
 		ratingLabel: "Rating: {rating}/10 · {verdict}",
 		verdictInstantClassic: "Instant Classic",
@@ -327,8 +339,12 @@ let standingsWest;
 const renderedCoreCacheUrls = new Set();
 let lastCheckedDay = getCalendarDayKey(new Date());
 let requestCycleFailed = false;
+let selectedDay = getStartOfCalendarDay(new Date());
 
 // DOM Elements
+const todayHeadlineEl = document.querySelector("#today-headline");
+const todayPrevButton = document.querySelector("#today-prev");
+const todayNextButton = document.querySelector("#today-next");
 const todayEl = document.querySelector("#today");
 const moreEl = document.querySelector("#more");
 const progressValue = document.querySelector("#progress-value");
@@ -567,6 +583,26 @@ function getCalendarDayKey(date) {
 	].join("-");
 }
 
+function getStartOfCalendarDay(date) {
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addCalendarDays(date, days) {
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+}
+
+function isSameCalendarDay(a, b) {
+	return getCalendarDayKey(a) === getCalendarDayKey(b);
+}
+
+function getCalendarDayTime(date) {
+	return getStartOfCalendarDay(date).getTime();
+}
+
+function hasValidLocalDate(game) {
+	return game?.localDate instanceof Date && !Number.isNaN(game.localDate.getTime());
+}
+
 function t(key, replacements = {}) {
 	const dictionary = messages[currentLanguage] || messages.de;
 	let text = dictionary[key] || messages.de[key] || key;
@@ -576,6 +612,145 @@ function t(key, replacements = {}) {
 	});
 
 	return text;
+}
+
+function getScheduleDateBounds() {
+	let min = null;
+	let max = null;
+
+	getScheduleGames().forEach((game) => {
+		if (!hasValidLocalDate(game)) {
+			return;
+		}
+
+		const day = getStartOfCalendarDay(game.localDate);
+
+		if (!min || day < min) {
+			min = day;
+		}
+		if (!max || day > max) {
+			max = day;
+		}
+	});
+
+	return { min, max };
+}
+
+function isSelectedDayToday() {
+	return isSameCalendarDay(selectedDay, new Date());
+}
+
+function formatSelectedDayHeadline() {
+	const today = getStartOfCalendarDay(new Date());
+
+	if (isSameCalendarDay(selectedDay, today)) {
+		return t("todayHeadline");
+	}
+	if (isSameCalendarDay(selectedDay, addCalendarDays(today, -1))) {
+		return t("yesterdayHeadline");
+	}
+	if (isSameCalendarDay(selectedDay, addCalendarDays(today, 1))) {
+		return t("tomorrowHeadline");
+	}
+
+	return selectedDay.toLocaleDateString(currentLocale, {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	});
+}
+
+function updateTodayNavigation() {
+	if (!todayHeadlineEl || !todayPrevButton || !todayNextButton) {
+		return;
+	}
+
+	const { min, max } = getScheduleDateBounds();
+	const selectedTime = selectedDay.getTime();
+
+	todayHeadlineEl.textContent = formatSelectedDayHeadline();
+	todayPrevButton.title = t("previousDay");
+	todayNextButton.title = t("nextDay");
+	todayPrevButton.disabled = !min || selectedTime <= min.getTime();
+	todayNextButton.disabled = !max || selectedTime >= max.getTime();
+}
+
+function resetSelectedDay() {
+	selectedDay = getStartOfCalendarDay(new Date());
+	updateTodayNavigation();
+}
+
+function moveSelectedDay(days) {
+	const { min, max } = getScheduleDateBounds();
+
+	if (!min || !max) {
+		return;
+	}
+
+	const nextDay = addCalendarDays(selectedDay, days);
+
+	if (days < 0 && nextDay.getTime() < min.getTime()) {
+		return;
+	}
+	if (days > 0 && nextDay.getTime() > max.getTime()) {
+		return;
+	}
+
+	selectedDay = nextDay;
+	renderTodaysGames();
+	renderMoreGames();
+}
+
+function sortGamesByLocalDate(gamesToSort) {
+	return gamesToSort.slice().sort((a, b) => a.localDate - b.localDate);
+}
+
+function getSelectedDayGames() {
+	if (isSelectedDayToday()) {
+		return sortGamesByLocalDate(games.today);
+	}
+
+	const selectedDayKey = getCalendarDayKey(selectedDay);
+	const dayGames = getScheduleGames().filter((game) => {
+		return hasValidLocalDate(game) && getCalendarDayKey(game.localDate) === selectedDayKey;
+	});
+
+	return sortGamesByLocalDate(dayGames);
+}
+
+function getMoreViewGames() {
+	const selectedDayTime = selectedDay.getTime();
+	const selectedGameIds = new Set(getSelectedDayGames().map((game) => game.gameId));
+	let gamesToDisplay = games.finished.concat(games.today, games.scheduled).filter((game) => {
+		return hasValidLocalDate(game) &&
+			!selectedGameIds.has(game.gameId) &&
+			getCalendarDayTime(game.localDate) !== selectedDayTime;
+	});
+
+	if (checkboxHidePastGames.checked) {
+		gamesToDisplay = gamesToDisplay.filter((game) => {
+			return getCalendarDayTime(game.localDate) > selectedDayTime;
+		});
+	}
+
+	if (checkboxPrimetime.checked) {
+		gamesToDisplay = gamesToDisplay.filter((g) => {
+			const gameHour = g.localDate.getHours() + g.localDate.getMinutes() / 60;
+
+			// Primetime
+			return gameHour >= 18 && gameHour < 24;
+		});
+	}
+
+	return sortGamesByLocalDate(gamesToDisplay);
+}
+
+function shouldPollLiveGames(now) {
+	return games.today.some((game) => {
+		const live = liveById.get(game.gameId);
+		const { isLive } = getGameState(game, live, now);
+		return isLive;
+	});
 }
 
 function syncLanguageUrl() {
@@ -668,6 +843,7 @@ function applyLanguage() {
 	currentLocale = getLocale(currentLanguage);
 	localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
 	syncLanguageUrl();
+	resetSelectedDay();
 	applyStaticTranslations();
 	rerenderLocalizedUi();
 }
@@ -733,6 +909,7 @@ function resetLeagueData() {
 	westData = [];
 	overallData = [];
 	divisionsData = {};
+	resetSelectedDay();
 	loadStandingsViewPreferences();
 	renderedCoreCacheUrls.clear();
 	todayEl.replaceChildren();
@@ -770,8 +947,8 @@ function prepareGameData() {
 	const allGames = schedule.leagueSchedule.gameDates.flatMap((d) => d.games || []);
 
 	const now = new Date();
-	const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-	const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+	const todayStart = getStartOfCalendarDay(now);
+	const tomorrowStart = addCalendarDays(todayStart, 1);
 
 	games.today = [];
 	games.finished = [];
@@ -1185,12 +1362,14 @@ TODAY
 ---------------------------------------------------------------------------------------------------*/
 function renderTodaysGames() {
 	todayEl.replaceChildren();
+	updateTodayNavigation();
 
 	const now = new Date();
-	let needsPolling = false;
+	const selectedGames = getSelectedDayGames();
+	const needsPolling = shouldPollLiveGames(now);
 
-	if (games.today.length > 0) {
-		games.today.forEach((g) => {
+	if (selectedGames.length > 0) {
+		selectedGames.forEach((g) => {
 			const live = liveById.get(g.gameId);
 			const { isPostponed, isFinal, isLive } = getGameState(g, live, now);
 			const template = document.querySelector("#template-today");
@@ -1231,8 +1410,6 @@ function renderTodaysGames() {
 
 			gameLabelEl.textContent = label ? (subLabel ? `${label} – ${subLabel}` : label) : subLabel;
 			broadcastLabelEl.textContent = getBroadcastLabels(g).join(" · ");
-
-			if (isLive) needsPolling = true;
 
 			if (isFinal) {
 				// FINAL
@@ -1309,7 +1486,7 @@ function renderTodaysGames() {
 			todayEl.appendChild(clone);
 		});
 	} else {
-		todayEl.textContent = t("noGamesToday");
+		todayEl.textContent = isSelectedDayToday() ? t("noGamesToday") : t("noGamesSelectedDay");
 	}
 
 	if (needsPolling) {
@@ -2345,28 +2522,11 @@ function updateTeamPicker() {
 
 function renderMoreGames() {
 	let dateHeadline = "";
+	let jumpLinkInserted = false;
 	moreEl.innerHTML = "";
 
-	let gamesToDisplay = [];
-
-	if (checkboxHidePastGames.checked) {
-		gamesToDisplay = games.scheduled;
-	} else {
-		gamesToDisplay = games.finished.concat(games.scheduled);
-	}
-
-	if (checkboxPrimetime.checked) {
-		gamesToDisplay = gamesToDisplay.filter((g) => {
-			if (!(g.localDate instanceof Date) || Number.isNaN(g.localDate.getTime())) {
-				return false;
-			}
-
-			const gameHour = g.localDate.getHours() + g.localDate.getMinutes() / 60;
-
-			// Primetime
-			return gameHour >= 18 && gameHour < 24;
-		});
-	}
+	const selectedDayTime = selectedDay.getTime();
+	const gamesToDisplay = getMoreViewGames();
 
 	gamesToDisplay.forEach((g) => {
 		if (dateHeadline === "" || dateHeadline !== g.date) {
@@ -2377,14 +2537,19 @@ function renderMoreGames() {
 			h3El.appendChild(headlineText);
 			moreEl.appendChild(h3El);
 
-			if (!checkboxHidePastGames.checked && games.scheduled[0]?.localDate === g.localDate) {
+			if (
+				!checkboxHidePastGames.checked &&
+				!jumpLinkInserted &&
+				getCalendarDayTime(g.localDate) > selectedDayTime
+			) {
 				const anchorTop = document.createElement("div");
 				anchorTop.classList.add("jump-link");
 				const anchorLink = document.createElement("a");
-				anchorLink.textContent = t("jumpToToday");
+				anchorLink.textContent = isSelectedDayToday() ? t("jumpToToday") : t("jumpToSelectedDay");
 				anchorTop.appendChild(anchorLink);
-				anchorLink.href = "#top";
+				anchorLink.href = "#today-headline";
 				moreEl.insertBefore(anchorTop, h3El);
+				jumpLinkInserted = true;
 			}
 		}
 
@@ -2409,6 +2574,8 @@ function renderMoreGames() {
 		const broadcastLabelEl = clone.querySelector(".broadcast-label");
 		const label = (g.gameLabel || "").trim();
 		const subLabel = (g.gameSubLabel || "").trim();
+		const live = liveById.get(g.gameId);
+		const { isPostponed, isFinal, isLive } = getGameState(g, live);
 
 		homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`.trim();
 		visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`.trim();
@@ -2417,28 +2584,46 @@ function renderMoreGames() {
 		visitingAbbr.textContent = g.awayTeam.teamTricode;
 		visitingColor.style.setProperty("--team-color", getTeamColorValue(g.awayTeam.teamTricode));
 		card.dataset.abbr = `${g.awayTeam.teamTricode}/${g.homeTeam.teamTricode}`;
-		date.textContent = t("scheduledTime", { time: g.time });
+		if (isLive) {
+			date.classList.add("live");
+			date.innerHTML = getLiveLabel(live);
+		} else {
+			date.classList.remove("live");
+			date.textContent = isPostponed ? "PPD" : t("scheduledTime", { time: g.time });
+		}
 		gameLabelEl.textContent = label ? subLabel ? `${label} – ${subLabel}` : label : subLabel;
 		broadcastLabelEl.textContent = getBroadcastLabels(g).join(" · ");
 
-		if (g.gameStatus === 3) {
-			homeScore.textContent = g.homeTeam.score ?? "";
-			visitingScore.textContent = g.awayTeam.score ?? "";
-			const hNum = Number(g.homeTeam.score);
-			const aNum = Number(g.awayTeam.score);
+		if (isFinal) {
+			const liveAway = live?.awayTeam?.score;
+			const liveHome = live?.homeTeam?.score;
+			const h = Number.isFinite(liveHome) ? liveHome : g.homeTeam.score;
+			const a = Number.isFinite(liveAway) ? liveAway : g.awayTeam.score;
+			homeScore.textContent = h ?? "";
+			visitingScore.textContent = a ?? "";
+			const hNum = Number(h);
+			const aNum = Number(a);
 			if (Number.isFinite(hNum) && Number.isFinite(aNum)) {
 				homeScore.classList.toggle("lower", hNum < aNum);
 				visitingScore.classList.toggle("lower", aNum < hNum);
 			}
+		} else if (isLive) {
+			const liveAway = live?.awayTeam?.score;
+			const liveHome = live?.homeTeam?.score;
+			homeScore.textContent = Number.isFinite(liveHome) ? liveHome : "—";
+			visitingScore.textContent = Number.isFinite(liveAway) ? liveAway : "—";
+		} else {
+			homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
+			visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
+		}
+
+		if (isFinal || isLive) {
 			card.dataset.gameId = g.gameId;
 			card.dataset.clickable = "true";
 			card.addEventListener("click", () => {
 				globalThis.umami?.track("NBA Schedule", { moreOverlayClicked: true });
 				openGameOverlay(g.gameId, g.awayTeam.teamTricode, g.homeTeam.teamTricode);
 			});
-		} else {
-			homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
-			visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
 		}
 
 		moreEl.appendChild(clone);
@@ -2471,14 +2656,14 @@ function scrollToLastPastHeadline() {
 
 	let bestHeadline = null;
 	let bestTimestamp = null;
-	const now = Date.now();
+	const selectedDayTime = selectedDay.getTime();
 
 	headlines.forEach((h3) => {
 		const timestamp = Number(h3.dataset.timestamp);
 		if (!timestamp) return;
 
-		// Find the latest timestamp that is still in the past
-		if (timestamp < now && (!bestTimestamp || timestamp > bestTimestamp)) {
+		// Find the latest date group before the selected day
+		if (timestamp < selectedDayTime && (!bestTimestamp || timestamp > bestTimestamp)) {
 			bestTimestamp = timestamp;
 			bestHeadline = h3;
 		}
@@ -2940,6 +3125,12 @@ function init() {
 	gameTabs.forEach((tab) => {
 		tab.addEventListener("click", () => switchTab(tab));
 	});
+	todayPrevButton.addEventListener("click", () => {
+		moveSelectedDay(-1);
+	});
+	todayNextButton.addEventListener("click", () => {
+		moveSelectedDay(1);
+	});
 	document.addEventListener("touchstart", function () {}, false);
 	languagePicker.addEventListener("change", () => {
 		setLanguage(languagePicker.value);
@@ -3032,7 +3223,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-16-v5";
+const SERVICE_WORKER_VERSION = "2026-05-16-v6";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

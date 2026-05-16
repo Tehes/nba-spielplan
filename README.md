@@ -25,14 +25,18 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
 
 - **Today view**
   - Shows every game scheduled for the current day in your timezone.
+  - Lets you move backward or forward by day from the headline controls, switching the headline to
+    yesterday, tomorrow, or a specific date.
   - Displays team logos, colors, records, and automatically switches between scheduled, live, and
     final states.
+  - Shows German broadcast labels for NBA and WNBA games in the German UI where available.
   - Polls the live scoreboard every minute while at least one game is live, overlaying in-progress
     scores.
   - Cards are clickable and open the built-in overview, boxscore, and play-by-play overlay.
 
 - **More games view**
   - Lists recent results plus upcoming games, grouped by date.
+  - Adjusts around the selected Today view date so the currently focused day is not duplicated.
   - Filters by franchise (team picker), hides already played games, or restricts the list to “prime
     time” tip-offs (18:00–23:59 local time).
   - Uses team color accents so you can scan cards quickly.

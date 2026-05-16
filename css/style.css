@@ -196,6 +196,41 @@ h3 {
     margin: 10px 0 0 0;
 }
 
+.today-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1rem;
+    margin: 0 0 10px 0;
+}
+
+.today-header h1 {
+    margin: 0;
+    text-align: center;
+}
+
+.today-nav-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 1px solid var(--text-color);
+    border-radius: var(--card-corners);
+    background-color: transparent;
+    color: var(--text-color);
+    font: inherit;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.today-nav-button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
 .section-head {
     display: flex;
     align-items: center;

@@ -74,7 +74,11 @@
 				<div id="finals"></div>
 				<div id="eastern"></div>
 			</section>
-			<h1 data-i18n="todayHeadline">Heute</h1>
+			<div class="today-header">
+				<button type="button" class="today-nav-button" id="today-prev" title="Vorheriger Tag">‹</button>
+				<h1 id="today-headline" data-i18n="todayHeadline">Heute</h1>
+				<button type="button" class="today-nav-button" id="today-next" title="Nächster Tag">›</button>
+			</div>
 			<div class="options">
 				<label class="show-scores"><span data-i18n="showScores">Ergebnisse anzeigen</span>
 					<input type="checkbox" checked />
