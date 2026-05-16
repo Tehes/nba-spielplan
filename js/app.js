@@ -200,6 +200,7 @@ const messages = {
 		final: "Beendet",
 		noGamesToday: "Heute finden keine Spiele statt.",
 		noGamesSelectedDay: "An diesem Tag finden keine Spiele statt.",
+		emptyStateLead: "Kurze Pause im Spielplan.",
 		liveSoon: "in Kürze",
 		halftime: "Halbzeit",
 		endQuarter: "Ende Q{period}",
@@ -280,6 +281,7 @@ const messages = {
 		final: "Final",
 		noGamesToday: "No games today.",
 		noGamesSelectedDay: "No games on this day.",
+		emptyStateLead: "A short pause in the schedule.",
 		liveSoon: "Soon",
 		halftime: "Halftime",
 		endQuarter: "End Q{period}",
@@ -346,6 +348,7 @@ const todayHeadlineEl = document.querySelector("#today-headline");
 const todayPrevButton = document.querySelector("#today-prev");
 const todayNextButton = document.querySelector("#today-next");
 const todayEl = document.querySelector("#today");
+const todayInfoEl = document.querySelector("#info");
 const moreEl = document.querySelector("#more");
 const progressValue = document.querySelector("#progress-value");
 const requestWarningEl = document.querySelector("#request-warning");
@@ -1360,6 +1363,20 @@ function updateBrackets() {
 /* --------------------------------------------------------------------------------------------------
 TODAY
 ---------------------------------------------------------------------------------------------------*/
+function renderEmptyTodayState() {
+	const template = document.querySelector("#template-empty-today");
+	const clone = template.content.cloneNode(true);
+	const emptyState = clone.querySelector(".empty-state");
+	const textEl = clone.querySelector(".empty-state-text");
+
+	emptyState.querySelector(".empty-state-title").textContent = isSelectedDayToday()
+		? t("noGamesToday")
+		: t("noGamesSelectedDay");
+	textEl.textContent = t("emptyStateLead");
+
+	todayEl.appendChild(clone);
+}
+
 function renderTodaysGames() {
 	todayEl.replaceChildren();
 	updateTodayNavigation();
@@ -1367,6 +1384,8 @@ function renderTodaysGames() {
 	const now = new Date();
 	const selectedGames = getSelectedDayGames();
 	const needsPolling = shouldPollLiveGames(now);
+
+	todayInfoEl.classList.toggle("hidden", selectedGames.length === 0);
 
 	if (selectedGames.length > 0) {
 		selectedGames.forEach((g) => {
@@ -1486,7 +1505,7 @@ function renderTodaysGames() {
 			todayEl.appendChild(clone);
 		});
 	} else {
-		todayEl.textContent = isSelectedDayToday() ? t("noGamesToday") : t("noGamesSelectedDay");
+		renderEmptyTodayState();
 	}
 
 	if (needsPolling) {
@@ -3223,7 +3242,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-16-v6";
+const SERVICE_WORKER_VERSION = "2026-05-16-v9";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

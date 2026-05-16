@@ -684,6 +684,33 @@ TODAY
     gap: 20px;
 }
 
+#today .empty-state {
+    padding: 18px;
+    background-color: var(--card-bg);
+    box-shadow: var(--card-shadow);
+    border-radius: var(--card-corners);
+}
+
+#today .empty-state-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+#today .empty-state-title {
+    margin: 0;
+    font-size: clamp(1.2rem, 3vw, 1.4rem);
+    font-weight: 700;
+    line-height: 1.15;
+    text-transform: uppercase;
+}
+
+#today .empty-state-text {
+    margin: 0;
+    color: light-dark(var(--neutral700), var(--neutral300));
+}
+
 #today .game-label,
 #today .broadcast-label {
     background-color: var(--progress-background);
