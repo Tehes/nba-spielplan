@@ -1,5 +1,6 @@
 // === Constants ===
 const LEAGUE_STANDINGS_URL = "https://stats.nba.com/stats/leaguestandingsv3";
+const EXCITEMENT_MODULE_URL = "https://tehes.github.io/nba-spielplan/js/excitement.js";
 
 const BASE_UPSTREAM_HEADERS = {
 	"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0",
@@ -22,7 +23,9 @@ const LEAGUES = {
 		boxscoreBaseUrl: "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_",
 		playByPlayBaseUrl: "https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_",
 		regularSeasonPrefix: "002",
+		topExcitementPrefixes: new Set(["002", "004", "005"]),
 		origin: "https://www.nba.com",
+		recapHost: "NBA.com",
 	},
 	wnba: {
 		id: "wnba",
@@ -32,7 +35,9 @@ const LEAGUES = {
 		boxscoreBaseUrl: "https://cdn.wnba.com/static/json/liveData/boxscore/boxscore_",
 		playByPlayBaseUrl: "https://cdn.wnba.com/static/json/liveData/playbyplay/playbyplay_",
 		regularSeasonPrefix: "102",
+		topExcitementPrefixes: new Set(["102", "104"]),
 		origin: "https://www.wnba.com",
+		recapHost: "WNBA.com",
 	},
 };
 
@@ -50,6 +55,12 @@ const BASE_CORS_HEADERS = {
 	"Access-Control-Allow-Headers": "Content-Type",
 	"Vary": "Origin",
 };
+
+const TOP_EXCITEMENT_TTL_MS = 365 * 24 * 60 * 60 * 1000;
+const TOP_EXCITEMENT_BATCH_SIZE = 8;
+const TOP_EXCITEMENT_MAX_ITEMS = 10;
+const TOP_EXCITEMENT_MIN_AGE_MS = 6 * 60 * 60 * 1000;
+const TOP_EXCITEMENT_RECENT_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 const TEAM_DATA_BY_LEAGUE = {
 	nba: {
@@ -116,6 +127,26 @@ const getMeta = (tricode, league) => TEAM_DATA_BY_LEAGUE[league.id]?.[tricode] |
 // === Cache (only for Season Year) ===
 const cachedSeasonYears = new Map();
 const SEASON_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+let kvPromise = null;
+let excitementModulePromise = null;
+const topExcitementProcessing = new Set();
+
+function getKv() {
+	if (!kvPromise) {
+		kvPromise = Deno.openKv();
+	}
+
+	return kvPromise;
+}
+
+async function getComputeGameExcitement() {
+	if (!excitementModulePromise) {
+		excitementModulePromise = import(EXCITEMENT_MODULE_URL);
+	}
+
+	const module = await excitementModulePromise;
+	return module.computeGameExcitement;
+}
 
 async function getSeasonYear(league) {
 	const now = Date.now();
@@ -215,6 +246,318 @@ function getOfficialStandingsUrl(season, league, groupBy = "conf") {
 		Section: "overall",
 	});
 	return `${LEAGUE_STANDINGS_URL}?${params.toString()}`;
+}
+
+function getScheduleSeason(scheduleJson) {
+	return scheduleJson?.leagueSchedule?.seasonYear ||
+		scheduleJson?.meta?.seasonYear ||
+		"unknown";
+}
+
+function getTopExcitementLimit(url) {
+	const rawLimit = Number(url.searchParams.get("limit"));
+
+	if (!Number.isFinite(rawLimit) || rawLimit <= 0) {
+		return 5;
+	}
+
+	return Math.min(TOP_EXCITEMENT_MAX_ITEMS, Math.floor(rawLimit));
+}
+
+function getTopExcitementKeys(leagueId, season) {
+	const prefix = ["excitement", leagueId, season];
+
+	return {
+		prefix,
+		gamePrefix: [...prefix, "game"],
+		top: [...prefix, "top"],
+		meta: [...prefix, "meta"],
+	};
+}
+
+function getTopExcitementGameKey(leagueId, season, gameId) {
+	return ["excitement", leagueId, season, "game", gameId];
+}
+
+function isTopExcitementGame(game, league, now = new Date()) {
+	if (game?.gameStatus !== 3 || typeof game?.gameId !== "string") {
+		return false;
+	}
+
+	if (!league.topExcitementPrefixes.has(game.gameId.slice(0, 3))) {
+		return false;
+	}
+
+	const gameDate = new Date(game.gameDateTimeUTC);
+
+	return !Number.isNaN(gameDate.getTime()) &&
+		now.getTime() - gameDate.getTime() >= TOP_EXCITEMENT_MIN_AGE_MS;
+}
+
+function getTopExcitementEligibleGames(scheduleJson, league, now = new Date()) {
+	const dates = scheduleJson?.leagueSchedule?.gameDates ?? [];
+
+	return dates
+		.flatMap((date) => date.games ?? [])
+		.filter((game) => isTopExcitementGame(game, league, now))
+		.sort((a, b) => new Date(b.gameDateTimeUTC) - new Date(a.gameDateTimeUTC));
+}
+
+function getNbaRecapUrl(gameId, awayTeamTricode, homeTeamTricode) {
+	const away = String(awayTeamTricode || "").toLowerCase();
+	const home = String(homeTeamTricode || "").toLowerCase();
+
+	return `https://www.nba.com/game/${away}-vs-${home}-${gameId}?watchRecap=true`;
+}
+
+function getWnbaRecapUrl(gameId) {
+	return `https://www.wnba.com/game/${gameId}?watchRecap=true`;
+}
+
+function getRecapUrl(game, league) {
+	if (league.id === "wnba") {
+		return getWnbaRecapUrl(game.gameId);
+	}
+
+	return getNbaRecapUrl(
+		game.gameId,
+		game.awayTeam?.teamTricode,
+		game.homeTeam?.teamTricode,
+	);
+}
+
+function getBroadcastLabels(game) {
+	const labels = new Set();
+	const broadcasters = [
+		...(game.broadcasters?.intlTvBroadcasters || []),
+		...(game.broadcasters?.intlOttBroadcasters || []),
+	];
+
+	broadcasters.forEach((broadcaster) => {
+		const display = broadcaster.broadcasterDisplay || "";
+		const abbreviation = broadcaster.broadcasterAbbreviation || "";
+
+		if (
+			display.startsWith("Sky Sport") ||
+			abbreviation.startsWith("SKYGermany") ||
+			abbreviation.startsWith("SkyGermany")
+		) {
+			labels.add("Sky");
+			return;
+		}
+
+		if (display) {
+			labels.add(display);
+		}
+	});
+
+	return Array.from(labels);
+}
+
+function getTopExcitementTeam(team) {
+	return {
+		teamId: team?.teamId || null,
+		teamTricode: team?.teamTricode || "",
+		teamCity: team?.teamCity || "",
+		teamName: team?.teamName || "",
+	};
+}
+
+function buildTopExcitementGameRecord(game, league, season, excitement) {
+	return {
+		league: league.id,
+		season,
+		gameId: game.gameId,
+		gameDateTimeUTC: game.gameDateTimeUTC,
+		awayTeam: getTopExcitementTeam(game.awayTeam),
+		homeTeam: getTopExcitementTeam(game.homeTeam),
+		awayScore: Number(game.awayTeam?.score) || 0,
+		homeScore: Number(game.homeTeam?.score) || 0,
+		excitement,
+		gameLabel: game.gameLabel || "",
+		gameSubLabel: game.gameSubLabel || "",
+		broadcastLabels: getBroadcastLabels(game),
+		recapUrl: getRecapUrl(game, league),
+		recapHost: league.recapHost,
+		updatedAt: new Date().toISOString(),
+	};
+}
+
+function sortTopExcitementRecords(records) {
+	return records.slice().sort((a, b) => {
+		if (b.excitement !== a.excitement) {
+			return b.excitement - a.excitement;
+		}
+
+		return new Date(b.gameDateTimeUTC) - new Date(a.gameDateTimeUTC);
+	});
+}
+
+async function readTopExcitementGameRecords(kv, leagueId, season) {
+	const keys = getTopExcitementKeys(leagueId, season);
+	const records = [];
+
+	for await (const entry of kv.list({ prefix: keys.gamePrefix })) {
+		if (entry.value) {
+			records.push(entry.value);
+		}
+	}
+
+	return records;
+}
+
+async function writeTopExcitementState(kv, league, season, eligibleCount) {
+	const keys = getTopExcitementKeys(league.id, season);
+	const records = await readTopExcitementGameRecords(kv, league.id, season);
+	const sortedRecords = sortTopExcitementRecords(records);
+	const items = sortedRecords.slice(0, TOP_EXCITEMENT_MAX_ITEMS);
+	const now = new Date().toISOString();
+	const cachedCount = records.length;
+	const complete = cachedCount >= eligibleCount;
+
+	await kv.set(keys.top, {
+		league: league.id,
+		season,
+		updatedAt: now,
+		complete,
+		cachedCount,
+		eligibleCount,
+		items,
+	}, { expireIn: TOP_EXCITEMENT_TTL_MS });
+
+	await kv.set(keys.meta, {
+		league: league.id,
+		season,
+		updatedAt: now,
+		complete,
+		cachedCount,
+		eligibleCount,
+	}, { expireIn: TOP_EXCITEMENT_TTL_MS });
+
+	return { records, items, cachedCount, complete, updatedAt: now };
+}
+
+function selectTopExcitementBatch(eligibleGames, cachedGameIds, now = new Date()) {
+	const recentThreshold = now.getTime() - TOP_EXCITEMENT_RECENT_WINDOW_MS;
+	const missingGames = eligibleGames.filter((game) => !cachedGameIds.has(game.gameId));
+	const recentGames = missingGames.filter((game) => {
+		return new Date(game.gameDateTimeUTC).getTime() >= recentThreshold;
+	});
+	const olderGames = missingGames.filter((game) => {
+		return new Date(game.gameDateTimeUTC).getTime() < recentThreshold;
+	});
+
+	return recentGames
+		.concat(olderGames)
+		.slice(0, TOP_EXCITEMENT_BATCH_SIZE);
+}
+
+async function computeTopExcitementGame(kv, game, league, season) {
+	const playByPlayUrl = `${league.playByPlayBaseUrl}${game.gameId}.json`;
+	const playByPlayJson = await fetchUpstream(playByPlayUrl, league);
+	const computeGameExcitement = await getComputeGameExcitement();
+	const excitement = computeGameExcitement(playByPlayJson, league.id);
+	const record = buildTopExcitementGameRecord(game, league, season, excitement);
+
+	await kv.set(
+		getTopExcitementGameKey(league.id, season, game.gameId),
+		record,
+		{ expireIn: TOP_EXCITEMENT_TTL_MS },
+	);
+}
+
+async function processTopExcitementBatch(league, season, eligibleGames) {
+	const processingKey = `${league.id}:${season}`;
+
+	if (topExcitementProcessing.has(processingKey)) {
+		return;
+	}
+
+	topExcitementProcessing.add(processingKey);
+
+	try {
+		const kv = await getKv();
+		const records = await readTopExcitementGameRecords(kv, league.id, season);
+		const cachedGameIds = new Set(records.map((record) => record.gameId));
+		const batch = selectTopExcitementBatch(eligibleGames, cachedGameIds);
+
+		if (!batch.length) {
+			await writeTopExcitementState(kv, league, season, eligibleGames.length);
+			return;
+		}
+
+		for (const game of batch) {
+			try {
+				await computeTopExcitementGame(kv, game, league, season);
+			} catch (error) {
+				console.warn("[/top-excitement] game skipped", league.id, game.gameId, error);
+			}
+		}
+
+		await writeTopExcitementState(kv, league, season, eligibleGames.length);
+	} catch (error) {
+		console.error("[/top-excitement] background batch failed", league.id, season, error);
+	} finally {
+		topExcitementProcessing.delete(processingKey);
+	}
+}
+
+function runBackgroundTask(context, promise) {
+	const waitUntil = context && typeof context.waitUntil === "function" ? context.waitUntil.bind(context) : null;
+	const edgeRuntime = globalThis["EdgeRuntime"];
+	const edgeWaitUntil = edgeRuntime && typeof edgeRuntime.waitUntil === "function"
+		? edgeRuntime.waitUntil.bind(edgeRuntime)
+		: null;
+
+	if (waitUntil) {
+		waitUntil(promise);
+		return;
+	}
+
+	if (edgeWaitUntil) {
+		edgeWaitUntil(promise);
+		return;
+	}
+
+	promise.catch((error) => {
+		console.error("[background task failed]", error);
+	});
+}
+
+async function handleTopExcitement(url, origin, league, context) {
+	const limit = getTopExcitementLimit(url);
+	const scheduleJson = await fetchUpstream(league.scheduleUrl, league);
+	const season = getScheduleSeason(scheduleJson);
+	const eligibleGames = getTopExcitementEligibleGames(scheduleJson, league);
+	const kv = await getKv();
+	const keys = getTopExcitementKeys(league.id, season);
+	const [topEntry, metaEntry] = await kv.getMany([keys.top, keys.meta]);
+	const topValue = topEntry.value || {};
+	const metaValue = metaEntry.value || {};
+	const cachedItems = Array.isArray(topValue.items) ? topValue.items : [];
+	const cachedCount = Number(metaValue.cachedCount ?? topValue.cachedCount) || 0;
+	const eligibleCount = eligibleGames.length;
+	const complete = eligibleCount === 0 || cachedCount >= eligibleCount;
+	const processingKey = `${league.id}:${season}`;
+	const processingQueued = !complete && !topExcitementProcessing.has(processingKey);
+
+	if (processingQueued) {
+		runBackgroundTask(
+			context,
+			processTopExcitementBatch(league, season, eligibleGames),
+		);
+	}
+
+	return respondWithCors({
+		league: league.id,
+		season,
+		updatedAt: topValue.updatedAt || metaValue.updatedAt || null,
+		complete,
+		processingQueued,
+		cachedCount,
+		eligibleCount,
+		items: cachedItems.slice(0, limit),
+	}, origin);
 }
 
 function getCell(row, headerIndex, name) {
@@ -590,7 +933,7 @@ function buildStandingsFromSchedule(scheduleJson, league) {
 }
 
 // === Server ===
-Deno.serve(async (req) => {
+Deno.serve(async (req, context) => {
 	const url = new URL(req.url);
 	const PATH = url.pathname;
 	const origin = getOrigin(req);
@@ -619,6 +962,10 @@ Deno.serve(async (req) => {
 		// --- /schedule: fetch fresh ---
 		if (PATH === "/schedule") {
 			return proxyWithCors(league.scheduleUrl, origin, league);
+		}
+
+		if (PATH === "/top-excitement") {
+			return handleTopExcitement(url, origin, league, context);
 		}
 
 		// --- /standings: fetch fresh ---
