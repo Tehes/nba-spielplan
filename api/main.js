@@ -1,6 +1,7 @@
+import { computeGameExcitement } from "https://tehes.github.io/nba-spielplan/js/excitement.js";
+
 // === Constants ===
 const LEAGUE_STANDINGS_URL = "https://stats.nba.com/stats/leaguestandingsv3";
-const EXCITEMENT_MODULE_URL = "https://tehes.github.io/nba-spielplan/js/excitement.js";
 
 const BASE_UPSTREAM_HEADERS = {
 	"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0",
@@ -128,7 +129,6 @@ const getMeta = (tricode, league) => TEAM_DATA_BY_LEAGUE[league.id]?.[tricode] |
 const cachedSeasonYears = new Map();
 const SEASON_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 let kvPromise = null;
-let excitementModulePromise = null;
 const topExcitementProcessing = new Set();
 
 function getKv() {
@@ -137,15 +137,6 @@ function getKv() {
 	}
 
 	return kvPromise;
-}
-
-async function getComputeGameExcitement() {
-	if (!excitementModulePromise) {
-		excitementModulePromise = import(EXCITEMENT_MODULE_URL);
-	}
-
-	const module = await excitementModulePromise;
-	return module.computeGameExcitement;
 }
 
 async function getSeasonYear(league) {
@@ -455,7 +446,6 @@ function selectTopExcitementBatch(eligibleGames, cachedGameIds, now = new Date()
 async function computeTopExcitementGame(kv, game, league, season) {
 	const playByPlayUrl = `${league.playByPlayBaseUrl}${game.gameId}.json`;
 	const playByPlayJson = await fetchUpstream(playByPlayUrl, league);
-	const computeGameExcitement = await getComputeGameExcitement();
 	const excitement = computeGameExcitement(playByPlayJson, league.id);
 	const record = buildTopExcitementGameRecord(game, league, season, excitement);
 
