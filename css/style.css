@@ -666,8 +666,7 @@ TODAY
     max-width: 20%;
 }
 
-#today broadcast-label.:not(:empty)+.game-label:not(:empty) {
-    border-left: 1px solid var(--progress-background);
+#today .broadcast-label:not(:empty)+.game-label:not(:empty) {
     border-radius: 0 0 var(--card-corners) 0;
 }
 
