@@ -337,6 +337,7 @@ main div span {
     cursor: pointer;
 }
 
+/* Add a play icon before the broadcast label if it's not empty */
 .broadcast-label:not(:empty)::before {
     content: "";
     display: inline-block;
@@ -658,14 +659,16 @@ TODAY
     font-size: 0.9rem;
 }
 
-#today .game-label:not(:empty)+.broadcast-label:not(:empty) {
-    border-left: 1px solid var(--progress-background);
-    border-radius: 0 0 var(--card-corners) 0;
-    max-width: fit-content;
+#today .broadcast-label:not(:empty):has(+ .game-label:not(:empty)) {
+    border-radius: 0 0 0 var(--card-corners);
+    flex: 1 0 18%;
+    min-width: fit-content;
+    max-width: 20%;
 }
 
-#today .game-label:not(:empty):has(+ .broadcast-label:not(:empty)) {
-    border-radius: 0 0 0 var(--card-corners);
+#today broadcast-label.:not(:empty)+.game-label:not(:empty) {
+    border-left: 1px solid var(--progress-background);
+    border-radius: 0 0 var(--card-corners) 0;
 }
 
 #today .visiting-team+.home-team {
@@ -867,9 +870,10 @@ MORE
     padding: 0 1rem;
 }
 
-#more .game-label:not(:empty)+.broadcast-label:not(:empty) {
-    margin-left: 8px;
-    max-width: fit-content;
+#more .broadcast-label:not(:empty):has(+ .game-label:not(:empty)) {
+    flex: 0 0 19%;
+    min-width: fit-content;
+    margin-right: 1%;
 }
 
 .options {
