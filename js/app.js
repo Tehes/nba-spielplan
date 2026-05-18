@@ -57,7 +57,7 @@ const API_BASE_URL = "https://nba-spielplan.tehes.deno.net";
 const LANGUAGE_STORAGE_KEY = "nba-spielplan_lang";
 const LEAGUE_STORAGE_KEY = "nba-spielplan_league";
 const SCHEDULE_CACHE_VERSION = "2";
-const STANDINGS_CACHE_VERSION = "3";
+const STANDINGS_CACHE_VERSION = "4";
 const SUPPORTED_LANGUAGES = new Set(["de", "en"]);
 const LEAGUES = {
 	nba: {
@@ -2943,7 +2943,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-18-v1";
+const SERVICE_WORKER_VERSION = "2026-05-18-v2";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

@@ -3,8 +3,8 @@
 NBA/WNBA Schedule is a lightweight Progressive Web App (PWA) that shows NBA and WNBA games in your
 local timezone, keeps live scores in sync, and lets you filter the schedule for exactly what you
 care about—without ads or trackers. The UI is written in plain HTML/CSS/JS, backed by a tiny Deno
-edge function that shields the official NBA and WNBA JSON feeds, normalizes official standings with
-a schedule-derived fallback, and caches only the season year for standings and bracket calls.
+edge function that shields the official NBA and WNBA JSON feeds, normalizes official standings, and
+caches only the season year for standings and bracket calls.
 
 ---
 
@@ -120,7 +120,7 @@ and WNBA endpoints. NBA is the default; league-aware endpoints also accept `?lea
 | Endpoint          | Purpose                         | Notes                                                                                      |
 | ----------------- | ------------------------------- | ------------------------------------------------------------------------------------------ |
 | `/schedule`       | Raw league schedule             | Fetched fresh per request; client Cache API handles reuse.                                 |
-| `/standings`      | Normalized standings            | Prefers the official standings feed; includes NBA divisions and falls back to schedule data. |
+| `/standings`      | Normalized standings            | Uses the official standings feed and includes NBA divisions.                                |
 | `/scoreboard`     | Live in-day scoreboard feed     | Always proxied without caching; powers the game detail overlay and in-day score updates.   |
 | `/top-excitement` | Top excitement-rated games      | Reads the current season's KV-backed highlight list and queues small background batches.   |
 | `/playoffbracket` | Official NBA bracket JSON       | NBA-only; uses a 24h-cached season year, then proxies the official bracket feed.           |
