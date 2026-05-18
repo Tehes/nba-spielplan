@@ -122,6 +122,7 @@ and WNBA endpoints. NBA is the default; league-aware endpoints also accept `?lea
 | `/schedule`       | Raw league schedule             | Fetched fresh per request; client Cache API handles reuse.                                 |
 | `/standings`      | Normalized standings            | Prefers the official standings feed; includes NBA divisions and falls back to schedule data. |
 | `/scoreboard`     | Live in-day scoreboard feed     | Always proxied without caching; powers the game detail overlay and in-day score updates.   |
+| `/top-excitement` | Top excitement-rated games      | Reads the current season's KV-backed highlight list and queues small background batches.   |
 | `/playoffbracket` | Official NBA bracket JSON       | NBA-only; uses a 24h-cached season year, then proxies the official bracket feed.           |
 | `/istbracket`     | NBA Cup (IST) bracket JSON      | NBA-only; uses a 24h-cached season year, then proxies the official ISTBracket feed.        |
 | `/boxscore/:id`   | Per-game boxscore               | Uncached proxy to the active league's live boxscore JSON.                                  |
