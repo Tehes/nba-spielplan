@@ -1,0 +1,9 @@
+{
+  "version": "5",
+  "redirects": {
+    "https://tehes.github.io/nba-spielplan/js/excitement.js": "https://nba-spielplan.de/js/excitement.js"
+  },
+  "remote": {
+    "https://nba-spielplan.de/js/excitement.js": "025c4e09423014bcae3572cac38152ffc7e52cc4a8eda087b4b6ae34a920015f"
+  }
+}
