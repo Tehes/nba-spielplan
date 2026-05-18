@@ -104,6 +104,7 @@ const MANIFEST_BY_LANGUAGE = {
 	de: "manifest.json",
 	en: "manifest-en.json",
 };
+const BUCKETS_URL = "https://tehes.github.io/buckets/";
 const messages = {
 	de: {
 		appName: "NBA-Spielplan",
@@ -161,9 +162,11 @@ const messages = {
 		timePlaceholder: "HH:MM",
 		loading: "Lädt…",
 		final: "Beendet",
-		noGamesToday: "Heute finden keine Spiele statt.",
+		noGamesToday: "Heute keine Spiele.",
 		noGamesSelectedDay: "An diesem Tag finden keine Spiele statt.",
-		emptyStateLead: "Kurze Pause im Spielplan.",
+		emptyStateLead:
+			"Spiel selbst eins: Buckets ist ein Trumpf-Kartenspiel mit Basketball-Stars. Du vergleichst NBA- und WNBA-Spielerkarten, wählst die stärkste Statistik und spielst vier Viertel gegen die CPU.",
+		emptyStateCta: "Spiel selbst",
 		liveSoon: "in Kürze",
 		halftime: "Halbzeit",
 		endQuarter: "Ende Q{period}",
@@ -244,7 +247,9 @@ const messages = {
 		final: "Final",
 		noGamesToday: "No games today.",
 		noGamesSelectedDay: "No games on this day.",
-		emptyStateLead: "A short pause in the schedule.",
+		emptyStateLead:
+			"Play one yourself: Buckets is a Top Trumps-style card game with basketball stars. Compare NBA and WNBA player cards, pick the strongest stat, and play four quarters against the CPU.",
+		emptyStateCta: "Play yourself",
 		liveSoon: "Soon",
 		halftime: "Halftime",
 		endQuarter: "End Q{period}",
@@ -1355,11 +1360,14 @@ function renderEmptyTodayState() {
 	const clone = template.content.cloneNode(true);
 	const emptyState = clone.querySelector(".empty-state");
 	const textEl = clone.querySelector(".empty-state-text");
+	const ctaEl = clone.querySelector(".empty-state .action-link");
 
 	emptyState.querySelector(".empty-state-title").textContent = isSelectedDayToday()
 		? t("noGamesToday")
 		: t("noGamesSelectedDay");
 	textEl.textContent = t("emptyStateLead");
+	ctaEl.href = BUCKETS_URL;
+	ctaEl.textContent = t("emptyStateCta");
 
 	todayEl.appendChild(clone);
 }
@@ -2288,6 +2296,7 @@ function renderMoreGames() {
 				const anchorTop = document.createElement("div");
 				anchorTop.classList.add("jump-link");
 				const anchorLink = document.createElement("a");
+				anchorLink.classList.add("action-link");
 				anchorLink.textContent = isSelectedDayToday() ? t("jumpToToday") : t("jumpToSelectedDay");
 				anchorTop.appendChild(anchorLink);
 				anchorLink.href = "#today-headline";
@@ -2966,7 +2975,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-19-v1";
+const SERVICE_WORKER_VERSION = "2026-05-19-v2";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

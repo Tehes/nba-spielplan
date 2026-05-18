@@ -711,6 +711,10 @@ TODAY
     color: light-dark(var(--neutral700), var(--neutral300));
 }
 
+#today .empty-state .action-link {
+    align-self: flex-start;
+}
+
 #today .game-label,
 #today .broadcast-label {
     background-color: var(--progress-background);
@@ -859,7 +863,7 @@ JUMP LINK
     margin-top: 30px;
 }
 
-.jump-link a {
+.action-link {
     font-size: clamp(0.8rem, 2vw, 1rem);
     padding: 6px 10px;
     color: var(--text-color);
@@ -870,7 +874,7 @@ JUMP LINK
     text-transform: uppercase;
 }
 
-.jump-link a:hover {
+.action-link:hover {
     background-color: var(--text-color);
     color: var(--bg-color);
     cursor: pointer;
