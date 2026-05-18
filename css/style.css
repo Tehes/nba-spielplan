@@ -214,7 +214,7 @@ h3 {
     align-items: center;
     justify-content: center;
     width: 2rem;
-    height: 1.5rem;
+    height: 1.6rem;
     padding: 0;
     border: 1px solid var(--text-color);
     border-radius: var(--card-corners);
@@ -222,7 +222,7 @@ h3 {
     color: var(--text-color);
     font: inherit;
     font-size: 1.4rem;
-    line-height: 1;
+    line-height: 1.3;
     cursor: pointer;
 }
 
@@ -766,7 +766,8 @@ TODAY
     direction: rtl;
 }
 
-#today .card:has(.game-label:not(:empty)) .home-team {
+#today .card:has(.game-label:not(:empty)) .home-team,
+#today .card:has(.broadcast-label:not(:empty)) .home-team {
     border-radius: 0 var(--card-corners) 0 0;
 }
 
