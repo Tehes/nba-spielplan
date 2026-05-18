@@ -68,6 +68,7 @@ const LEAGUES = {
 		logoPath: "img/NBA",
 		colorPrefix: "",
 		regularSeasonPrefix: "002",
+		postseasonPrefixes: ["004", "005"],
 		totalRegularSeasonGames: 1230,
 		recapHost: "nba.com",
 		supportsBrackets: true,
@@ -80,6 +81,7 @@ const LEAGUES = {
 		logoPath: "img/WNBA",
 		colorPrefix: "wnba-",
 		regularSeasonPrefix: "102",
+		postseasonPrefixes: ["104"],
 		totalRegularSeasonGames: 330,
 		recapHost: "wnba.com",
 		supportsBrackets: false,
@@ -959,6 +961,30 @@ function isRegularSeasonGame(game) {
 	return game?.gameId?.startsWith(getCurrentLeague().regularSeasonPrefix) === true;
 }
 
+function isPostseasonGame(game) {
+	return getCurrentLeague().postseasonPrefixes.some((prefix) => {
+		return game?.gameId?.startsWith(prefix) === true;
+	});
+}
+
+function getTeamRecordLabel(team) {
+	return `${team.wins}-${team.losses}`;
+}
+
+function getTeamMetaLabel(game, team, preferPostseasonSeed = false) {
+	if (preferPostseasonSeed && !checkboxShowScores.checked && isPostseasonGame(game)) {
+		const seed = Number(team?.seed);
+		return seed > 0 ? `#${seed}` : getTeamRecordLabel(team);
+	}
+
+	return getTeamRecordLabel(team);
+}
+
+function renderTeamMetaLabels(game, homeWL, visitingWL, preferPostseasonSeed = false) {
+	homeWL.textContent = getTeamMetaLabel(game, game.homeTeam, preferPostseasonSeed);
+	visitingWL.textContent = getTeamMetaLabel(game, game.awayTeam, preferPostseasonSeed);
+}
+
 function setProgressBar() {
 	const done = (games.finished?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0) +
 		(games.today?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0);
@@ -1426,8 +1452,7 @@ function renderTodaysGames() {
 						visitingScore.classList.toggle("lower", aNum < hNum);
 					}
 				} else {
-					homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
-					visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
+					renderTeamMetaLabels(g, homeWL, visitingWL, true);
 				}
 			} else if (isLive) {
 				// LIVE
@@ -1443,15 +1468,13 @@ function renderTodaysGames() {
 					homeScore.textContent = h;
 					visitingScore.textContent = a;
 				} else {
-					homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
-					visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
+					renderTeamMetaLabels(g, homeWL, visitingWL);
 				}
 			} else {
 				// SCHEDULED
 				date.classList.remove("live");
 				date.textContent = isPostponed ? "PPD" : g.time;
-				homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
-				visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
+				renderTeamMetaLabels(g, homeWL, visitingWL);
 			}
 
 			// Attach click handler for final or live games
@@ -2943,7 +2966,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-18-v2";
+const SERVICE_WORKER_VERSION = "2026-05-19-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({
