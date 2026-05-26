@@ -458,6 +458,14 @@ function getPlayByPlayUrl(gameId, leagueId = currentLeague) {
 	return getLeagueApiUrl(`/playbyplay/${gameId}`, leagueId);
 }
 
+function getBackfillExcitementUrl(leagueId = currentLeague) {
+	return getLeagueApiUrl("/backfill-excitement", leagueId);
+}
+
+function getFetchExcitementUrl(leagueId = currentLeague) {
+	return getLeagueApiUrl("/fetch-excitement", leagueId);
+}
+
 function getExcitementCacheKey(leagueId, gameId) {
 	return `${leagueId}:${gameId}`;
 }
@@ -908,6 +916,7 @@ function setLeague(league) {
 	updateLeagueTabs();
 	resetLeagueData();
 	globalThis.umami?.track("NBA Schedule", { league: currentLeague });
+	startExcitementBackfill(currentLeague);
 	loadData();
 }
 
@@ -1379,6 +1388,8 @@ function renderTodaysGames() {
 	const now = new Date();
 	const selectedGames = getSelectedDayGames();
 	const needsPolling = shouldPollLiveGames(now);
+	const pendingExcitementRatings = [];
+	const ratingLeague = currentLeague;
 
 	todayInfoEl.classList.toggle("hidden", selectedGames.length === 0);
 
@@ -1429,19 +1440,13 @@ function renderTodaysGames() {
 				// FINAL
 				date.classList.remove("live");
 				if (checkboxShowRating.checked) {
-					const cacheKey = getExcitementCacheKey(currentLeague, g.gameId);
+					const cacheKey = getExcitementCacheKey(ratingLeague, g.gameId);
 					const cachedScore = excitementCache.get(cacheKey);
 					if (cachedScore != null) {
-						date.textContent = `${(cachedScore / 10).toFixed(1)}/10`;
+						date.textContent = formatExcitementRating(cachedScore);
 					} else {
 						date.textContent = t("loading");
-						fetchExcitementForGame(g.gameId)
-							.then((score) => {
-								date.textContent = `${(score / 10).toFixed(1)}/10`;
-							})
-							.catch(() => {
-								date.textContent = t("final");
-							});
+						pendingExcitementRatings.push({ gameId: g.gameId, element: date });
 					}
 				} else {
 					date.textContent = t("final");
@@ -1499,6 +1504,10 @@ function renderTodaysGames() {
 	} else {
 		renderEmptyTodayState();
 	}
+
+	hydrateExcitementRatings(pendingExcitementRatings, ratingLeague).catch((error) => {
+		console.warn("Excitement ratings could not be hydrated:", error);
+	});
 
 	if (needsPolling) {
 		if (!livePoll) fetchLiveOnce();
@@ -1600,8 +1609,208 @@ function getLiveLabel(live) {
 	return `${otLabel} ${clockStr}`;
 }
 
-function fetchExcitementForGame(gameId) {
-	const leagueId = currentLeague;
+function startExcitementBackfill(leagueId = currentLeague) {
+	fetch(getBackfillExcitementUrl(leagueId), { method: "POST" })
+		.then((response) => {
+			if (!response.ok) {
+				throw new Error(`Excitement backfill failed: ${response.status}`);
+			}
+			return response.json();
+		})
+		.then((data) => {
+			console.log("Excitement backfill started:", data);
+		})
+		.catch((error) => {
+			console.warn("Excitement backfill could not be started:", error);
+		});
+}
+
+function formatExcitementRating(score) {
+	return `${(score / 10).toFixed(1)}/10`;
+}
+
+function hideGameExcitementMeter() {
+	gameExcitementEl.classList.add("hidden");
+	gameExcitementValueEl.style.width = "0%";
+	gameExcitementValueEl.textContent = "0%";
+	gameExcitementLabelEl.textContent = "";
+}
+
+function getExcitementVerdictKey(score) {
+	if (score >= 90) {
+		return "verdictInstantClassic";
+	}
+	if (score >= 80) {
+		return "verdictMustWatch";
+	}
+	if (score >= 70) {
+		return "verdictVeryWatchable";
+	}
+	if (score >= 60) {
+		return "verdictWatchable";
+	}
+	if (score >= 50) {
+		return "verdictSolid";
+	}
+	if (score >= 40) {
+		return "verdictLopsided";
+	}
+	if (score >= 30) {
+		return "verdictHighlightsOnly";
+	}
+	return "verdictSkip";
+}
+
+function renderGameExcitementScore(score) {
+	const rating = formatExcitementRating(score).replace("/10", "");
+	const verdictKey = getExcitementVerdictKey(score);
+
+	gameExcitementValueEl.style.width = `${score}%`;
+	gameExcitementValueEl.textContent = `${score}%`;
+	gameExcitementLabelEl.textContent = t("ratingLabel", { rating, verdict: t(verdictKey) });
+	gameExcitementEl.classList.remove("hidden");
+}
+
+async function fetchExcitementScoresFromKv(gameIds, leagueId = currentLeague) {
+	const uncachedGameIds = Array.from(new Set(gameIds)).filter((gameId) => {
+		return typeof gameId === "string" && !excitementCache.has(getExcitementCacheKey(leagueId, gameId));
+	});
+
+	if (!uncachedGameIds.length) {
+		return { scores: {}, missing: [] };
+	}
+
+	try {
+		const response = await fetch(getFetchExcitementUrl(leagueId), {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ gameIds: uncachedGameIds }),
+		});
+
+		if (!response.ok) {
+			throw new Error(`Excitement fetch failed: ${response.status}`);
+		}
+
+		const data = await response.json();
+		const scores = data?.scores && typeof data.scores === "object" ? data.scores : {};
+
+		Object.entries(scores).forEach(([gameId, score]) => {
+			const numericScore = Number(score);
+			if (Number.isFinite(numericScore)) {
+				excitementCache.set(getExcitementCacheKey(leagueId, gameId), numericScore);
+			}
+		});
+
+		const responseMissing = Array.isArray(data?.missing) ? data.missing : [];
+		const missing = Array.from(new Set(responseMissing.concat(
+			uncachedGameIds.filter((gameId) => {
+				return !excitementCache.has(getExcitementCacheKey(leagueId, gameId));
+			}),
+		)));
+
+		return { scores, missing };
+	} catch (error) {
+		console.warn("KV excitement fetch failed; using play-by-play fallback:", error);
+		return { scores: {}, missing: uncachedGameIds };
+	}
+}
+
+function setRatingElement(element, gameId, leagueId, score) {
+	const card = element.closest(".card");
+
+	if (
+		currentLeague !== leagueId ||
+		!element.isConnected ||
+		card?.dataset.gameId !== gameId
+	) {
+		return;
+	}
+
+	element.textContent = formatExcitementRating(score);
+}
+
+function setRatingElementFallback(element, gameId, leagueId) {
+	const card = element.closest(".card");
+
+	if (
+		currentLeague !== leagueId ||
+		!element.isConnected ||
+		card?.dataset.gameId !== gameId
+	) {
+		return;
+	}
+
+	element.textContent = t("final");
+}
+
+async function hydrateExcitementRatings(ratings, leagueId = currentLeague) {
+	const pendingRatings = ratings.filter(({ gameId }) => {
+		return !excitementCache.has(getExcitementCacheKey(leagueId, gameId));
+	});
+
+	if (!pendingRatings.length) {
+		return;
+	}
+
+	const pendingGameIds = pendingRatings.map(({ gameId }) => gameId);
+	const { missing } = await fetchExcitementScoresFromKv(pendingGameIds, leagueId);
+	const missingGameIds = new Set(missing);
+
+	pendingRatings.forEach(({ gameId, element }) => {
+		const cachedScore = excitementCache.get(getExcitementCacheKey(leagueId, gameId));
+		if (cachedScore != null) {
+			setRatingElement(element, gameId, leagueId, cachedScore);
+		}
+	});
+
+	missingGameIds.forEach((gameId) => {
+		fetchExcitementForGame(gameId, leagueId)
+			.then((score) => {
+				pendingRatings
+					.filter((rating) => rating.gameId === gameId)
+					.forEach(({ element }) => {
+						setRatingElement(element, gameId, leagueId, score);
+					});
+			})
+			.catch(() => {
+				pendingRatings
+					.filter((rating) => rating.gameId === gameId)
+					.forEach(({ element }) => {
+						setRatingElementFallback(element, gameId, leagueId);
+					});
+			});
+	});
+}
+
+async function hydrateOverlayExcitement(gameId, leagueId = currentLeague) {
+	const game = getScheduleGames().find((g) => g.gameId === gameId);
+	const live = liveById.get(gameId);
+	const { isFinal } = getGameState(game, live);
+
+	if (!isFinal) {
+		hideGameExcitementMeter();
+		return;
+	}
+
+	const cacheKey = getExcitementCacheKey(leagueId, gameId);
+	if (excitementCache.has(cacheKey)) {
+		renderGameExcitementScore(excitementCache.get(cacheKey));
+		return;
+	}
+
+	hideGameExcitementMeter();
+	const { missing } = await fetchExcitementScoresFromKv([gameId], leagueId);
+	if (
+		currentLeague === leagueId &&
+		gameOverlayEl.dataset.gameId === gameId &&
+		!missing.includes(gameId) &&
+		excitementCache.has(cacheKey)
+	) {
+		renderGameExcitementScore(excitementCache.get(cacheKey));
+	}
+}
+
+function fetchExcitementForGame(gameId, leagueId = currentLeague) {
 	const cacheKey = getExcitementCacheKey(leagueId, gameId);
 
 	if (excitementCache.has(cacheKey)) {
@@ -1623,7 +1832,13 @@ function fetchExcitementForGame(gameId) {
 				}
 			},
 			true,
-		).catch(reject);
+		)
+			.then((loaded) => {
+				if (!loaded) {
+					reject(new Error("Play-by-play excitement fetch failed"));
+				}
+			})
+			.catch(reject);
 	});
 }
 
@@ -1634,10 +1849,7 @@ function updateGameExcitementMeter(playByPlayJson) {
 	const matchesGame = hasData && playByPlayJson?.game?.gameId === gameId;
 
 	if (!matchesGame) {
-		gameExcitementEl.classList.add("hidden");
-		gameExcitementValueEl.style.width = "0%";
-		gameExcitementValueEl.textContent = "0%";
-		gameExcitementLabelEl.textContent = "";
+		hideGameExcitementMeter();
 		return;
 	}
 
@@ -1646,42 +1858,19 @@ function updateGameExcitementMeter(playByPlayJson) {
 	const { isFinal } = getGameState(game, live);
 
 	if (!isFinal) {
-		gameExcitementEl.classList.add("hidden");
-		gameExcitementValueEl.style.width = "0%";
-		gameExcitementValueEl.textContent = "0%";
-		gameExcitementLabelEl.textContent = "";
+		hideGameExcitementMeter();
+		return;
+	}
+
+	const cacheKey = getExcitementCacheKey(currentLeague, gameId);
+	if (excitementCache.has(cacheKey)) {
+		renderGameExcitementScore(excitementCache.get(cacheKey));
 		return;
 	}
 
 	const score = computeGameExcitement(playByPlayJson, currentLeague);
-	const rating = (score / 10).toFixed(1);
-
-	gameExcitementValueEl.style.width = `${score}%`;
-	gameExcitementValueEl.textContent = `${score}%`;
-
-	let label = "";
-	let verdictKey = "";
-	if (score >= 90) {
-		verdictKey = "verdictInstantClassic";
-	} else if (score >= 80) {
-		verdictKey = "verdictMustWatch";
-	} else if (score >= 70) {
-		verdictKey = "verdictVeryWatchable";
-	} else if (score >= 60) {
-		verdictKey = "verdictWatchable";
-	} else if (score >= 50) {
-		verdictKey = "verdictSolid";
-	} else if (score >= 40) {
-		verdictKey = "verdictLopsided";
-	} else if (score >= 30) {
-		verdictKey = "verdictHighlightsOnly";
-	} else {
-		verdictKey = "verdictSkip";
-	}
-
-	label = t("ratingLabel", { rating, verdict: t(verdictKey) });
-	gameExcitementLabelEl.textContent = label;
-	gameExcitementEl.classList.remove("hidden");
+	excitementCache.set(cacheKey, score);
+	renderGameExcitementScore(score);
 }
 
 /* --------------------------------------------------------------------------------------------------
@@ -1845,6 +2034,9 @@ function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
 	gameOverlayEl.dataset.homeTeam = homeTeamTricode || "";
 	updateGameRecapLink();
 	renderPreviousMatchups();
+	hydrateOverlayExcitement(gameId, currentLeague).catch((error) => {
+		console.warn("Overlay excitement could not be hydrated:", error);
+	});
 
 	// render cached data first (if matching)
 	if (currentBoxscore && currentBoxscore.game && currentBoxscore.game.gameId === gameId) {
@@ -2941,8 +3133,9 @@ function init() {
 		}
 	});
 
-	document.addEventListener("DOMContentLoaded", function () {
-		loadData();
+	document.addEventListener("DOMContentLoaded", async function () {
+		await loadData();
+		startExcitementBackfill(currentLeague);
 	});
 
 	document.addEventListener("visibilitychange", function () {
@@ -2975,7 +3168,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-19-v2";
+const SERVICE_WORKER_VERSION = "2026-05-26-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({
