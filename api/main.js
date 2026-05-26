@@ -50,7 +50,7 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 const BASE_CORS_HEADERS = {
-	"Access-Control-Allow-Methods": "GET, OPTIONS",
+	"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 	"Access-Control-Allow-Headers": "Content-Type",
 	"Vary": "Origin",
 };
@@ -476,13 +476,13 @@ async function processTopExcitementBatch(league, season, eligibleGames) {
 			try {
 				await computeTopExcitementGame(kv, game, league, season);
 			} catch (error) {
-				console.warn("[/top-excitement] game skipped", league.id, game.gameId, error);
+				console.warn("[excitement backfill] game skipped", league.id, game.gameId, error);
 			}
 		}
 
 		await writeTopExcitementState(kv, league, season, eligibleGames.length);
 	} catch (error) {
-		console.error("[/top-excitement] background batch failed", league.id, season, error);
+		console.error("[excitement backfill] background batch failed", league.id, season, error);
 	} finally {
 		topExcitementProcessing.delete(processingKey);
 	}
@@ -510,8 +510,38 @@ function runBackgroundTask(context, promise) {
 	});
 }
 
-async function handleTopExcitement(url, origin, league, context) {
+function methodNotAllowed(origin) {
+	return new Response("Method Not Allowed", {
+		status: 405,
+		headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
+	});
+}
+
+async function handleTopExcitement(url, origin, league) {
 	const limit = getTopExcitementLimit(url);
+	const season = await getSeasonYear(league);
+	const kv = await getKv();
+	const keys = getTopExcitementKeys(league.id, season);
+	const [topEntry, metaEntry] = await kv.getMany([keys.top, keys.meta]);
+	const topValue = topEntry.value || {};
+	const metaValue = metaEntry.value || {};
+	const cachedItems = Array.isArray(topValue.items) ? topValue.items : [];
+	const cachedCount = Number(metaValue.cachedCount ?? topValue.cachedCount) || 0;
+	const eligibleCount = Number(metaValue.eligibleCount ?? topValue.eligibleCount) || 0;
+	const complete = Boolean(metaValue.complete ?? topValue.complete ?? false);
+
+	return respondWithCors({
+		league: league.id,
+		season,
+		updatedAt: topValue.updatedAt || metaValue.updatedAt || null,
+		complete,
+		cachedCount,
+		eligibleCount,
+		items: cachedItems.slice(0, limit),
+	}, origin);
+}
+
+async function handleBackfillExcitement(origin, league, context) {
 	const scheduleJson = await fetchUpstream(league.scheduleUrl, league);
 	const season = getScheduleSeason(scheduleJson);
 	const eligibleGames = getTopExcitementEligibleGames(scheduleJson, league);
@@ -520,7 +550,6 @@ async function handleTopExcitement(url, origin, league, context) {
 	const [topEntry, metaEntry] = await kv.getMany([keys.top, keys.meta]);
 	const topValue = topEntry.value || {};
 	const metaValue = metaEntry.value || {};
-	const cachedItems = Array.isArray(topValue.items) ? topValue.items : [];
 	const cachedCount = Number(metaValue.cachedCount ?? topValue.cachedCount) || 0;
 	const eligibleCount = eligibleGames.length;
 	const complete = eligibleCount === 0 || cachedCount >= eligibleCount;
@@ -537,12 +566,54 @@ async function handleTopExcitement(url, origin, league, context) {
 	return respondWithCors({
 		league: league.id,
 		season,
-		updatedAt: topValue.updatedAt || metaValue.updatedAt || null,
 		complete,
 		processingQueued,
 		cachedCount,
 		eligibleCount,
-		items: cachedItems.slice(0, limit),
+	}, origin);
+}
+
+async function handleFetchExcitement(req, origin, league) {
+	let body;
+
+	try {
+		body = await req.json();
+	} catch (_error) {
+		return new Response("Invalid JSON body", {
+			status: 400,
+			headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
+		});
+	}
+
+	if (!body || !Array.isArray(body.gameIds)) {
+		return new Response("gameIds must be an array", {
+			status: 400,
+			headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
+		});
+	}
+
+	const gameIds = Array.from(new Set(body.gameIds.filter((gameId) => typeof gameId === "string")));
+	const season = await getSeasonYear(league);
+	const kv = await getKv();
+	const scores = {};
+	const missing = [];
+
+	await Promise.all(gameIds.map(async (gameId) => {
+		const entry = await kv.get(getTopExcitementGameKey(league.id, season, gameId));
+		const excitement = entry.value?.excitement;
+
+		if (Number.isFinite(excitement)) {
+			scores[gameId] = excitement;
+		} else {
+			missing.push(gameId);
+		}
+	}));
+
+	return respondWithCors({
+		league: league.id,
+		season,
+		scores,
+		missing,
 	}, origin);
 }
 
@@ -677,7 +748,27 @@ Deno.serve(async (req, context) => {
 		}
 
 		if (PATH === "/top-excitement") {
-			return handleTopExcitement(url, origin, league, context);
+			if (req.method !== "GET") {
+				return methodNotAllowed(origin);
+			}
+
+			return handleTopExcitement(url, origin, league);
+		}
+
+		if (PATH === "/backfill-excitement") {
+			if (req.method !== "POST") {
+				return methodNotAllowed(origin);
+			}
+
+			return handleBackfillExcitement(origin, league, context);
+		}
+
+		if (PATH === "/fetch-excitement") {
+			if (req.method !== "POST") {
+				return methodNotAllowed(origin);
+			}
+
+			return handleFetchExcitement(req, origin, league);
 		}
 
 		// --- /standings: fetch fresh ---
