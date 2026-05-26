@@ -518,6 +518,7 @@ function methodNotAllowed(origin) {
 }
 
 async function handleTopExcitement(url, origin, league) {
+	// TODO: Wire the future Top-10 frontend view to this read-only endpoint.
 	const limit = getTopExcitementLimit(url);
 	const season = await getSeasonYear(league);
 	const kv = await getKv();
