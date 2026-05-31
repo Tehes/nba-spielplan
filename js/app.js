@@ -54,11 +54,25 @@ Variables
 ---------------------------------------------------------------------------------------------------*/
 // API Endpoints
 const API_BASE_URL = "https://nba-spielplan.tehes.deno.net";
-const LANGUAGE_STORAGE_KEY = "nba-spielplan_lang";
+const MODE_STORAGE_KEY = "nba-spielplan_mode";
 const LEAGUE_STORAGE_KEY = "nba-spielplan_league";
-const SCHEDULE_CACHE_VERSION = "2";
+const SCHEDULE_CACHE_VERSION = "4";
 const STANDINGS_CACHE_VERSION = "4";
-const SUPPORTED_LANGUAGES = new Set(["de", "en"]);
+const MODES = {
+	de: {
+		language: "de",
+		broadcastRegion: "de",
+	},
+	"en-us": {
+		language: "en",
+		broadcastRegion: "us",
+	},
+	en: {
+		language: "en",
+		broadcastRegion: "none",
+	},
+};
+const SUPPORTED_MODES = new Set(Object.keys(MODES));
 const LEAGUES = {
 	nba: {
 		id: "nba",
@@ -273,9 +287,11 @@ const messages = {
 		verdictSkip: "skip it",
 	},
 };
-let currentLanguage = getInitialLanguage();
+let currentMode = getInitialMode();
+let currentLanguage = getModeLanguage(currentMode);
 let currentLocale = getLocale(currentLanguage);
 let currentLeague = getInitialLeague();
+let currentBroadcastRegion = getModeBroadcastRegion(currentMode);
 
 // Data Holders
 let liveById = new Map();
@@ -320,7 +336,7 @@ const todayInfoEl = document.querySelector("#info");
 const moreEl = document.querySelector("#more");
 const progressValue = document.querySelector("#progress-value");
 const requestWarningEl = document.querySelector("#request-warning");
-const languagePicker = document.querySelector("#language-picker");
+const modePicker = document.querySelector("#mode-picker");
 const leagueTabs = document.querySelectorAll("#league-tabs .tab");
 const overallStandingsEl = document.querySelector("#overall-standings");
 const conferenceStandingsWrapperEl = document.querySelector(".conference-standings-wrapper");
@@ -387,20 +403,20 @@ checkboxPlayByPlayMadeShots.checked = JSON.parse(
 	localStorage.getItem("nba-spielplan_pbp_madeShotsOnly") || "false",
 );
 
-function getInitialLanguage() {
+function getInitialMode() {
 	const url = new URL(globalThis.location.href);
-	const urlLanguage = url.searchParams.get("lang");
+	const urlMode = url.searchParams.get("mode");
 
-	if (SUPPORTED_LANGUAGES.has(urlLanguage)) {
-		return urlLanguage;
+	if (SUPPORTED_MODES.has(urlMode)) {
+		return urlMode;
 	}
 
-	const storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-	if (SUPPORTED_LANGUAGES.has(storedLanguage)) {
-		return storedLanguage;
+	const storedMode = localStorage.getItem(MODE_STORAGE_KEY);
+	if (SUPPORTED_MODES.has(storedMode)) {
+		return storedMode;
 	}
 
-	return navigator.language?.toLowerCase().startsWith("de") ? "de" : "en";
+	return navigator.language?.toLowerCase().startsWith("de") ? "de" : "en-us";
 }
 
 function getInitialLeague() {
@@ -424,6 +440,14 @@ function getLocale(language) {
 	return LOCALES[language] || LOCALES.de;
 }
 
+function getModeLanguage(mode) {
+	return MODES[mode]?.language || MODES.de.language;
+}
+
+function getModeBroadcastRegion(mode) {
+	return MODES[mode]?.broadcastRegion || MODES.de.broadcastRegion;
+}
+
 function getCurrentLeague() {
 	return LEAGUES[currentLeague] || LEAGUES.nba;
 }
@@ -439,7 +463,8 @@ function addApiQueryParam(url, key, value) {
 }
 
 function getScheduleUrl() {
-	return addApiQueryParam(getLeagueApiUrl("/schedule"), "scheduleVersion", SCHEDULE_CACHE_VERSION);
+	const scheduleUrl = addApiQueryParam(getLeagueApiUrl("/schedule"), "region", currentBroadcastRegion);
+	return addApiQueryParam(scheduleUrl, "scheduleVersion", SCHEDULE_CACHE_VERSION);
 }
 
 function getStandingsUrl() {
@@ -523,12 +548,14 @@ function getTeamLogoSrc(teamTricode) {
 }
 
 function getBroadcastLabels(game) {
-	if (currentLanguage !== "de") {
+	if (currentBroadcastRegion === "none") {
 		return [];
 	}
 
 	const labels = new Set();
 	const broadcasters = [
+		...(game.broadcasters?.nationalTvBroadcasters || []),
+		...(game.broadcasters?.nationalOttBroadcasters || []),
 		...(game.broadcasters?.intlTvBroadcasters || []),
 		...(game.broadcasters?.intlOttBroadcasters || []),
 	];
@@ -538,9 +565,12 @@ function getBroadcastLabels(game) {
 		const abbreviation = broadcaster.broadcasterAbbreviation || "";
 
 		if (
-			display.startsWith("Sky Sport") ||
-			abbreviation.startsWith("SKYGermany") ||
-			abbreviation.startsWith("SkyGermany")
+			currentLanguage === "de" &&
+			(
+				display.startsWith("Sky Sport") ||
+				abbreviation.startsWith("SKYGermany") ||
+				abbreviation.startsWith("SkyGermany")
+			)
 		) {
 			labels.add("Sky");
 			return;
@@ -732,14 +762,11 @@ function shouldPollLiveGames(now) {
 	});
 }
 
-function syncLanguageUrl() {
+function syncModeUrl() {
 	const url = new URL(globalThis.location.href);
-
-	if (currentLanguage === "en") {
-		url.searchParams.set("lang", "en");
-	} else {
-		url.searchParams.delete("lang");
-	}
+	url.searchParams.set("mode", currentMode);
+	url.searchParams.delete("lang");
+	url.searchParams.delete("region");
 
 	globalThis.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
@@ -773,8 +800,8 @@ function applyStaticTranslations() {
 		boxscoreTemplate.content.querySelector(".bench thead th").textContent = t("bench");
 	}
 
-	if (languagePicker) {
-		languagePicker.value = currentLanguage;
+	if (modePicker) {
+		modePicker.value = currentMode;
 	}
 
 	updateLeagueTabs();
@@ -818,22 +845,30 @@ function rerenderLocalizedUi() {
 	}
 }
 
-function applyLanguage() {
+function applyMode() {
+	currentLanguage = getModeLanguage(currentMode);
+	currentBroadcastRegion = getModeBroadcastRegion(currentMode);
 	currentLocale = getLocale(currentLanguage);
-	localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
-	syncLanguageUrl();
+	localStorage.setItem(MODE_STORAGE_KEY, currentMode);
+	syncModeUrl();
 	resetSelectedDay();
 	applyStaticTranslations();
 	rerenderLocalizedUi();
 }
 
-function setLanguage(language) {
-	if (!SUPPORTED_LANGUAGES.has(language) || language === currentLanguage) {
+function setMode(mode) {
+	if (!SUPPORTED_MODES.has(mode) || mode === currentMode) {
 		return;
 	}
 
-	currentLanguage = language;
-	applyLanguage();
+	const previousScheduleUrl = getScheduleUrl();
+	currentMode = mode;
+	applyMode();
+
+	if (getScheduleUrl() !== previousScheduleUrl) {
+		resetLeagueData();
+		loadData();
+	}
 }
 
 function updateLeagueTabs() {
@@ -3053,10 +3088,12 @@ async function loadData() {
 
 function init() {
 	loadStandingsViewPreferences();
-	applyLanguage();
+	applyMode();
 	globalThis.umami?.track("NBA Schedule", {
 		league: currentLeague,
+		mode: currentMode,
 		language: currentLanguage,
+		broadcastRegion: currentBroadcastRegion,
 		showScores: checkboxShowScores.checked,
 		showExcitementRating: checkboxShowRating.checked,
 		hidePastGames: checkboxHidePastGames.checked,
@@ -3076,8 +3113,8 @@ function init() {
 		moveSelectedDay(1);
 	});
 	document.addEventListener("touchstart", function () {}, false);
-	languagePicker.addEventListener("change", () => {
-		setLanguage(languagePicker.value);
+	modePicker.addEventListener("change", () => {
+		setMode(modePicker.value);
 	});
 	leagueTabs.forEach((tab) => {
 		tab.addEventListener("click", () => {
@@ -3168,7 +3205,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-26-v1";
+const SERVICE_WORKER_VERSION = "2026-05-31-v3";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

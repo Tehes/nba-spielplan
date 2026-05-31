@@ -13,8 +13,9 @@ caches only the season year for standings and bracket calls.
 Visit the live build at [nba-spielplan.de](https://nba-spielplan.de/) and explore the schedule directly in
 your browser.
 
-For English-speaking users, link directly to [nba-spielplan.de/?lang=en](https://nba-spielplan.de/?lang=en) to open the
-localized English UI immediately.
+For English-speaking users in the US, link directly to
+[nba-spielplan.de/?mode=en-us](https://nba-spielplan.de/?mode=en-us) to open the English UI with
+US broadcast labels immediately.
 
 The app defaults to the NBA, but users can switch to the WNBA in the top menu. Direct links can use
 `?league=nba` or `?league=wnba`; the selected league is stored locally between visits.
@@ -29,7 +30,8 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
     yesterday, tomorrow, or a specific date.
   - Displays team logos, colors, records, and automatically switches between scheduled, live, and
     final states.
-  - Shows German broadcast labels for NBA and WNBA games in the German UI where available.
+  - Shows broadcast labels based on the selected mode: German broadcasts in `DE`, US broadcasts in
+    `EN (US)`, and no broadcast labels in `EN`.
   - Polls the live scoreboard every minute while at least one game is live, overlaying in-progress
     scores.
   - Cards are clickable and open the built-in overview, boxscore, and play-by-play overlay.
@@ -40,7 +42,7 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
   - Filters by franchise (team picker), hides already played games, or restricts the list to “prime
     time” tip-offs (18:00–23:59 local time).
   - Uses team color accents so you can scan cards quickly.
-  - Shows German broadcast labels for NBA and WNBA games in the German UI where available.
+  - Shows broadcast labels based on the selected mode.
 
 - **League menu**
   - Top menu switches between NBA and WNBA schedules.
@@ -66,9 +68,9 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
     between visits until fresh data arrives.
 
 - **Quality-of-life touches**
-  - German and English UI localization, with a language picker in the top menu.
-  - English users can be sent straight to `https://nba-spielplan.de/?lang=en`.
-  - Preferences for league, language, “show scores”, “show game rating”, and “prime time only”
+  - German and English UI localization, with a language and broadcast mode picker in the top menu.
+  - English users in the US can be sent straight to `https://nba-spielplan.de/?mode=en-us`.
+  - Preferences for league, mode, “show scores”, “show game rating”, and “prime time only”
     persist in `localStorage`.
   - Data automatically refreshes when the tab becomes visible or when a new day starts.
 
@@ -117,16 +119,17 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
 
 The backend is powered by a Deno Deploy edge function (api/main.js), which proxies and sanitizes NBA
 and WNBA endpoints. NBA is the default; league-aware endpoints also accept `?league=nba` or
-`?league=wnba`.
+`?league=wnba`. The schedule endpoint accepts `?region=de`, `?region=us`, or `?region=none` for
+broadcast labels.
 
 | Endpoint               | Purpose                         | Notes                                                                                    |
 | ---------------------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
 | `/schedule`            | Raw league schedule             | Fetched fresh per request; client Cache API handles reuse.                               |
-| `/standings`           | Normalized standings            | Uses the official standings feed and includes NBA divisions.                              |
+| `/standings`           | Normalized standings            | Uses the official standings feed and includes NBA divisions.                             |
 | `/scoreboard`          | Live in-day scoreboard feed     | Always proxied without caching; powers the game detail overlay and in-day score updates. |
-| `/top-excitement`      | Top excitement-rated games      | Read-only KV endpoint for the current season's cached highlight list.                     |
-| `/backfill-excitement` | Excitement cache warmup         | POST endpoint that queues one lazy, batch-limited KV backfill for the active league.      |
-| `/fetch-excitement`    | Specific cached ratings         | POST endpoint that reads requested game IDs from KV and returns `scores` plus `missing`.  |
+| `/top-excitement`      | Top excitement-rated games      | Read-only KV endpoint for the current season's cached highlight list.                    |
+| `/backfill-excitement` | Excitement cache warmup         | POST endpoint that queues one lazy, batch-limited KV backfill for the active league.     |
+| `/fetch-excitement`    | Specific cached ratings         | POST endpoint that reads requested game IDs from KV and returns `scores` plus `missing`. |
 | `/playoffbracket`      | Official NBA bracket JSON       | NBA-only; uses a 24h-cached season year, then proxies the official bracket feed.         |
 | `/istbracket`          | NBA Cup (IST) bracket JSON      | NBA-only; uses a 24h-cached season year, then proxies the official ISTBracket feed.      |
 | `/boxscore/:id`        | Per-game boxscore               | Uncached proxy to the active league's live boxscore JSON.                                |

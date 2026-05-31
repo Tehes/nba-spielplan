@@ -257,7 +257,7 @@ h3 {
     max-width: 320px;
 }
 
-.top-menu #language-picker {
+.top-menu #mode-picker {
     padding-top: 5px;
     padding-bottom: 5px;
     background-position: calc(100% - 20px) 50%,
