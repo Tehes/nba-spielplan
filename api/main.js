@@ -19,9 +19,9 @@ const BASE_UPSTREAM_HEADERS = {
 14 = Germany
 */
 const DEFAULT_BROADCAST_REGION_CODE = "14";
-const BROADCAST_REGION_CODES_BY_LANGUAGE = new Map([
+const BROADCAST_REGION_CODES = new Map([
 	["de", "14"],
-	["en", "1"],
+	["us", "1"],
 ]);
 
 const LEAGUES = {
@@ -234,7 +234,17 @@ function getLeague(url) {
 }
 
 function getBroadcastRegionCode(url) {
-	return BROADCAST_REGION_CODES_BY_LANGUAGE.get(url.searchParams.get("lang")) || DEFAULT_BROADCAST_REGION_CODE;
+	const region = url.searchParams.get("region");
+
+	if (region === "none") {
+		return DEFAULT_BROADCAST_REGION_CODE;
+	}
+
+	if (region) {
+		return BROADCAST_REGION_CODES.get(region) || DEFAULT_BROADCAST_REGION_CODE;
+	}
+
+	return DEFAULT_BROADCAST_REGION_CODE;
 }
 
 function getScheduleUrl(league, regionCode = DEFAULT_BROADCAST_REGION_CODE) {
