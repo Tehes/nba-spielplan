@@ -14,12 +14,21 @@ const BASE_UPSTREAM_HEADERS = {
 	"Priority": "u=4",
 };
 
-// Note: 14 is the region code for Germany in the schedule feed. It covers german broadcasters.
+/* Broadcast Region Codes:
+1 = USA
+14 = Germany
+*/
+const DEFAULT_BROADCAST_REGION_CODE = "14";
+const BROADCAST_REGION_CODES_BY_LANGUAGE = new Map([
+	["de", "14"],
+	["en", "1"],
+]);
+
 const LEAGUES = {
 	nba: {
 		id: "nba",
 		leagueId: "00",
-		scheduleUrl: "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_14.json",
+		scheduleBaseUrl: "https://cdn.nba.com/static/json/staticData",
 		scoreboardUrl: "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
 		boxscoreBaseUrl: "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_",
 		playByPlayBaseUrl: "https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_",
@@ -30,7 +39,7 @@ const LEAGUES = {
 	wnba: {
 		id: "wnba",
 		leagueId: "10",
-		scheduleUrl: "https://cdn.wnba.com/static/json/staticData/scheduleLeagueV2_14.json",
+		scheduleBaseUrl: "https://cdn.wnba.com/static/json/staticData",
 		scoreboardUrl: "https://cdn.wnba.com/static/json/liveData/scoreboard/todaysScoreboard_10.json",
 		boxscoreBaseUrl: "https://cdn.wnba.com/static/json/liveData/boxscore/boxscore_",
 		playByPlayBaseUrl: "https://cdn.wnba.com/static/json/liveData/playbyplay/playbyplay_",
@@ -146,7 +155,7 @@ async function getSeasonYear(league) {
 
 	try {
 		console.log("[cache miss] fetching seasonYear via schedule", league.id);
-		const schedule = await fetchUpstream(league.scheduleUrl, league);
+		const schedule = await fetchUpstream(getScheduleUrl(league), league);
 		const seasonYear = schedule?.leagueSchedule?.seasonYear;
 
 		if (!seasonYear) {
@@ -222,6 +231,18 @@ async function proxyWithCors(url, origin, league, isStats = false) {
 function getLeague(url) {
 	const leagueId = url.searchParams.get("league") || "nba";
 	return LEAGUES[leagueId] || null;
+}
+
+function getBroadcastRegionCode(url) {
+	return BROADCAST_REGION_CODES_BY_LANGUAGE.get(url.searchParams.get("lang")) || DEFAULT_BROADCAST_REGION_CODE;
+}
+
+function getScheduleUrl(league, regionCode = DEFAULT_BROADCAST_REGION_CODE) {
+	return `${league.scheduleBaseUrl}/scheduleLeagueV2_${regionCode}.json`;
+}
+
+function getScheduleUrlForRequest(url, league) {
+	return getScheduleUrl(league, getBroadcastRegionCode(url));
 }
 
 function getOfficialStandingsUrl(season, league, groupBy = "conf") {
@@ -543,7 +564,7 @@ async function handleTopExcitement(url, origin, league) {
 }
 
 async function handleBackfillExcitement(origin, league, context) {
-	const scheduleJson = await fetchUpstream(league.scheduleUrl, league);
+	const scheduleJson = await fetchUpstream(getScheduleUrl(league), league);
 	const season = getScheduleSeason(scheduleJson);
 	const eligibleGames = getTopExcitementEligibleGames(scheduleJson, league);
 	const kv = await getKv();
@@ -745,7 +766,7 @@ Deno.serve(async (req, context) => {
 	try {
 		// --- /schedule: fetch fresh ---
 		if (PATH === "/schedule") {
-			return proxyWithCors(league.scheduleUrl, origin, league);
+			return proxyWithCors(getScheduleUrlForRequest(url, league), origin, league);
 		}
 
 		if (PATH === "/top-excitement") {
