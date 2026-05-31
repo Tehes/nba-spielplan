@@ -894,10 +894,11 @@ MORE
     justify-content: flex-start;
     padding: 10px;
     font-size: clamp(1rem, 3vw, 1.2rem);
+    gap: 1%;
 }
 
 #more :is(.home-team, .visiting-team) {
-    flex: 1 0 40%;
+    flex: 1 0 39%;
     display: flex;
     justify-content: left;
     align-items: center;
@@ -926,20 +927,19 @@ MORE
 
 #more .game-label,
 #more .broadcast-label {
-    flex: 1 0 auto;
+    flex: 1 0 66%;
     background-color: light-dark(hsla(0, 0%, 0%, 0.05), hsla(0, 0%, 0%, 0.15));
     text-align: center;
     border-radius: var(--card-corners);
     font-size: 0.9rem;
     margin-top: 10px;
     color: light-dark(var(--neutral700), var(--neutral300));
-    padding: 0 1rem;
+    padding: 0 0.5rem;
 }
 
 #more .broadcast-label:not(:empty):has(+ .game-label:not(:empty)) {
-    flex: 0 0 19%;
+    flex: 1 0 19%;
     min-width: fit-content;
-    margin-right: 1%;
 }
 
 .options {
@@ -1527,12 +1527,17 @@ MEDIA QUERIES
     }
 
     #more :is(.home-team, .visiting-team) {
-        flex: 1 0 35%;
+        flex: 1 0 34%;
     }
 
     #more .date {
         flex: 0 0 30%;
     }
+
+    #more .broadcast-label:not(:empty):has(+ .game-label:not(:empty)) {
+        flex: 1 0 29%;
+}
+
 
     #playbyplay .body {
         display: block;

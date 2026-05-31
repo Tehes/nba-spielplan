@@ -576,6 +576,11 @@ function getBroadcastLabels(game) {
 			return;
 		}
 
+		if (display === "NBC Sports Network") {
+			labels.add("NBCSN");
+			return;
+		}
+
 		if (display) {
 			labels.add(display);
 		}
@@ -3205,7 +3210,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-31-v3";
+const SERVICE_WORKER_VERSION = "2026-05-31-v4";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({
