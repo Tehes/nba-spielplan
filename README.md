@@ -92,6 +92,8 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
   - Shows a labeled 1–10 rating above the overlay tabs once a game is final.
   - Reads cached ratings from the backend first and falls back to client-side play-by-play
     calculation for missing games.
+  - Shows a Top 10 list of the most exciting games once regular-season progress reaches 100%,
+    using cached backend ratings.
 
 - **Play-by-Play Tab**
   - Live-by-play feed with time, description, and score delta.
@@ -140,9 +142,11 @@ hitting the network. When games are live, the app polls `/scoreboard` every minu
 fresh scores into the already-rendered cards. Excitement ratings are KV-first: after the initial
 page data load, the client starts a non-blocking `/backfill-excitement` request, then batches
 specific finished game IDs through `/fetch-excitement`; only `missing` IDs fall back to client-side
-play-by-play calculation. The client keeps NBA and WNBA cache keys separate for schedule,
-standings, scoreboard, next-game markers, and excitement ratings. The service worker uses
-stale-while-revalidate for the app shell and API calls on the same origin.
+play-by-play calculation. Once regular-season progress reaches 100%, the client reads
+`/top-excitement` and renders the cached Top 10 list when items are available. The client keeps NBA
+and WNBA cache keys separate for schedule, standings, scoreboard, next-game markers, and excitement
+ratings. The service worker uses stale-while-revalidate for the app shell and API calls on the same
+origin.
 
 ---
 

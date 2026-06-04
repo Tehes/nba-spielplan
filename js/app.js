@@ -142,6 +142,8 @@ const messages = {
 		home: "Heim",
 		standingsJump: "Zur Tabelle",
 		moreGames: "weitere Spiele",
+		topExcitementGames: "Top 10 spannendste Spiele",
+		noMoreScheduledGames: "Keine weiteren Spiele geplant.",
 		allTeams: "Alle Teams",
 		hidePastGames: "vergangene Spiele ausblenden",
 		primetimeOnly: "Nur Prime-Time-Spiele",
@@ -225,6 +227,8 @@ const messages = {
 		home: "Home",
 		standingsJump: "Jump to standings",
 		moreGames: "More games",
+		topExcitementGames: "Top 10 most exciting games",
+		noMoreScheduledGames: "No more games scheduled.",
 		allTeams: "All teams",
 		hidePastGames: "Hide past games",
 		primetimeOnly: "Prime-time games only",
@@ -297,6 +301,7 @@ let currentBroadcastRegion = getModeBroadcastRegion(currentMode);
 let liveById = new Map();
 let livePoll = null;
 const excitementCache = new Map();
+const topExcitementByLeague = new Map();
 
 let schedule;
 let standings;
@@ -334,6 +339,8 @@ const todayNextButton = document.querySelector("#today-next");
 const todayEl = document.querySelector("#today");
 const todayInfoEl = document.querySelector("#info");
 const moreEl = document.querySelector("#more");
+const topExcitementHeadlineEl = document.querySelector("#top-excitement-headline");
+const topExcitementEl = document.querySelector("#top-excitement");
 const progressValue = document.querySelector("#progress-value");
 const requestWarningEl = document.querySelector("#request-warning");
 const modePicker = document.querySelector("#mode-picker");
@@ -489,6 +496,10 @@ function getBackfillExcitementUrl(leagueId = currentLeague) {
 
 function getFetchExcitementUrl(leagueId = currentLeague) {
 	return getLeagueApiUrl("/fetch-excitement", leagueId);
+}
+
+function getTopExcitementUrl(leagueId = currentLeague) {
+	return addApiQueryParam(getLeagueApiUrl("/top-excitement", leagueId), "limit", "10");
 }
 
 function getExcitementCacheKey(leagueId, gameId) {
@@ -831,6 +842,7 @@ function rerenderLocalizedUi() {
 		updateTeamPicker();
 		renderTodaysGames();
 		renderMoreGames();
+		renderTopExcitementGames();
 		updateBrackets();
 		renderPreviousMatchups();
 		storeNextScheduledGame();
@@ -913,6 +925,7 @@ function resetLeagueData() {
 	stopLivePolling();
 	liveById = new Map();
 	excitementCache.clear();
+	topExcitementByLeague.clear();
 	schedule = null;
 	standings = null;
 	games = {
@@ -933,6 +946,7 @@ function resetLeagueData() {
 	renderedCoreCacheUrls.clear();
 	todayEl.replaceChildren();
 	moreEl.replaceChildren();
+	resetTopExcitementSection();
 	progressValue.style.width = "0%";
 	progressValue.textContent = "0%";
 	resetCupBracket();
@@ -1039,11 +1053,15 @@ function renderTeamMetaLabels(game, homeWL, visitingWL, preferPostseasonSeed = f
 	visitingWL.textContent = getTeamMetaLabel(game, game.awayTeam, preferPostseasonSeed);
 }
 
-function setProgressBar() {
+function getRegularSeasonProgressPercentage() {
 	const done = (games.finished?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0) +
 		(games.today?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0);
 
-	const pct = Math.min(100, Math.floor((done * 100) / getCurrentLeague().totalRegularSeasonGames));
+	return Math.min(100, Math.floor((done * 100) / getCurrentLeague().totalRegularSeasonGames));
+}
+
+function setProgressBar() {
+	const pct = getRegularSeasonProgressPercentage();
 
 	progressValue.style.width = `${pct}%`;
 	progressValue.textContent = `${pct}%`;
@@ -2503,6 +2521,13 @@ function updateTeamPicker() {
 	}
 }
 
+function renderMoreEmptyState() {
+	const emptyState = document.createElement("div");
+	emptyState.classList.add("empty-state");
+	emptyState.textContent = t("noMoreScheduledGames");
+	moreEl.appendChild(emptyState);
+}
+
 function renderMoreGames() {
 	let dateHeadline = "";
 	let jumpLinkInserted = false;
@@ -2510,6 +2535,11 @@ function renderMoreGames() {
 
 	const selectedDayTime = selectedDay.getTime();
 	const gamesToDisplay = getMoreViewGames();
+
+	if (!gamesToDisplay.length) {
+		renderMoreEmptyState();
+		return;
+	}
 
 	gamesToDisplay.forEach((g) => {
 		if (dateHeadline === "" || dateHeadline !== g.date) {
@@ -2630,6 +2660,155 @@ function filterTeams() {
 		);
 		for (const emptyHeadline of emptyHeadlines) {
 			emptyHeadline.remove();
+		}
+	}
+}
+
+function resetTopExcitementSection() {
+	topExcitementEl.replaceChildren();
+	topExcitementEl.classList.add("hidden");
+	topExcitementHeadlineEl.classList.add("hidden");
+}
+
+function getTopExcitementTeamName(team) {
+	return `${team?.teamCity || ""} ${team?.teamName || ""}`.trim();
+}
+
+function getTopExcitementGameLabel(item) {
+	const label = (item.gameLabel || "").trim();
+	const subLabel = (item.gameSubLabel || "").trim();
+
+	return label ? subLabel ? `${label} – ${subLabel}` : label : subLabel;
+}
+
+function formatTopExcitementGameDate(item) {
+	const gameDate = new Date(item.gameDateTimeUTC);
+
+	if (Number.isNaN(gameDate.getTime())) {
+		return t("notScheduled");
+	}
+
+	return gameDate.toLocaleDateString(currentLocale, {
+		day: "2-digit",
+		month: "2-digit",
+		year: "2-digit",
+	});
+}
+
+function renderTopExcitementCard(item) {
+	const template = document.querySelector("#template-top-excitement");
+	const clone = template.content.cloneNode(true);
+	const card = clone.querySelector(".card");
+	const homeTeam = clone.querySelector(".home-team");
+	const visitingTeam = clone.querySelector(".visiting-team");
+	const homeScore = Number(item.homeScore);
+	const visitingScore = Number(item.awayScore);
+	const scheduleGame = getScheduleGames().find((game) => game.gameId === item.gameId);
+
+	clone.querySelector(".rating").textContent = formatExcitementRating(Number(item.excitement));
+	clone.querySelector(".date").textContent = formatTopExcitementGameDate(item);
+	clone.querySelector(".game-label").textContent = getTopExcitementGameLabel(item);
+
+	homeTeam.querySelector(".name").textContent = getTopExcitementTeamName(item.homeTeam);
+	homeTeam.querySelector(".abbr").textContent = item.homeTeam?.teamTricode || "";
+	homeTeam.querySelector(".score").textContent = Number.isFinite(homeScore) ? homeScore : "";
+	homeTeam.querySelector(".color").style.setProperty(
+		"--team-color",
+		getTeamColorValue(item.homeTeam?.teamTricode),
+	);
+
+	visitingTeam.querySelector(".name").textContent = getTopExcitementTeamName(item.awayTeam);
+	visitingTeam.querySelector(".abbr").textContent = item.awayTeam?.teamTricode || "";
+	visitingTeam.querySelector(".score").textContent = Number.isFinite(visitingScore) ? visitingScore : "";
+	visitingTeam.querySelector(".color").style.setProperty(
+		"--team-color",
+		getTeamColorValue(item.awayTeam?.teamTricode),
+	);
+
+	if (Number.isFinite(homeScore) && Number.isFinite(visitingScore)) {
+		homeTeam.querySelector(".score").classList.toggle("lower", homeScore < visitingScore);
+		visitingTeam.querySelector(".score").classList.toggle("lower", visitingScore < homeScore);
+	}
+
+	if (scheduleGame) {
+		card.dataset.gameId = item.gameId;
+		card.dataset.clickable = "true";
+		card.addEventListener("click", () => {
+			globalThis.umami?.track("NBA Schedule", { topExcitementOverlayClicked: true });
+			openGameOverlay(
+				item.gameId,
+				item.awayTeam?.teamTricode,
+				item.homeTeam?.teamTricode,
+			);
+		});
+	}
+
+	return clone;
+}
+
+function shouldShowTopExcitementGames(items) {
+	return getRegularSeasonProgressPercentage() === 100 && items.length > 0;
+}
+
+function renderTopExcitementGames() {
+	const topExcitement = topExcitementByLeague.get(currentLeague);
+	const items = Array.isArray(topExcitement?.items)
+		? topExcitement.items.filter((item) => Number.isFinite(Number(item.excitement)))
+		: [];
+
+	resetTopExcitementSection();
+
+	if (!shouldShowTopExcitementGames(items)) {
+		return;
+	}
+
+	items.forEach((item) => {
+		topExcitementEl.appendChild(renderTopExcitementCard(item));
+	});
+
+	topExcitementHeadlineEl.classList.remove("hidden");
+	topExcitementEl.classList.remove("hidden");
+}
+
+async function loadTopExcitementGames(leagueId = currentLeague) {
+	if (getRegularSeasonProgressPercentage() !== 100) {
+		resetTopExcitementSection();
+		return;
+	}
+
+	if (topExcitementByLeague.has(leagueId)) {
+		renderTopExcitementGames();
+		return;
+	}
+
+	try {
+		const response = await fetch(getTopExcitementUrl(leagueId));
+
+		if (!response.ok) {
+			throw new Error(`Top excitement fetch failed: ${response.status}`);
+		}
+
+		const data = await response.json();
+		const items = Array.isArray(data?.items) ? data.items : [];
+
+		if (!items.length) {
+			if (currentLeague === leagueId) {
+				resetTopExcitementSection();
+			}
+			return;
+		}
+
+		topExcitementByLeague.set(leagueId, { items });
+
+		if (currentLeague === leagueId) {
+			renderTopExcitementGames();
+		}
+	} catch (error) {
+		console.warn("Top excitement games could not be loaded:", error);
+
+		if (currentLeague === leagueId) {
+			topExcitementByLeague.delete(leagueId);
+			resetTopExcitementSection();
 		}
 	}
 }
@@ -2831,6 +3010,7 @@ function handleScheduleData(json) {
 			checkboxHidePastGames.checked = false;
 		}
 		renderMoreGames();
+		loadTopExcitementGames();
 		updateBrackets();
 		renderPreviousMatchups();
 	} else {
@@ -3210,7 +3390,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-31-v4";
+const SERVICE_WORKER_VERSION = "2026-05-31-v5";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

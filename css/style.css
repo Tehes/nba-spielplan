@@ -886,18 +886,20 @@ MORE
 -------------------------------------------------------------------
 */
 
-#more {
+#more,
+#top-excitement {
     gap: 15px;
 }
 
-#more .card {
+#more .card,
+#top-excitement .card {
     justify-content: flex-start;
     padding: 10px;
     font-size: clamp(1rem, 3vw, 1.2rem);
     gap: 1%;
 }
 
-#more :is(.home-team, .visiting-team) {
+:is(#more, #top-excitement) :is(.home-team, .visiting-team) {
     flex: 1 0 39%;
     display: flex;
     justify-content: left;
@@ -905,28 +907,51 @@ MORE
     gap: 8px;
 }
 
-#more .date {
+:is(#more, #top-excitement) .date {
     flex: 0 0 20%;
 }
 
-#more .wl {
+:is(#more, #top-excitement) .wl {
     opacity: 0.5;
     white-space: nowrap;
 }
 
-#more .score {
+:is(#more, #top-excitement) .score {
     font-size: 1.4rem;
     font-weight: 700;
 }
 
-#more .color {
+:is(#more, #top-excitement) .color {
     width: 4px;
     height: 100%;
     background-color: var(--team-color, var(--neutral400));
 }
 
+#top-excitement .rating {
+    flex: 0 0 11%;
+    font-weight: 700;
+}
+
+#top-excitement .date {
+    flex: 0 0 14%;
+}
+
+#top-excitement :is(.home-team, .visiting-team) {
+    flex: 1 0 32%;
+}
+
+#more .empty-state {
+    padding: 10px 12px;
+    background-color: var(--card-bg);
+    box-shadow: var(--card-shadow);
+    border-radius: var(--card-corners);
+    color: light-dark(var(--neutral700), var(--neutral300));
+}
+
 #more .game-label,
-#more .broadcast-label {
+#more .broadcast-label,
+#top-excitement .game-label,
+#top-excitement .broadcast-label {
     flex: 1 0 66%;
     background-color: light-dark(hsla(0, 0%, 0%, 0.05), hsla(0, 0%, 0%, 0.15));
     text-align: center;
@@ -1526,12 +1551,24 @@ MEDIA QUERIES
         font-size: clamp(1.2rem, 4vw, 1.5rem);
     }
 
-    #more :is(.home-team, .visiting-team) {
+    :is(#more, #top-excitement) :is(.home-team, .visiting-team) {
         flex: 1 0 34%;
     }
 
-    #more .date {
+    :is(#more, #top-excitement) .date {
         flex: 0 0 30%;
+    }
+
+    #top-excitement .rating {
+        flex: 0 0 16%;
+    }
+
+    #top-excitement .date {
+        flex: 0 0 20%;
+    }
+
+    #top-excitement :is(.home-team, .visiting-team) {
+        flex: 1 0 25%;
     }
 
     #more .broadcast-label:not(:empty):has(+ .game-label:not(:empty)) {
