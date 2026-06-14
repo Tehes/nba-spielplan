@@ -420,6 +420,7 @@ PLAYOFFS and NBA CUP
 #cup #cup-final {
     align-items: center;
     flex: 0 0 var(--bracket-matchup-width);
+    transform: scale(1.1);
 }
 
 #playoffs #eastern,
