@@ -204,10 +204,6 @@ function withCors(origin, headers = {}) {
 	return { ...corsHeaders, ...headers };
 }
 
-function getOrigin(req) {
-	return req.headers.get("origin") || "";
-}
-
 function respondWithCors(data, origin, cacheMaxAge = 0) {
 	const headers = withCors(origin, {
 		"content-type": "application/json; charset=utf-8",
@@ -249,10 +245,6 @@ function getBroadcastRegionCode(url) {
 
 function getScheduleUrl(league, regionCode = DEFAULT_BROADCAST_REGION_CODE) {
 	return `${league.scheduleBaseUrl}/scheduleLeagueV2_${regionCode}.json`;
-}
-
-function getScheduleUrlForRequest(url, league) {
-	return getScheduleUrl(league, getBroadcastRegionCode(url));
 }
 
 function getOfficialStandingsUrl(season, league, groupBy = "conf") {
@@ -751,7 +743,7 @@ function buildDivisionsFromOfficialData(standingsJson, league) {
 Deno.serve(async (req, context) => {
 	const url = new URL(req.url);
 	const PATH = url.pathname;
-	const origin = getOrigin(req);
+	const origin = req.headers.get("origin") || "";
 	const league = getLeague(url);
 
 	if (!ALLOWED_ORIGINS.has(origin)) {
@@ -776,7 +768,7 @@ Deno.serve(async (req, context) => {
 	try {
 		// --- /schedule: fetch fresh ---
 		if (PATH === "/schedule") {
-			return proxyWithCors(getScheduleUrlForRequest(url, league), origin, league);
+			return proxyWithCors(getScheduleUrl(league, getBroadcastRegionCode(url)), origin, league);
 		}
 
 		if (PATH === "/top-excitement") {

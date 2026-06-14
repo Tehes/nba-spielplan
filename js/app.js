@@ -2746,10 +2746,6 @@ function renderTopExcitementCard(item) {
 	return clone;
 }
 
-function shouldShowTopExcitementGames(items) {
-	return getRegularSeasonProgressPercentage() === 100 && items.length > 0;
-}
-
 function renderTopExcitementGames() {
 	const topExcitement = topExcitementByLeague.get(currentLeague);
 	const items = Array.isArray(topExcitement?.items)
@@ -2758,7 +2754,7 @@ function renderTopExcitementGames() {
 
 	resetTopExcitementSection();
 
-	if (!shouldShowTopExcitementGames(items)) {
+	if (getRegularSeasonProgressPercentage() !== 100 || items.length === 0) {
 		return;
 	}
 
@@ -3387,7 +3383,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-06-14-v2";
+const SERVICE_WORKER_VERSION = "2026-06-14-v3";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({
