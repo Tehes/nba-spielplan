@@ -3006,9 +3006,6 @@ function handleScheduleData(json) {
 		prepareGameData();
 		setProgressBar();
 		renderTodaysGames();
-		if (games.scheduled.length === 0 && checkboxHidePastGames.checked) {
-			checkboxHidePastGames.checked = false;
-		}
 		renderMoreGames();
 		loadTopExcitementGames();
 		updateBrackets();
@@ -3390,7 +3387,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-05-31-v5";
+const SERVICE_WORKER_VERSION = "2026-06-14-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({
