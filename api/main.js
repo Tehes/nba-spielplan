@@ -640,7 +640,6 @@ function methodNotAllowed(origin) {
 }
 
 async function handleTopExcitement(url, origin, league) {
-	// TODO: Wire the future Top-10 frontend view to this read-only endpoint.
 	const limit = getTopExcitementLimit(url);
 	const seasonContext = await getSeasonContext(league);
 	const season = seasonContext.season;
@@ -912,21 +911,6 @@ Deno.serve(async (req, context) => {
 				payload.divisions = buildDivisionsFromOfficialData(divisionsData, league);
 			}
 			console.log("[/standings] official season", league.id, payload.season);
-			return respondWithCors(payload, origin, 60);
-		}
-
-		if (PATH === "/standings-official") {
-			const seasonContext = await getSeasonContext(league);
-			const seasonString = seasonContext.season;
-			const standingsUrl = getOfficialStandingsUrl(seasonString, league);
-			const data = await fetchUpstream(standingsUrl, league, true);
-			const payload = buildStandingsFromOfficialData(data, seasonString, league);
-			if (league.id === "nba") {
-				const divisionsUrl = getOfficialStandingsUrl(seasonString, league, "div");
-				const divisionsData = await fetchUpstream(divisionsUrl, league, true);
-				payload.divisions = buildDivisionsFromOfficialData(divisionsData, league);
-			}
-			console.log("[/standings-official] season", league.id, payload.season);
 			return respondWithCors(payload, origin, 60);
 		}
 

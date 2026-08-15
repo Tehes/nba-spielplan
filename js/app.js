@@ -1841,11 +1841,13 @@ async function fetchExcitementScoresFromKv(gameIds, leagueId = currentLeague) {
 		});
 
 		const responseMissing = Array.isArray(data?.missing) ? data.missing : [];
-		const missing = Array.from(new Set(responseMissing.concat(
-			uncachedGameIds.filter((gameId) => {
-				return !excitementCache.has(getExcitementCacheKey(leagueId, gameId));
-			}),
-		)));
+		const missing = Array.from(
+			new Set(responseMissing.concat(
+				uncachedGameIds.filter((gameId) => {
+					return !excitementCache.has(getExcitementCacheKey(leagueId, gameId));
+				}),
+			)),
+		);
 
 		return { scores, missing };
 	} catch (error) {
@@ -3500,7 +3502,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-08-15-v7";
+const SERVICE_WORKER_VERSION = "2026-08-15-v8";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

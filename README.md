@@ -110,8 +110,8 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
   - Auto-refreshes on day changes and tab visibility.
 
 - **Privacy-first**
-  - No ads, no third-party scripts, no trackers of any kind.
-  - Only lightweight Umami analytics, self-hosted and privacy-friendly.
+  - No ads or advertising trackers.
+  - Uses lightweight Umami analytics loaded from `cloud.umami.is`.
 
 ---
 
