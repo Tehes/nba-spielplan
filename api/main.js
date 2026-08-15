@@ -215,12 +215,16 @@ function respondWithCors(data, origin, cacheMaxAge = 0) {
 
 async function proxyWithCors(url, origin, league, isStats = false) {
 	const res = await fetch(url, { headers: getUpstreamHeaders(league, isStats) });
+	// Forwarding upstream streams can fail at Deno Deploy's HTTP/2 boundary.
+	const body = await res.arrayBuffer();
 	const headers = new Headers(res.headers);
+	headers.delete("content-encoding");
+	headers.delete("content-length");
 	Object.entries(withCors(origin)).forEach(([k, v]) => headers.set(k, v));
 	if (!headers.has("content-type")) {
 		headers.set("content-type", "application/json; charset=utf-8");
 	}
-	return new Response(res.body, { status: res.status, headers });
+	return new Response(body, { status: res.status, headers });
 }
 
 function getLeague(url) {
