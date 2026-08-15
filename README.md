@@ -4,7 +4,7 @@ NBA/WNBA Schedule is a lightweight Progressive Web App (PWA) that shows NBA and 
 local timezone, keeps live scores in sync, and lets you filter the schedule for exactly what you
 care about—without ads or trackers. The UI is written in plain HTML/CSS/JS, backed by a tiny Deno
 edge function that shields the official NBA and WNBA JSON feeds, normalizes official standings, and
-caches only the season year for standings and bracket calls.
+coordinates the active season across feeds while storing season-scoped excitement ratings in KV.
 
 ---
 
@@ -55,17 +55,16 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
     league, using the active standings team count and configured games per team.
   - NBA conference standings and WNBA overall standings (W-L, games behind, streak, home/away
     splits), with NBA divisions and WNBA conferences available as secondary views.
-  - Dynamically generated playoff bracket that plugs in the top six seeds, projects play‑in winners,
-    and updates round-by-round once results are available for the NBA.
+  - Official NBA playoff bracket that renders round-by-round once the active season's feed becomes
+    available.
   - NBA Cup bracket (In-Season Tournament) that renders quarterfinals onward once the official
     bracket feed lists all matchups.
 
 - **Offline-ready PWA**
   - Installable via `manifest.json`, Apple touch meta tags, and service-worker registration.
-  - Service worker applies a cache-first, stale-while-revalidate strategy for the shell, fonts, and
-    API calls so the schedule works offline.
-  - Client-side Cache Storage keeps the most recent schedule/standings payloads and reuses them
-    between visits until fresh data arrives.
+  - Service worker keeps the app shell and fonts available through a stale-while-revalidate strategy.
+  - Client-side Cache Storage keeps the most recent season-specific schedule, standings, and bracket
+    payloads and reuses them between visits until fresh data arrives.
 
 - **Quality-of-life touches**
   - German and English UI localization, with a language and broadcast mode picker in the top menu.
@@ -84,7 +83,6 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
   - Adds a direct NBA.com or WNBA.com recap link for finished games, opening the official game recap
     externally.
   - Uses static HTML templates for fast client‑side rendering.
-  - Works offline if the data was previously cached.
 
 - **Excitement meter (german: Spannungsmeter)**
   - Calculates an excitement score (0–100) for finished games from play-by-play closeness, lead
@@ -147,15 +145,15 @@ specific finished game IDs through `/fetch-excitement`; only `missing` IDs fall 
 play-by-play calculation. Once regular-season progress reaches 100%, the client reads
 `/top-excitement` and renders the cached Top 10 list when items are available. The client keeps NBA
 and WNBA cache keys separate for schedule, standings, scoreboard, next-game markers, and excitement
-ratings. The service worker uses stale-while-revalidate for the app shell and API calls on the same
-origin.
+ratings. The service worker uses stale-while-revalidate for the app shell and allowed static assets,
+while core API payloads use the client's separate data cache.
 
 ---
 
 ## Development
 
-- Service Worker toggles live in `js/app.js`: set `useServiceWorker` to `false` for local debugging
-  or bump `serviceWorkerVersion` to force a fresh cache on deploy.
+- Service Worker toggles live in `js/app.js`: set `USE_SERVICE_WORKER` to `false` for local debugging
+  or bump `SERVICE_WORKER_VERSION` to force a fresh cache on deploy.
 
 ## License and usage
 
