@@ -85,7 +85,8 @@ const LEAGUES = {
 		postseasonPrefixes: ["004", "005"],
 		regularSeasonGamesPerTeam: 82,
 		recapHost: "nba.com",
-		supportsBrackets: true,
+		supportsIstBracket: true,
+		supportsPlayoffBracket: true,
 	},
 	wnba: {
 		id: "wnba",
@@ -98,7 +99,8 @@ const LEAGUES = {
 		postseasonPrefixes: ["104"],
 		regularSeasonGamesPerTeam: 44,
 		recapHost: "wnba.com",
-		supportsBrackets: false,
+		supportsIstBracket: false,
+		supportsPlayoffBracket: true,
 	},
 };
 const SUPPORTED_LEAGUES = new Set(Object.keys(LEAGUES));
@@ -527,8 +529,11 @@ function getPlayoffBracketUrl() {
 function getCoreCacheUrls() {
 	const urls = [getScheduleUrl(), getStandingsUrl()];
 
-	if (getCurrentLeague().supportsBrackets) {
-		urls.push(getIstBracketUrl(), getPlayoffBracketUrl());
+	if (getCurrentLeague().supportsIstBracket) {
+		urls.push(getIstBracketUrl());
+	}
+	if (getCurrentLeague().supportsPlayoffBracket) {
+		urls.push(getPlayoffBracketUrl());
 	}
 
 	return new Set(urls);
@@ -1246,10 +1251,10 @@ function createMatchupNode(series, extraClass, options = {}) {
 	const hasBottomScore = Number.isFinite(bottomScoreNum);
 
 	teamANameEl.textContent = topCode || "";
-	teamANameEl.style.setProperty("background-color", `var(--${topCode})`);
+	teamANameEl.style.setProperty("background-color", getTeamColorValue(topCode));
 
 	teamBNameEl.textContent = bottomCode || "";
-	teamBNameEl.style.setProperty("background-color", `var(--${bottomCode})`);
+	teamBNameEl.style.setProperty("background-color", getTeamColorValue(bottomCode));
 
 	// Show "-" unless we have a valid final score
 	teamAScoreEl.textContent = hasTopScore ? topScoreNum : "-";
@@ -1345,6 +1350,7 @@ function resetPlayoffBracket() {
 	westernEl.replaceChildren();
 	easternEl.replaceChildren();
 	finalsEl.replaceChildren();
+	delete playoffsEl.dataset.bracketLayout;
 	playoffsEl.classList.add("hidden");
 	playoffsHeadlineEl.classList.add("hidden");
 }
@@ -1355,7 +1361,7 @@ function createPlayoffMatchup(series, classes, options = {}) {
 	return node;
 }
 
-function appendPlayoffConference(columnEl, side, firstRoundSeries, semifinals, conferenceFinal) {
+function appendPlayoffSide(columnEl, side, firstRoundSeries, semifinals, finalSeries) {
 	const sortedFirstRound = firstRoundSeries
 		.slice()
 		.sort((a, b) => a.displayOrderNumber - b.displayOrderNumber);
@@ -1389,7 +1395,7 @@ function appendPlayoffConference(columnEl, side, firstRoundSeries, semifinals, c
 	);
 	columnEl.appendChild(
 		createPlayoffMatchup(
-			conferenceFinal,
+			finalSeries,
 			["round-3", "conference-finals", centerConnectorClass],
 			playoffOptions,
 		),
@@ -1424,6 +1430,24 @@ function updatePlayoffBracket() {
 		return;
 	}
 
+	westernEl.replaceChildren();
+	easternEl.replaceChildren();
+	finalsEl.replaceChildren();
+	westernEl.classList.add("conference-west");
+	westernEl.classList.remove("conference-east");
+
+	if (currentLeague === "wnba") {
+		const firstRound = series.filter((s) => s.roundNumber === 1);
+		const semifinals = series.filter((s) => s.roundNumber === 2);
+		const wnbaFinals = series.find((s) => s.roundNumber === 3);
+
+		playoffsEl.dataset.bracketLayout = "single-side";
+		appendPlayoffSide(westernEl, "left", firstRound, semifinals, wnbaFinals);
+		playoffsHeadlineEl.classList.remove("hidden");
+		playoffsEl.classList.remove("hidden");
+		return;
+	}
+
 	const westFirstRound = series.filter((s) => (
 		s.roundNumber === 1 && s.seriesConference === "West"
 	));
@@ -1444,19 +1468,15 @@ function updatePlayoffBracket() {
 	));
 	const nbaFinals = series.find((s) => s.roundNumber === 4);
 
-	westernEl.replaceChildren();
-	easternEl.replaceChildren();
-	finalsEl.replaceChildren();
-	westernEl.classList.add("conference-west");
-	westernEl.classList.remove("conference-east");
+	delete playoffsEl.dataset.bracketLayout;
 	easternEl.classList.add("conference-east");
 	easternEl.classList.remove("conference-west");
 
 	playoffsHeadlineEl.classList.remove("hidden");
 	playoffsEl.classList.remove("hidden");
 
-	appendPlayoffConference(westernEl, "left", westFirstRound, westSemifinals, westConferenceFinal);
-	appendPlayoffConference(
+	appendPlayoffSide(westernEl, "left", westFirstRound, westSemifinals, westConferenceFinal);
+	appendPlayoffSide(
 		easternEl,
 		"right",
 		eastFirstRound,
@@ -1467,14 +1487,17 @@ function updatePlayoffBracket() {
 }
 
 function updateBrackets() {
-	if (!getCurrentLeague().supportsBrackets) {
+	if (getCurrentLeague().supportsIstBracket) {
+		updateCupBracket();
+	} else {
 		resetCupBracket();
-		resetPlayoffBracket();
-		return;
 	}
 
-	updateCupBracket();
-	updatePlayoffBracket();
+	if (getCurrentLeague().supportsPlayoffBracket) {
+		updatePlayoffBracket();
+	} else {
+		resetPlayoffBracket();
+	}
 }
 
 /* --------------------------------------------------------------------------------------------------
@@ -3318,11 +3341,14 @@ async function loadData() {
 	}
 	await fetchData(getStandingsUrl(), handleStandingsData);
 
-	if (getCurrentLeague().supportsBrackets) {
+	if (getCurrentLeague().supportsIstBracket) {
 		await fetchData(getIstBracketUrl(), handleIstBracketData);
-		await fetchData(getPlayoffBracketUrl(), handlePlayoffBracketData);
 	} else {
 		resetCupBracket();
+	}
+	if (getCurrentLeague().supportsPlayoffBracket) {
+		await fetchData(getPlayoffBracketUrl(), handlePlayoffBracketData);
+	} else {
 		resetPlayoffBracket();
 	}
 
@@ -3339,8 +3365,10 @@ async function loadData() {
 		await fetchData(getStandingsUrl(), handleStandingsData, true);
 	}
 
-	if (getCurrentLeague().supportsBrackets) {
+	if (getCurrentLeague().supportsIstBracket) {
 		await fetchData(getIstBracketUrl(), handleIstBracketData, true);
+	}
+	if (getCurrentLeague().supportsPlayoffBracket) {
 		await fetchData(getPlayoffBracketUrl(), handlePlayoffBracketData, true);
 	}
 
@@ -3472,7 +3500,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-08-15-v3";
+const SERVICE_WORKER_VERSION = "2026-08-15-v7";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

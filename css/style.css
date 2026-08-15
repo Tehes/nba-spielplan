@@ -437,6 +437,29 @@ PLAYOFFS and NBA CUP
     --bracket-final-link-length: calc(var(--bracket-gap) + (var(--bracket-matchup-width) / 2) - (var(--bracket-stroke-width) / 2));
 }
 
+#playoffs[data-bracket-layout="single-side"] {
+    --bracket-gap: clamp(6px, 2cqw, 16px);
+    --bracket-matchup-width: clamp(75px, 18cqw, 120px);
+    --bracket-column-width: 100cqw;
+    --bracket-round-link-height: calc((var(--bracket-matchup-height) / 2) + var(--bracket-gap));
+    --bracket-side-link-length: max(0px,
+            calc((var(--bracket-column-width) / 2) - var(--bracket-matchup-width) - (var(--bracket-stroke-width) / 2)));
+    justify-content: center;
+}
+
+#playoffs[data-bracket-layout="single-side"]>#western {
+    flex: 1 1 100%;
+}
+
+#playoffs[data-bracket-layout="single-side"]>:is(#finals, #eastern) {
+    display: none;
+}
+
+#playoffs[data-bracket-layout="single-side"] .round-3::before,
+#playoffs[data-bracket-layout="single-side"] .round-3::after {
+    height: calc(var(--bracket-matchup-height) + (var(--bracket-matchup-height) / 2) + (var(--bracket-gap) * 2) + (var(--bracket-stroke-width) / 2));
+}
+
 #cup {
     --bracket-matchup-width: clamp(75px, 20vw, 110px);
     --bracket-column-width: min(40cqw,

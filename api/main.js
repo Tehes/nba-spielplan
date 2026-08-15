@@ -932,16 +932,11 @@ Deno.serve(async (req, context) => {
 
 		// --- /playoffbracket: use active season ---
 		if (PATH === "/playoffbracket") {
-			if (league.id !== "nba") {
-				return new Response("Bracket not available for league", {
-					status: 400,
-					headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
-				});
-			}
 			const seasonContext = await getSeasonContext(league);
 			const seasonString = seasonContext.season;
 			const year = getSeasonStartYear(seasonString);
-			const playoffUrl = `https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=${year}&State=2`;
+			const playoffUrl =
+				`https://stats.nba.com/stats/playoffbracket?LeagueID=${league.leagueId}&SeasonYear=${year}&State=2`;
 			const data = await fetchOptionalUpstream(playoffUrl, league, true);
 			return respondWithOptionalBracket(data, "playoffBracketSeries", seasonString, origin);
 		}

@@ -55,8 +55,8 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
     league, using the active standings team count and configured games per team.
   - NBA conference standings and WNBA overall standings (W-L, games behind, streak, home/away
     splits), with NBA divisions and WNBA conferences available as secondary views.
-  - Official NBA playoff bracket that renders round-by-round once the active season's feed becomes
-    available.
+  - Official NBA and WNBA playoff brackets that render round-by-round once the active season's feed
+    becomes available.
   - NBA Cup bracket (In-Season Tournament) that renders quarterfinals onward once the official
     bracket feed lists all matchups.
 
@@ -130,7 +130,7 @@ broadcast labels.
 | `/top-excitement`      | Top excitement-rated games      | Read-only KV endpoint for the current season's cached highlight list.                    |
 | `/backfill-excitement` | Excitement cache warmup         | POST endpoint that queues one lazy, batch-limited KV backfill for the active league.     |
 | `/fetch-excitement`    | Specific cached ratings         | POST endpoint that reads requested game IDs from KV and returns `scores` plus `missing`. |
-| `/playoffbracket`      | Official NBA bracket JSON       | NBA-only; returns `available: false` until the active season's feed exists.              |
+| `/playoffbracket`      | Official playoff bracket JSON   | NBA/WNBA; returns `available: false` until the active season's feed exists.              |
 | `/istbracket`          | NBA Cup (IST) bracket JSON      | NBA-only; returns `available: false` until the active season's feed exists.              |
 | `/boxscore/:id`        | Per-game boxscore               | Uncached proxy to the active league's live boxscore JSON.                                |
 | `/playbyplay/:id`      | Per-game play-by-play           | Uncached proxy to the active league's live play-by-play JSON.                            |
@@ -145,7 +145,8 @@ specific finished game IDs through `/fetch-excitement`; only `missing` IDs fall 
 play-by-play calculation. Once regular-season progress reaches 100%, the client reads
 `/top-excitement` and renders the cached Top 10 list when items are available. The client keeps NBA
 and WNBA cache keys separate for schedule, standings, scoreboard, next-game markers, and excitement
-ratings. The service worker uses stale-while-revalidate for the app shell and allowed static assets,
+ratings. NBA and WNBA playoff brackets remain hidden until the official feed contains series for
+the active season. The service worker uses stale-while-revalidate for the app shell and allowed static assets,
 while core API payloads use the client's separate data cache.
 
 ---
