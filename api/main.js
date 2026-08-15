@@ -129,9 +129,9 @@ const TEAM_TRICODE_BY_ID_BY_LEAGUE = Object.fromEntries(
 	]),
 );
 
-// === Cache (only for Season Year) ===
-const cachedSeasonYears = new Map();
-const SEASON_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+// === Cache ===
+const cachedSeasonContexts = new Map();
+const SEASON_CONTEXT_TTL_MS = 60 * 1000;
 let kvPromise = null;
 const topExcitementProcessing = new Set();
 
@@ -143,33 +143,93 @@ function getKv() {
 	return kvPromise;
 }
 
-async function getSeasonYear(league) {
+function getSeasonContextKey(leagueId) {
+	return ["season-context", leagueId];
+}
+
+function getSeasonStartYear(season) {
+	const match = /^(\d{4})/.exec(season || "");
+	return match ? Number(match[1]) : null;
+}
+
+function getPreviousSeason(season) {
+	const startYear = getSeasonStartYear(season);
+	if (!Number.isInteger(startYear)) {
+		return null;
+	}
+
+	if (season.includes("-")) {
+		return `${startYear - 1}-${String(startYear).slice(-2)}`;
+	}
+
+	return String(startYear - 1);
+}
+
+function hasScheduleGames(scheduleJson) {
+	const dates = scheduleJson?.leagueSchedule?.gameDates ?? [];
+
+	return dates.some((date) => {
+		return (date.games ?? []).some((game) => {
+			const gameDate = new Date(game?.gameDateTimeUTC);
+			return typeof game?.gameId === "string" &&
+				game.gameId.length > 0 &&
+				!Number.isNaN(gameDate.getTime());
+		});
+	});
+}
+
+async function getSeasonContext(league, scheduleJson = null) {
 	const now = Date.now();
-	const cached = cachedSeasonYears.get(league.id);
+	const cached = cachedSeasonContexts.get(league.id);
 
-	if (cached && (now - cached.cachedAt) < SEASON_TTL_MS) {
-		console.log("[cache hit] seasonYear", league.id, cached.seasonYear);
-		return cached.seasonYear;
+	if (!scheduleJson && cached && (now - cached.cachedAt) < SEASON_CONTEXT_TTL_MS) {
+		console.log("[cache hit] seasonContext", league.id, cached.context.season);
+		return cached.context;
 	}
 
-	try {
-		console.log("[cache miss] fetching seasonYear via schedule", league.id);
-		const schedule = await fetchUpstream(getScheduleUrl(league), league);
-		const seasonYear = schedule?.leagueSchedule?.seasonYear;
+	const schedule = scheduleJson || await fetchUpstream(getScheduleUrl(league), league);
+	const candidateSeason = getScheduleSeason(schedule);
+	const candidateStartYear = getSeasonStartYear(candidateSeason);
 
-		if (!seasonYear) {
-			throw new Error("Season year missing in schedule response");
-		}
-
-		cachedSeasonYears.set(league.id, { seasonYear, cachedAt: now });
-		return seasonYear;
-	} catch (err) {
-		if (cached) {
-			console.log("[seasonYear fallback] using last known good", league.id, cached.seasonYear);
-			return cached.seasonYear;
-		}
-		throw err;
+	if (!candidateSeason || !Number.isInteger(candidateStartYear)) {
+		throw new Error("Season year missing in schedule response");
 	}
+
+	const scheduleReady = hasScheduleGames(schedule);
+	const kv = await getKv();
+	const key = getSeasonContextKey(league.id);
+	const storedEntry = await kv.get(key);
+	const storedSeason = typeof storedEntry.value?.season === "string" ? storedEntry.value.season : null;
+	const storedStartYear = getSeasonStartYear(storedSeason);
+	let season = storedSeason;
+
+	if (!season) {
+		season = scheduleReady ? candidateSeason : getPreviousSeason(candidateSeason);
+	} else if (
+		scheduleReady &&
+		(!Number.isInteger(storedStartYear) || candidateStartYear >= storedStartYear)
+	) {
+		season = candidateSeason;
+	}
+
+	if (!season) {
+		throw new Error("Active season could not be determined");
+	}
+
+	if (season !== storedSeason) {
+		await kv.set(key, {
+			season,
+			updatedAt: new Date(now).toISOString(),
+		});
+	}
+
+	const context = {
+		season,
+		candidateSeason,
+		scheduleReady,
+	};
+	cachedSeasonContexts.set(league.id, { context, cachedAt: now });
+	return context;
 }
 
 // === Helper Functions ===
@@ -227,6 +287,42 @@ async function proxyWithCors(url, origin, league, isStats = false) {
 	return new Response(body, { status: res.status, headers });
 }
 
+async function fetchOptionalUpstream(url, league, isStats = false) {
+	try {
+		return await fetchUpstream(url, league, isStats);
+	} catch (error) {
+		console.warn("[optional upstream unavailable]", league.id, url, error);
+		return null;
+	}
+}
+
+function respondWithOptionalBracket(data, seriesKey, season, origin) {
+	const series = data?.bracket?.[seriesKey];
+	const available = Array.isArray(series) && series.length > 0;
+
+	if (!available) {
+		return respondWithCors(
+			{
+				season,
+				available: false,
+				bracket: null,
+			},
+			origin,
+			60,
+		);
+	}
+
+	return respondWithCors(
+		{
+			...data,
+			season,
+			available: true,
+		},
+		origin,
+		60,
+	);
+}
+
 function getLeague(url) {
 	const leagueId = url.searchParams.get("league") || "nba";
 	return LEAGUES[leagueId] || null;
@@ -264,7 +360,7 @@ function getOfficialStandingsUrl(season, league, groupBy = "conf") {
 function getScheduleSeason(scheduleJson) {
 	return scheduleJson?.leagueSchedule?.seasonYear ||
 		scheduleJson?.meta?.seasonYear ||
-		"unknown";
+		null;
 }
 
 function getTopExcitementLimit(url) {
@@ -546,7 +642,8 @@ function methodNotAllowed(origin) {
 async function handleTopExcitement(url, origin, league) {
 	// TODO: Wire the future Top-10 frontend view to this read-only endpoint.
 	const limit = getTopExcitementLimit(url);
-	const season = await getSeasonYear(league);
+	const seasonContext = await getSeasonContext(league);
+	const season = seasonContext.season;
 	const kv = await getKv();
 	const keys = getTopExcitementKeys(league.id, season);
 	const [topEntry, metaEntry] = await kv.getMany([keys.top, keys.meta]);
@@ -570,8 +667,11 @@ async function handleTopExcitement(url, origin, league) {
 
 async function handleBackfillExcitement(origin, league, context) {
 	const scheduleJson = await fetchUpstream(getScheduleUrl(league), league);
-	const season = getScheduleSeason(scheduleJson);
-	const eligibleGames = getTopExcitementEligibleGames(scheduleJson, league);
+	const seasonContext = await getSeasonContext(league, scheduleJson);
+	const season = seasonContext.season;
+	const eligibleGames = season === seasonContext.candidateSeason
+		? getTopExcitementEligibleGames(scheduleJson, league)
+		: [];
 	const kv = await getKv();
 	const keys = getTopExcitementKeys(league.id, season);
 	const [topEntry, metaEntry] = await kv.getMany([keys.top, keys.meta]);
@@ -620,7 +720,8 @@ async function handleFetchExcitement(req, origin, league) {
 	}
 
 	const gameIds = Array.from(new Set(body.gameIds.filter((gameId) => typeof gameId === "string")));
-	const season = await getSeasonYear(league);
+	const seasonContext = await getSeasonContext(league);
+	const season = seasonContext.season;
 	const kv = await getKv();
 	const scores = {};
 	const missing = [];
@@ -800,7 +901,8 @@ Deno.serve(async (req, context) => {
 
 		// --- /standings: fetch fresh ---
 		if (PATH === "/standings") {
-			const seasonString = await getSeasonYear(league);
+			const seasonContext = await getSeasonContext(league);
+			const seasonString = seasonContext.season;
 			const standingsUrl = getOfficialStandingsUrl(seasonString, league);
 			const data = await fetchUpstream(standingsUrl, league, true);
 			const payload = buildStandingsFromOfficialData(data, seasonString, league);
@@ -814,7 +916,8 @@ Deno.serve(async (req, context) => {
 		}
 
 		if (PATH === "/standings-official") {
-			const seasonString = await getSeasonYear(league);
+			const seasonContext = await getSeasonContext(league);
+			const seasonString = seasonContext.season;
 			const standingsUrl = getOfficialStandingsUrl(seasonString, league);
 			const data = await fetchUpstream(standingsUrl, league, true);
 			const payload = buildStandingsFromOfficialData(data, seasonString, league);
@@ -827,7 +930,7 @@ Deno.serve(async (req, context) => {
 			return respondWithCors(payload, origin, 60);
 		}
 
-		// --- /playoffbracket: use cached season year only ---
+		// --- /playoffbracket: use active season ---
 		if (PATH === "/playoffbracket") {
 			if (league.id !== "nba") {
 				return new Response("Bracket not available for league", {
@@ -835,13 +938,15 @@ Deno.serve(async (req, context) => {
 					headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
 				});
 			}
-			const seasonString = await getSeasonYear(league);
-			const year = seasonString.split("-")[0];
+			const seasonContext = await getSeasonContext(league);
+			const seasonString = seasonContext.season;
+			const year = getSeasonStartYear(seasonString);
 			const playoffUrl = `https://stats.nba.com/stats/playoffbracket?LeagueID=00&SeasonYear=${year}&State=2`;
-			return proxyWithCors(playoffUrl, origin, league, true);
+			const data = await fetchOptionalUpstream(playoffUrl, league, true);
+			return respondWithOptionalBracket(data, "playoffBracketSeries", seasonString, origin);
 		}
 
-		// --- /istbracket: use cached season year only ---
+		// --- /istbracket: use active season ---
 		if (PATH === "/istbracket") {
 			if (league.id !== "nba") {
 				return new Response("Bracket not available for league", {
@@ -849,10 +954,12 @@ Deno.serve(async (req, context) => {
 					headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
 				});
 			}
-			const seasonString = await getSeasonYear(league);
-			const year = seasonString.split("-")[0];
+			const seasonContext = await getSeasonContext(league);
+			const seasonString = seasonContext.season;
+			const year = getSeasonStartYear(seasonString);
 			const istBracketUrl = `https://cdn.nba.com/static/json/staticData/brackets/${year}/ISTBracket.json`;
-			return proxyWithCors(istBracketUrl, origin, league);
+			const data = await fetchOptionalUpstream(istBracketUrl, league);
+			return respondWithOptionalBracket(data, "istBracketSeries", seasonString, origin);
 		}
 
 		// --- /scoreboard: no cache, always live ---

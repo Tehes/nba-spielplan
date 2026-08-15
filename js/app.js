@@ -305,6 +305,7 @@ const topExcitementByLeague = new Map();
 
 let schedule;
 let standings;
+let activeSeason = null;
 let games = {
 	today: [],
 	finished: [],
@@ -469,13 +470,22 @@ function addApiQueryParam(url, key, value) {
 	return `${url}${separator}${key}=${encodeURIComponent(value)}`;
 }
 
+function addActiveSeasonQuery(url) {
+	return activeSeason ? addApiQueryParam(url, "season", activeSeason) : url;
+}
+
 function getScheduleUrl() {
 	const scheduleUrl = addApiQueryParam(getLeagueApiUrl("/schedule"), "region", currentBroadcastRegion);
 	return addApiQueryParam(scheduleUrl, "scheduleVersion", SCHEDULE_CACHE_VERSION);
 }
 
 function getStandingsUrl() {
-	return addApiQueryParam(getLeagueApiUrl("/standings"), "standingsVersion", STANDINGS_CACHE_VERSION);
+	const standingsUrl = addApiQueryParam(
+		getLeagueApiUrl("/standings"),
+		"standingsVersion",
+		STANDINGS_CACHE_VERSION,
+	);
+	return addActiveSeasonQuery(standingsUrl);
 }
 
 function getScoreboardUrl() {
@@ -507,11 +517,11 @@ function getExcitementCacheKey(leagueId, gameId) {
 }
 
 function getIstBracketUrl() {
-	return getLeagueApiUrl("/istbracket");
+	return addActiveSeasonQuery(getLeagueApiUrl("/istbracket"));
 }
 
 function getPlayoffBracketUrl() {
-	return getLeagueApiUrl("/playoffbracket");
+	return addActiveSeasonQuery(getLeagueApiUrl("/playoffbracket"));
 }
 
 function getCoreCacheUrls() {
@@ -921,6 +931,42 @@ function resetStandingsRows() {
 	divisionStandingsEl.replaceChildren();
 }
 
+function getScheduleSeason(scheduleJson) {
+	return scheduleJson?.leagueSchedule?.seasonYear || scheduleJson?.meta?.seasonYear || null;
+}
+
+function getValidScheduleGames(scheduleJson) {
+	const dates = scheduleJson?.leagueSchedule?.gameDates ?? [];
+
+	return dates.flatMap((date) => date.games ?? []).filter((game) => {
+		const gameDate = new Date(game?.gameDateTimeUTC);
+		return typeof game?.gameId === "string" &&
+			game.gameId.length > 0 &&
+			!Number.isNaN(gameDate.getTime());
+	});
+}
+
+function isCurrentSeasonResponse(json) {
+	return typeof json?.season === "string" && (!activeSeason || json.season === activeSeason);
+}
+
+function resetSeasonDependentData() {
+	standings = null;
+	istBracket = null;
+	playoffBracket = null;
+	eastData = [];
+	westData = [];
+	overallData = [];
+	divisionsData = {};
+	excitementCache.clear();
+	topExcitementByLeague.delete(currentLeague);
+	resetStandingsRows();
+	resetTopExcitementSection();
+	resetCupBracket();
+	resetPlayoffBracket();
+	updateStandingsViewControls();
+}
+
 function resetLeagueData() {
 	stopLivePolling();
 	liveById = new Map();
@@ -928,6 +974,7 @@ function resetLeagueData() {
 	topExcitementByLeague.clear();
 	schedule = null;
 	standings = null;
+	activeSeason = null;
 	games = {
 		today: [],
 		finished: [],
@@ -2990,7 +3037,17 @@ DATA HANDLERS
 ---------------------------------------------------------------------------------------------------*/
 
 function handleScheduleData(json) {
-	if (json?.leagueSchedule?.gameDates?.length) {
+	const scheduleSeason = getScheduleSeason(json);
+	const validGames = getValidScheduleGames(json);
+
+	if (scheduleSeason && validGames.length > 0) {
+		const seasonChanged = activeSeason && activeSeason !== scheduleSeason;
+		if (seasonChanged) {
+			console.log("Active season changed", activeSeason, scheduleSeason);
+			resetSeasonDependentData();
+		}
+
+		activeSeason = scheduleSeason;
 		schedule = json;
 
 		games = {
@@ -3014,11 +3071,16 @@ function handleScheduleData(json) {
 }
 
 function handleStandingsData(json) {
-	if (!json || !Array.isArray(json.east) || !Array.isArray(json.west)) {
+	if (
+		!isCurrentSeasonResponse(json) ||
+		!Array.isArray(json.east) ||
+		!Array.isArray(json.west)
+	) {
 		console.log("Standings data not available. Skipping standings rendering.");
 		return;
 	}
 
+	activeSeason = activeSeason || json.season;
 	standings = json;
 
 	// Store new-format arrays directly
@@ -3036,21 +3098,35 @@ function handleStandingsData(json) {
 }
 
 function handleIstBracketData(json) {
-	if (!json || !json.bracket || !Array.isArray(json.bracket.istBracketSeries)) {
+	if (
+		!isCurrentSeasonResponse(json) ||
+		json.available === false ||
+		!Array.isArray(json.bracket?.istBracketSeries)
+	) {
+		istBracket = null;
+		resetCupBracket();
 		console.log("IST bracket data not available. Skipping cup bracket rendering.");
 		return;
 	}
 
+	activeSeason = activeSeason || json.season;
 	istBracket = json;
 	updateBrackets();
 }
 
 function handlePlayoffBracketData(json) {
-	if (!json || !json.bracket || !Array.isArray(json.bracket.playoffBracketSeries)) {
+	if (
+		!isCurrentSeasonResponse(json) ||
+		json.available === false ||
+		!Array.isArray(json.bracket?.playoffBracketSeries)
+	) {
+		playoffBracket = null;
+		resetPlayoffBracket();
 		console.log("Playoff bracket data not available. Skipping playoff bracket rendering.");
 		return;
 	}
 
+	activeSeason = activeSeason || json.season;
 	playoffBracket = json;
 	updateBrackets();
 }
@@ -3383,7 +3459,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-06-14-v3";
+const SERVICE_WORKER_VERSION = "2026-08-15-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({

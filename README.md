@@ -127,18 +127,20 @@ broadcast labels.
 | Endpoint               | Purpose                         | Notes                                                                                    |
 | ---------------------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
 | `/schedule`            | Raw league schedule             | Fetched fresh per request; client Cache API handles reuse.                               |
-| `/standings`           | Normalized standings            | Uses the official standings feed and includes NBA divisions.                             |
+| `/standings`           | Normalized standings            | Uses the active season's official feed and includes NBA divisions.                       |
 | `/scoreboard`          | Live in-day scoreboard feed     | Always proxied without caching; powers the game detail overlay and in-day score updates. |
 | `/top-excitement`      | Top excitement-rated games      | Read-only KV endpoint for the current season's cached highlight list.                    |
 | `/backfill-excitement` | Excitement cache warmup         | POST endpoint that queues one lazy, batch-limited KV backfill for the active league.     |
 | `/fetch-excitement`    | Specific cached ratings         | POST endpoint that reads requested game IDs from KV and returns `scores` plus `missing`. |
-| `/playoffbracket`      | Official NBA bracket JSON       | NBA-only; uses a 24h-cached season year, then proxies the official bracket feed.         |
-| `/istbracket`          | NBA Cup (IST) bracket JSON      | NBA-only; uses a 24h-cached season year, then proxies the official ISTBracket feed.      |
+| `/playoffbracket`      | Official NBA bracket JSON       | NBA-only; returns `available: false` until the active season's feed exists.              |
+| `/istbracket`          | NBA Cup (IST) bracket JSON      | NBA-only; returns `available: false` until the active season's feed exists.              |
 | `/boxscore/:id`        | Per-game boxscore               | Uncached proxy to the active league's live boxscore JSON.                                |
 | `/playbyplay/:id`      | Per-game play-by-play           | Uncached proxy to the active league's live play-by-play JSON.                            |
 
-The frontend consumes core endpoints via `fetchData`, which first checks the Cache API before
-hitting the network. When games are live, the app polls `/scoreboard` every minute and merges the
+The backend advances each league's active season only when the new schedule contains a valid game
+and persists that monotonic state in KV. The frontend includes the active season in standings and
+bracket cache URLs so old payloads cannot mix with a new schedule. Core endpoints are consumed via
+`fetchData`, which first checks the Cache API before hitting the network. When games are live, the app polls `/scoreboard` every minute and merges the
 fresh scores into the already-rendered cards. Excitement ratings are KV-first: after the initial
 page data load, the client starts a non-blocking `/backfill-excitement` request, then batches
 specific finished game IDs through `/fetch-excitement`; only `missing` IDs fall back to client-side
