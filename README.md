@@ -52,7 +52,7 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
 
 - **Season context**
   - Progress bar keeps track of the percentage of finished regular-season games for the active
-    league.
+    league, using the active standings team count and configured games per team.
   - NBA conference standings and WNBA overall standings (W-L, games behind, streak, home/away
     splits), with NBA divisions and WNBA conferences available as secondary views.
   - Dynamically generated playoff bracket that plugs in the top six seeds, projects play‑in winners,

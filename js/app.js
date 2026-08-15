@@ -83,7 +83,7 @@ const LEAGUES = {
 		colorPrefix: "",
 		regularSeasonPrefix: "002",
 		postseasonPrefixes: ["004", "005"],
-		totalRegularSeasonGames: 1230,
+		regularSeasonGamesPerTeam: 82,
 		recapHost: "nba.com",
 		supportsBrackets: true,
 	},
@@ -96,7 +96,7 @@ const LEAGUES = {
 		colorPrefix: "wnba-",
 		regularSeasonPrefix: "102",
 		postseasonPrefixes: ["104"],
-		totalRegularSeasonGames: 330,
+		regularSeasonGamesPerTeam: 44,
 		recapHost: "wnba.com",
 		supportsBrackets: false,
 	},
@@ -995,7 +995,7 @@ function resetLeagueData() {
 	moreEl.replaceChildren();
 	resetTopExcitementSection();
 	progressValue.style.width = "0%";
-	progressValue.textContent = "0%";
+	progressValue.textContent = "";
 	resetCupBracket();
 	resetPlayoffBracket();
 	resetStandingsRows();
@@ -1101,14 +1101,25 @@ function renderTeamMetaLabels(game, homeWL, visitingWL, preferPostseasonSeed = f
 }
 
 function getRegularSeasonProgressPercentage() {
+	const teamCount = eastData.length + westData.length;
+	if (teamCount === 0) {
+		return null;
+	}
+
 	const done = (games.finished?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0) +
 		(games.today?.filter((g) => g.gameStatus === 3 && isRegularSeasonGame(g)).length ?? 0);
+	const total = teamCount * getCurrentLeague().regularSeasonGamesPerTeam / 2;
 
-	return Math.min(100, Math.floor((done * 100) / getCurrentLeague().totalRegularSeasonGames));
+	return Math.min(100, Math.floor((done * 100) / total));
 }
 
 function setProgressBar() {
 	const pct = getRegularSeasonProgressPercentage();
+	if (pct === null) {
+		progressValue.style.width = "0%";
+		progressValue.textContent = "";
+		return;
+	}
 
 	progressValue.style.width = `${pct}%`;
 	progressValue.textContent = `${pct}%`;
@@ -3088,6 +3099,8 @@ function handleStandingsData(json) {
 	westData = standings.west.slice();
 	overallData = getOverallStandingsData();
 	divisionsData = standings.divisions || {};
+	setProgressBar();
+	loadTopExcitementGames();
 
 	standingsOverall = document.querySelector("#overall table");
 	standingsEast = document.querySelector("#east table");
@@ -3459,7 +3472,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-08-15-v1";
+const SERVICE_WORKER_VERSION = "2026-08-15-v2";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({
