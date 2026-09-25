@@ -1247,14 +1247,18 @@ function createMatchupNode(series, extraClass, options = {}) {
 			: (isFinal ? Number(series?.highSeedScore) : null);
 	}
 
-	const hasTopScore = Number.isFinite(topScoreNum);
-	const hasBottomScore = Number.isFinite(bottomScoreNum);
+	const hasTopScore = Boolean(topCode) && Number.isFinite(topScoreNum);
+	const hasBottomScore = Boolean(bottomCode) && Number.isFinite(bottomScoreNum);
 
 	teamANameEl.textContent = topCode || "";
-	teamANameEl.style.setProperty("background-color", getTeamColorValue(topCode));
+	if (topCode) {
+		teamANameEl.style.setProperty("background-color", getTeamColorValue(topCode));
+	}
 
 	teamBNameEl.textContent = bottomCode || "";
-	teamBNameEl.style.setProperty("background-color", getTeamColorValue(bottomCode));
+	if (bottomCode) {
+		teamBNameEl.style.setProperty("background-color", getTeamColorValue(bottomCode));
+	}
 
 	// Show "-" unless we have a valid final score
 	teamAScoreEl.textContent = hasTopScore ? topScoreNum : "-";
@@ -3502,7 +3506,7 @@ globalThis.app.init();
  * - AUTO_RELOAD_ON_SW_UPDATE: reload page once after an update
  -------------------------------------------------------------------------------------------------- */
 const USE_SERVICE_WORKER = true;
-const SERVICE_WORKER_VERSION = "2026-08-15-v8";
+const SERVICE_WORKER_VERSION = "2026-09-25-v1";
 const AUTO_RELOAD_ON_SW_UPDATE = true;
 
 initServiceWorkerRegistration({
