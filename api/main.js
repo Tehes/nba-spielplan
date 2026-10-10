@@ -919,9 +919,8 @@ Deno.serve(async (req, context) => {
 			const seasonContext = await getSeasonContext(league);
 			const seasonString = seasonContext.season;
 			const year = getSeasonStartYear(seasonString);
-			const playoffUrl =
-				`https://stats.nba.com/stats/playoffbracket?LeagueID=${league.leagueId}&SeasonYear=${year}&State=2`;
-			const data = await fetchOptionalUpstream(playoffUrl, league, true);
+			const playoffUrl = `${league.scheduleBaseUrl}/brackets/${year}/PlayoffBracket.json`;
+			const data = await fetchOptionalUpstream(playoffUrl, league);
 			return respondWithOptionalBracket(data, "playoffBracketSeries", seasonString, origin);
 		}
 
