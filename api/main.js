@@ -4,7 +4,6 @@ import { computeGameExcitement } from "https://tehes.github.io/nba-spielplan/js/
 const LEAGUE_STANDINGS_URL = "https://stats.nba.com/stats/leaguestandingsv3";
 const NBA_ODDS_URL = "https://cdn.nba.com/static/json/liveData/odds/odds_todaysGames.json";
 const FANDUEL_BOOK_ID = "sr:book:18186";
-const ODDS_TTL_MS = 5 * 60 * 1000;
 
 const BASE_UPSTREAM_HEADERS = {
 	"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0",
@@ -137,8 +136,6 @@ const cachedSeasonContexts = new Map();
 const SEASON_CONTEXT_TTL_MS = 60 * 1000;
 let kvPromise = null;
 const topExcitementProcessing = new Set();
-let cachedOdds = null;
-let oddsRequest = null;
 
 function getKv() {
 	if (!kvPromise) {
@@ -335,24 +332,6 @@ function buildOddsPayload(data) {
 	}
 
 	return { updatedAt: new Date().toISOString(), games };
-}
-
-function loadOdds() {
-	if (cachedOdds && Date.now() - cachedOdds.cachedAt < ODDS_TTL_MS) {
-		return cachedOdds.data;
-	}
-
-	if (!oddsRequest) {
-		oddsRequest = fetchUpstream(NBA_ODDS_URL, LEAGUES.nba).then((data) => {
-			const payload = buildOddsPayload(data);
-			cachedOdds = { data: payload, cachedAt: Date.now() };
-			return payload;
-		}).finally(() => {
-			oddsRequest = null;
-		});
-	}
-
-	return oddsRequest;
 }
 
 function respondWithOptionalBracket(data, seriesKey, season, origin) {
@@ -944,7 +923,8 @@ Deno.serve(async (req, context) => {
 				});
 			}
 
-			const response = respondWithCors(await loadOdds(), origin);
+			const data = await fetchUpstream(NBA_ODDS_URL, league);
+			const response = respondWithCors(buildOddsPayload(data), origin);
 			response.headers.set("Cache-Control", "no-store");
 			return response;
 		}
