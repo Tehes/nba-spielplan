@@ -60,31 +60,31 @@
         </nav>
         <p id="game-share-feedback" class="share-feedback"></p>
         <p id="request-warning" class="request-warning hidden" data-i18n="requestWarning">Einige Daten konnten nicht aktualisiert werden. Bitte versuche es später erneut.</p>
-        <section id="game-message">
+        <section id="game-message" class="hidden">
             <p id="game-message-text" data-i18n="loading">Lädt…</p>
             <button id="game-retry" type="button" class="hidden" data-i18n="retry">Erneut versuchen</button>
         </section>
-        <header id="game-hero" class="hidden">
-            <p id="game-context"></p>
-            <h1 id="game-date"></h1>
+        <header id="game-hero" class="is-loading">
+            <p id="game-context" class="skeleton"></p>
+            <h1 id="game-date" class="skeleton"></h1>
             <div class="game-matchup">
                 <div id="away-team" class="hero-team">
                     <span class="team-side" data-i18n="away">Gast</span>
-                    <img class="team-logo" width="180" height="180" alt="">
-                    <span class="team-city"></span>
-                    <strong class="team-name"></strong>
-                    <span class="team-record"></span>
+                    <span class="hero-logo"><img class="team-logo" width="180" height="180" alt=""></span>
+                    <span class="team-city skeleton"></span>
+                    <strong class="team-name skeleton"></strong>
+                    <span class="team-record skeleton"></span>
                 </div>
                 <div class="hero-scoreboard">
-                    <p id="game-state"></p>
-                    <strong id="game-score"></strong>
+                    <p id="game-state" data-i18n="loading">Lädt…</p>
+                    <strong id="game-score" class="skeleton"></strong>
                 </div>
                 <div id="home-team" class="hero-team">
                     <span class="team-side" data-i18n="home">Heim</span>
-                    <img class="team-logo" width="180" height="180" alt="">
-                    <span class="team-city"></span>
-                    <strong class="team-name"></strong>
-                    <span class="team-record"></span>
+                    <span class="hero-logo"><img class="team-logo" width="180" height="180" alt=""></span>
+                    <span class="team-city skeleton"></span>
+                    <strong class="team-name skeleton"></strong>
+                    <span class="team-record skeleton"></span>
                 </div>
             </div>
             <p id="game-meta">
@@ -92,7 +92,7 @@
                 <span id="game-broadcast" class="broadcast-label"></span>
             </p>
         </header>
-        <section id="game-details" class="game-details hidden">
+        <section id="game-details" class="game-details is-loading">
 			<div id="game-excitement" class="hidden">
 				<h4 data-i18n="excitement">Spannung</h4>
 				<div id="game-excitement-bar" class="meter-container">
@@ -101,15 +101,22 @@
 				<p id="game-excitement-label"></p>
 			</div>
 			<div class="tabs">
-				<button type="button" class="tab is-active" data-target="overview-panel" data-i18n="overview">
+				<button type="button" class="tab is-active" data-target="overview-panel" data-i18n="overview" disabled>
 					Übersicht
 				</button>
-				<button type="button" class="tab" data-target="boxscore-panel" data-i18n="boxscore">
+				<button type="button" class="tab" data-target="boxscore-panel" data-i18n="boxscore" disabled>
 					Boxscore
 				</button>
-				<button type="button" class="tab" data-target="playbyplay-panel" data-i18n="playByPlay">
+				<button type="button" class="tab" data-target="playbyplay-panel" data-i18n="playByPlay" disabled>
 					Play by Play
 				</button>
+			</div>
+
+			<div class="details-loading">
+				<span class="skeleton"></span>
+				<span class="skeleton"></span>
+				<span class="skeleton"></span>
+				<span class="skeleton"></span>
 			</div>
 
 			<div id="overview-panel" class="panel is-active">

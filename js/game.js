@@ -8,6 +8,7 @@ import {
 	messages,
 	MODE_STORAGE_KEY,
 	MODES,
+	SCHEDULE_CACHE_VERSION,
 } from "./game-shared.js";
 import { createGameRenderer } from "./game-renderer.js";
 import { shareGame } from "./game-links.js";
@@ -30,6 +31,7 @@ let lastScheduleRefresh = 0;
 let rating = null;
 let ratingRequested = false;
 let statsLoaded = false;
+let scheduleFromCache = false;
 
 const detailsEl = document.querySelector("#game-details");
 const heroEl = document.querySelector("#game-hero");
@@ -108,14 +110,51 @@ function getGameStatus() {
 	return getCurrentGameData().gameStatus;
 }
 
-async function loadSchedule() {
-	const requestedMode = mode;
-	const data = await fetchGameData("/schedule");
+function applyScheduleData(data) {
 	if (!Array.isArray(data?.leagueSchedule?.gameDates)) {
 		throw new Error("Invalid schedule response");
 	}
-	scheduleGames = data.leagueSchedule.gameDates.flatMap((date) => date.games || []);
-	game = scheduleGames.find((item) => item.gameId === gameId) || null;
+	const games = data.leagueSchedule.gameDates.flatMap((date) => date.games || []);
+	const selectedGame = games.find((item) => item.gameId === gameId) || null;
+	if (selectedGame && (!selectedGame.awayTeam || !selectedGame.homeTeam)) {
+		throw new Error("Invalid schedule game");
+	}
+	scheduleGames = games;
+	game = selectedGame;
+}
+
+async function loadCachedSchedule() {
+	if (!("caches" in globalThis)) {
+		return;
+	}
+	const requestedMode = mode;
+	const cacheUrl = new URL(`${API_BASE_URL}/schedule${LEAGUES[leagueId].query}`);
+	cacheUrl.searchParams.set("region", MODES[mode].broadcastRegion);
+	cacheUrl.searchParams.set("scheduleVersion", SCHEDULE_CACHE_VERSION);
+	try {
+		const response = await caches.match(cacheUrl.href, { cacheName: "nba-data-cache" });
+		if (!response) {
+			return;
+		}
+		const data = await response.json();
+		if (requestedMode !== mode) {
+			return;
+		}
+		applyScheduleData(data);
+		if (game) {
+			scheduleFromCache = true;
+			renderGame();
+		}
+	} catch (error) {
+		console.warn("Cached game schedule could not be loaded:", error);
+	}
+}
+
+async function loadSchedule() {
+	const requestedMode = mode;
+	const data = await fetchGameData("/schedule");
+	applyScheduleData(data);
+	scheduleFromCache = false;
 	lastScheduleRefresh = requestedMode === mode ? Date.now() : 0;
 }
 
@@ -180,13 +219,17 @@ async function refreshGame() {
 	refreshing = true;
 	warningEl.classList.add("hidden");
 	try {
-		if (!game || Date.now() - lastScheduleRefresh >= SCHEDULE_REFRESH_MS) {
+		if (!game) {
+			await loadCachedSchedule();
+		}
+		if (!game || scheduleFromCache || Date.now() - lastScheduleRefresh >= SCHEDULE_REFRESH_MS) {
 			await loadSchedule();
 		}
 		if (!game) {
 			showMessage("gameNotFound");
 			return;
 		}
+		renderGame();
 
 		const start = new Date(game.gameDateTimeUTC).getTime();
 		if (getGameStatus() !== 3 && Date.now() >= start - 5 * 60000) {
@@ -210,6 +253,7 @@ async function refreshGame() {
 		renderGame();
 		if (getGameStatus() >= 2 || game.gameStatus >= 2) {
 			await loadGameStats();
+			renderGame();
 			await loadRating();
 		}
 		renderGame();
@@ -217,6 +261,7 @@ async function refreshGame() {
 		console.error("Game details could not be loaded:", error);
 		if (game) {
 			warningEl.classList.remove("hidden");
+			statsLoaded = true;
 			renderGame();
 		} else {
 			showMessage("gameLoadFailed", true);
@@ -276,8 +321,10 @@ function renderGame() {
 	).join(" · ");
 	heroEl.style.setProperty("--away-color", getTeamColorValue(game.awayTeam.teamTricode));
 	heroEl.style.setProperty("--home-color", getTeamColorValue(game.homeTeam.teamTricode));
-	stateEl.classList.toggle("is-live", status === 2 && !postponed);
-	stateEl.textContent = postponed
+	stateEl.classList.toggle("is-live", !scheduleFromCache && status === 2 && !postponed);
+	stateEl.textContent = scheduleFromCache
+		? ""
+		: postponed
 		? t("postponed")
 		: status === 3
 		? t("final")
@@ -335,7 +382,12 @@ function renderGame() {
 		anchor.textContent = t("watchRecapHost", { host: LEAGUES[leagueId].recapHost });
 	}
 	heroEl.classList.remove("hidden");
+	heroEl.classList.remove("is-loading");
 	detailsEl.classList.remove("hidden");
+	detailsEl.classList.toggle("is-loading", !pregame && !statsLoaded);
+	tabs.forEach((tab) => {
+		tab.disabled = false;
+	});
 	messageEl.classList.add("hidden");
 	shareButton.disabled = false;
 }
@@ -459,7 +511,7 @@ function init() {
 		}
 	});
 	setInterval(() => {
-		if (!game || getGameStatus() !== 3) {
+		if (!game || scheduleFromCache || getGameStatus() !== 3) {
 			refreshGame();
 		}
 	}, REFRESH_INTERVAL_MS);

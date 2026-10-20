@@ -1723,11 +1723,17 @@ GAME PAGE
     opacity: 0.8;
 }
 
-.game-page .hero-team .team-logo {
+.game-page .hero-team .hero-logo {
+    display: block;
     width: clamp(90px, 17vw, 200px);
     height: clamp(90px, 17vw, 200px);
-    object-fit: contain;
     margin: 8px 0;
+}
+
+.game-page .hero-team .team-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
     filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.2));
 }
 
@@ -1832,6 +1838,94 @@ GAME PAGE
     padding: 40px 20px;
 }
 
+.game-page .is-loading {
+    --skeleton-start: var(--progress-background);
+    --skeleton-end: var(--progress-foreground);
+}
+
+.game-page #game-hero.is-loading {
+    --skeleton-start: rgba(255, 255, 255, 0.1);
+    --skeleton-end: rgba(255, 255, 255, 0.2);
+}
+
+.game-page .is-loading .skeleton,
+.game-page #game-hero.is-loading .hero-logo {
+    background: linear-gradient(90deg, var(--skeleton-start), var(--skeleton-end));
+    background-size: 400% 400%;
+    animation: pulse 3s linear infinite;
+    border-radius: var(--card-corners);
+}
+
+.game-page .is-loading .skeleton {
+    display: block;
+    min-height: 1em;
+}
+
+.game-page #game-hero.is-loading .hero-logo {
+    border-radius: 50%;
+}
+
+.game-page #game-hero.is-loading .team-logo {
+    visibility: hidden;
+}
+
+.game-page #game-hero.is-loading :is(#game-context, #game-date) {
+    width: 50%;
+    margin-inline: auto;
+    min-height: 1.5em;
+}
+
+.game-page #game-hero.is-loading .team-city {
+    width: 60%;
+    min-height: 1.5em;
+}
+
+.game-page #game-hero.is-loading .team-name {
+    width: 80%;
+    min-height: 1.1em;
+}
+
+.game-page #game-hero.is-loading .team-record {
+    width: 4ch;
+    min-height: 1.5em;
+}
+
+.game-page #game-hero.is-loading #game-score {
+    width: clamp(100px, 18vw, 240px);
+    min-height: 1.1em;
+}
+
+.game-page .details-loading,
+.game-page #game-details.is-loading .panel {
+    display: none;
+}
+
+.game-page .is-loading > .details-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 28px;
+}
+
+.game-page .details-loading .skeleton {
+    min-height: 1.5rem;
+}
+
+.game-page .details-loading .skeleton:first-child {
+    width: 35%;
+}
+
+.game-page #game-details .tab:disabled {
+    cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .game-page .is-loading .skeleton,
+    .game-page #game-hero.is-loading .hero-logo {
+        animation: none;
+    }
+}
+
 @media (max-width: 600px) {
     .game-page .game-page-nav {
         gap: 12px;
@@ -1874,7 +1968,7 @@ GAME PAGE
 }
 
 @media (max-width: 380px) {
-    .game-page .hero-team .team-logo {
+    .game-page .hero-team .hero-logo {
         width: 72px;
         height: 72px;
     }
