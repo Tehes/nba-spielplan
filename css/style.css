@@ -263,7 +263,7 @@ h3 {
     max-width: 320px;
 }
 
-.top-menu #mode-picker {
+#mode-picker {
     padding-top: 5px;
     padding-bottom: 5px;
     background-position: calc(100% - 20px) 50%,
@@ -909,6 +909,7 @@ JUMP LINK
     align-items: center;
     gap: 0.45em;
     transition: all var(--transition-duration) ease;
+    text-transform: uppercase;
 }
 
 #game-share svg {
