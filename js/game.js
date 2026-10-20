@@ -17,6 +17,7 @@ import { initServiceWorkerRegistration, SERVICE_WORKER_CONFIG } from "./service-
 
 const REFRESH_INTERVAL_MS = 60000;
 const SCHEDULE_REFRESH_MS = 15 * 60000;
+const ODDS_REFRESH_MS = 5 * 60000;
 let gameId = "";
 let leagueId = "nba";
 let mode = "de";
@@ -32,6 +33,8 @@ let rating = null;
 let ratingRequested = false;
 let statsLoaded = false;
 let scheduleFromCache = false;
+let odds = null;
+let lastOddsRefresh = 0;
 
 const detailsEl = document.querySelector("#game-details");
 const heroEl = document.querySelector("#game-hero");
@@ -64,6 +67,11 @@ const excitementEl = document.querySelector("#game-excitement");
 const excitementValue = document.querySelector("#game-excitement-value");
 const excitementLabel = document.querySelector("#game-excitement-label");
 const recapEl = document.querySelector("#game-recap-link");
+const oddsEl = document.querySelector("#game-odds");
+const awayOddsName = oddsEl.querySelector(".odds-labels .away");
+const homeOddsName = oddsEl.querySelector(".odds-labels .home");
+const awayOddsBar = oddsEl.querySelector(".bar.away");
+const homeOddsBar = oddsEl.querySelector(".bar.home");
 
 function t(key, replacements = {}) {
 	let text = messages[MODES[mode].language][key] || messages.de[key] || key;
@@ -94,6 +102,15 @@ function getApiUrl(path) {
 	return url;
 }
 
+function getScheduleCacheUrl() {
+	const url = getApiUrl("/schedule");
+	if (leagueId === "nba") {
+		url.searchParams.delete("league");
+	}
+	url.searchParams.set("scheduleVersion", SCHEDULE_CACHE_VERSION);
+	return url;
+}
+
 async function fetchGameData(path, options) {
 	const response = await fetch(getApiUrl(path), { cache: "no-store", ...options });
 	if (!response.ok) {
@@ -110,6 +127,11 @@ function getGameStatus() {
 	return getCurrentGameData().gameStatus;
 }
 
+function isBeforeTipoff() {
+	return getGameStatus() === 1 && game.postponedStatus !== "Y" && game.gameStatusText !== "PPD" &&
+		Date.now() < new Date(game.gameDateTimeUTC).getTime();
+}
+
 function applyScheduleData(data) {
 	if (!Array.isArray(data?.leagueSchedule?.gameDates)) {
 		throw new Error("Invalid schedule response");
@@ -123,14 +145,29 @@ function applyScheduleData(data) {
 	game = selectedGame;
 }
 
+async function cacheGameData(url, data) {
+	if (!("caches" in globalThis)) {
+		return;
+	}
+	try {
+		const cache = await caches.open("nba-data-cache");
+		await cache.put(
+			url.href,
+			new Response(JSON.stringify(data), {
+				headers: { "Content-Type": "application/json" },
+			}),
+		);
+	} catch (error) {
+		console.warn("Game data could not be cached:", error);
+	}
+}
+
 async function loadCachedSchedule() {
 	if (!("caches" in globalThis)) {
 		return;
 	}
 	const requestedMode = mode;
-	const cacheUrl = new URL(`${API_BASE_URL}/schedule${LEAGUES[leagueId].query}`);
-	cacheUrl.searchParams.set("region", MODES[mode].broadcastRegion);
-	cacheUrl.searchParams.set("scheduleVersion", SCHEDULE_CACHE_VERSION);
+	const cacheUrl = getScheduleCacheUrl();
 	try {
 		const response = await caches.match(cacheUrl.href, { cacheName: "nba-data-cache" });
 		if (!response) {
@@ -152,10 +189,55 @@ async function loadCachedSchedule() {
 
 async function loadSchedule() {
 	const requestedMode = mode;
+	const cacheUrl = getScheduleCacheUrl();
 	const data = await fetchGameData("/schedule");
 	applyScheduleData(data);
 	scheduleFromCache = false;
 	lastScheduleRefresh = requestedMode === mode ? Date.now() : 0;
+	await cacheGameData(cacheUrl, data);
+}
+
+function applyOddsData(data) {
+	if (!Array.isArray(data?.games)) {
+		throw new Error("Invalid odds response");
+	}
+	const selectedOdds = data.games.find((item) => item.gameId === gameId) || null;
+	if (
+		selectedOdds &&
+		(!Number.isFinite(selectedOdds.awayWinProbability) || !Number.isFinite(selectedOdds.homeWinProbability))
+	) {
+		throw new Error("Invalid game odds");
+	}
+	odds = selectedOdds;
+}
+
+async function loadCachedOdds() {
+	if (leagueId !== "nba" || !("caches" in globalThis)) {
+		return;
+	}
+	try {
+		const response = await caches.match(getApiUrl("/odds").href, { cacheName: "nba-data-cache" });
+		if (response) {
+			applyOddsData(await response.json());
+			if (game) {
+				renderOdds();
+			}
+		}
+	} catch (error) {
+		console.warn("Cached game odds could not be loaded:", error);
+	}
+}
+
+async function loadOdds() {
+	lastOddsRefresh = Date.now();
+	try {
+		const data = await fetchGameData("/odds", { cache: "default" });
+		applyOddsData(data);
+		renderOdds();
+		await cacheGameData(getApiUrl("/odds"), data);
+	} catch (error) {
+		console.warn("Game odds could not be refreshed:", error);
+	}
 }
 
 async function loadGameStats() {
@@ -221,6 +303,7 @@ async function refreshGame() {
 	try {
 		if (!game) {
 			await loadCachedSchedule();
+			await loadCachedOdds();
 		}
 		if (!game || scheduleFromCache || Date.now() - lastScheduleRefresh >= SCHEDULE_REFRESH_MS) {
 			await loadSchedule();
@@ -255,6 +338,8 @@ async function refreshGame() {
 			await loadGameStats();
 			renderGame();
 			await loadRating();
+		} else if (leagueId === "nba" && isBeforeTipoff() && Date.now() - lastOddsRefresh >= ODDS_REFRESH_MS) {
+			await loadOdds();
 		}
 		renderGame();
 	} catch (error) {
@@ -281,6 +366,7 @@ function showMessage(key, canRetry = false) {
 	retryButton.classList.toggle("hidden", !canRetry);
 	messageEl.classList.remove("hidden");
 	heroEl.classList.add("hidden");
+	excitementEl.classList.add("hidden");
 	detailsEl.classList.add("hidden");
 	shareButton.disabled = true;
 }
@@ -358,6 +444,8 @@ function renderGame() {
 	detailsEl.dataset.awayTeam = game.awayTeam.teamTricode;
 	detailsEl.dataset.homeTeam = game.homeTeam.teamTricode;
 	pregameNote.classList.toggle("hidden", !pregame);
+	teamsEl.classList.toggle("request-warning", pregame);
+	playsEl.classList.toggle("request-warning", pregame);
 	[periodsHeading, periodsEl, statsHeading, statsEl].forEach((element) => {
 		element.classList.toggle("hidden", pregame || !boxscore);
 	});
@@ -366,6 +454,7 @@ function renderGame() {
 	} else {
 		teamsEl.textContent = t(pregame ? "statsAfterTipoff" : statsLoaded ? "noBoxscore" : "loading");
 	}
+	renderOdds();
 	renderer.renderPreviousMatchups();
 	if (playByPlay?.game.actions.length) {
 		renderer.renderPlayByPlay(playByPlay);
@@ -390,6 +479,24 @@ function renderGame() {
 	});
 	messageEl.classList.add("hidden");
 	shareButton.disabled = false;
+}
+
+function renderOdds() {
+	const visible = leagueId === "nba" && isBeforeTipoff() && odds !== null;
+	oddsEl.classList.toggle("hidden", !visible);
+	if (!visible) {
+		return;
+	}
+	const awayProbability = Math.round(odds.awayWinProbability);
+	const homeProbability = 100 - awayProbability;
+	awayOddsName.textContent = game.awayTeam.teamName;
+	homeOddsName.textContent = game.homeTeam.teamName;
+	awayOddsBar.textContent = `${awayProbability} %`;
+	homeOddsBar.textContent = `${homeProbability} %`;
+	awayOddsBar.style.width = `${awayProbability}%`;
+	homeOddsBar.style.width = `${homeProbability}%`;
+	awayOddsBar.style.setProperty("--team-color", getTeamColorValue(game.awayTeam.teamTricode));
+	homeOddsBar.style.setProperty("--team-color", getTeamColorValue(game.homeTeam.teamTricode));
 }
 
 function renderRating() {

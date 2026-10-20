@@ -92,14 +92,14 @@
                 <span id="game-broadcast" class="broadcast-label"></span>
             </p>
         </header>
+        <div id="game-excitement" class="hidden">
+            <h4 data-i18n="excitement">Spannung</h4>
+            <div id="game-excitement-bar" class="meter-container">
+                <div id="game-excitement-value" class="meter-fill">0%</div>
+            </div>
+            <p id="game-excitement-label"></p>
+        </div>
         <section id="game-details" class="game-details is-loading">
-			<div id="game-excitement" class="hidden">
-				<h4 data-i18n="excitement">Spannung</h4>
-				<div id="game-excitement-bar" class="meter-container">
-					<div id="game-excitement-value" class="meter-fill">0%</div>
-				</div>
-				<p id="game-excitement-label"></p>
-			</div>
 			<div class="tabs">
 				<button type="button" class="tab is-active" data-target="overview-panel" data-i18n="overview" disabled>
 					Übersicht
@@ -120,7 +120,7 @@
 			</div>
 
 			<div id="overview-panel" class="panel is-active">
-				<p id="pregame-note" class="hidden" data-i18n="statsAfterTipoff">Statistiken sind nach Spielbeginn verfügbar.</p>
+				<p id="pregame-note" class="request-warning hidden" data-i18n="statsAfterTipoff">Statistiken sind nach Spielbeginn verfügbar.</p>
 				<h3 id="periods-heading" data-i18n="quarterByQuarter">Viertelverlauf</h3>
 				<div id="periods">
 					<table class="periods-table">
@@ -129,6 +129,17 @@
 						<tbody>
 						</tbody>
 					</table>
+				</div>
+				<div id="game-odds" class="hidden">
+					<h3 data-i18n="estimatedWinChances">Geschätzte Siegchancen</h3>
+					<div class="odds-labels">
+						<span class="away"></span>
+						<span class="home"></span>
+					</div>
+					<div class="stat">
+						<div class="bar away"></div>
+						<div class="bar home"></div>
+					</div>
 				</div>
 				<div id="previous-matchups-section" class="hidden">
 					<h3 data-i18n="previousMatchups">Letzte Duelle</h3>

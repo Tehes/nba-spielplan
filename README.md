@@ -90,7 +90,7 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
 - **Excitement meter (german: Spannungsmeter)**
   - Calculates an excitement score (0–100) for finished games from play-by-play closeness, lead
     changes, comebacks, crunch-time moments, offense, and OT bonuses.
-  - Shows a labeled 1–10 rating above the detail-page tabs once a game is final.
+  - Shows a labeled 1–10 rating between the hero card and game details once a game is final.
   - Reads cached ratings from the backend first and falls back to client-side play-by-play
     calculation for missing games.
   - Shows a Top 10 list of the most exciting games once regular-season progress reaches 100%,
@@ -105,6 +105,12 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
     and `#playbyplay` can select a tab directly.
   - Active games refresh every minute while the page is visible. Scheduled games check for tip-off;
     the schedule refreshes every 15 minutes, and finished games stop polling.
+  - Before scheduled NBA tip-off, Overview shows estimated win probabilities when FanDuel odds are
+    available. Team-colored bars and rounded percentages add up to 100%. Odds refresh at most every
+    five minutes while the page is visible, using the endpoint's 60-second HTTP cache.
+  - The detail page saves its schedule and odds in the existing data cache for offline visits.
+    Cached odds appear immediately; successful refreshes replace them, including an empty feed.
+    Odds are hidden from scheduled tip-off onward and for live, finished, or postponed games.
   - Share on the detail page uses the direct `game.html` URL on the site's current origin, including its game ID,
     league, and language mode. Browsers without native sharing copy the link instead. Social previews
     use game-detail metadata and the shared site image.
@@ -173,8 +179,8 @@ The `/odds` endpoint returns `{ updatedAt, games }`. Each game includes `gameId`
 sum to 100. Only FanDuel's US `2way` market is used. Games without valid FanDuel win odds are
 omitted, and an empty feed returns `games: []`. Each request reaching the API fetches the NBA feed
 again, without an API cache or KV reads or writes. Responses use `Cache-Control: public, max-age=60`
-without `stale-while-revalidate`. The frontend does not consume this endpoint yet; its future odds
-requests must allow the HTTP cache, while Cache API storage will provide offline data separately.
+without `stale-while-revalidate`. The detail page requests odds with `cache: "default"` and stores
+the latest valid response separately in Cache API storage for offline use.
 
 ---
 
@@ -183,6 +189,16 @@ requests must allow the HTTP cache, while Cache API storage will provide offline
 - Shared Service Worker settings live in `js/service-worker-registration.js`. Set
   `SERVICE_WORKER_CONFIG.useServiceWorker` to `false` for local debugging, or bump its
   `serviceWorkerVersion` once for an application update. Both HTML pages use the same version.
+
+### Pregame odds
+
+Manual verification:
+
+1. Open an upcoming NBA game with odds in German and English; verify team colors and percentages
+   adding up to 100% above previous matchups.
+2. Revisit the game offline after loading it online; verify cached odds appear before tip-off.
+3. Verify odds disappear when a fresh feed omits the game, at scheduled tip-off, or for live,
+   finished, and postponed games. WNBA games must not request or display NBA odds.
 
 ### Game sharing
 

@@ -1242,12 +1242,16 @@ GAME DETAILS
 }
 
 .game-page #game-excitement {
-    margin: 0 0 15px 0;
+    margin: 20px 0 0;
     color: var(--text-color);
 }
 
+.game-page #game-excitement h4 {
+    margin: 0;
+}
+
 .game-page #game-excitement-bar {
-    height: 16px;
+    height: 1.5rem;
     margin-top: 4px;
 }
 
@@ -1262,6 +1266,22 @@ GAME DETAILS
 
 .game-page #previous-matchups-section {
     margin-bottom: 30px;
+}
+
+.game-page #game-odds {
+    margin-bottom: 30px;
+}
+
+.game-page #game-odds .odds-labels {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+    margin-bottom: 8px;
+    overflow-wrap: anywhere;
+}
+
+.game-page #game-odds .odds-labels .home {
+    text-align: right;
 }
 
 .game-page #previous-matchups {
@@ -1695,7 +1715,7 @@ GAME PAGE
 .game-page .action-link,
 .game-page .share-feedback,
 .game-page #game-details .player-pos,
-.game-page #game-details .meter-fill {
+.game-page #game-excitement .meter-fill {
     font-size: 1rem;
 }
 
@@ -1830,14 +1850,6 @@ GAME PAGE
     border-radius: var(--card-corners);
     background: var(--card-bg);
     box-shadow: var(--card-shadow);
-}
-
-.game-page #game-details #game-excitement {
-    margin: 0 0 24px;
-}
-
-.game-page #game-details #game-excitement-bar {
-    height: 1.5rem;
 }
 
 .game-page #game-details .tabs {
