@@ -106,7 +106,7 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
     the schedule refreshes every 15 minutes, and finished games stop polling.
   - Share on the detail page uses the direct `game.html` URL on the site's current origin, including its game ID,
     league, and language mode. Browsers without native sharing copy the link instead. Social previews
-    use the shared site metadata and image.
+    use game-detail metadata and the shared site image.
   - Only games in the current schedule are supported. Unavailable games show a link back to the
     schedule; no season archive is maintained.
 
