@@ -226,6 +226,11 @@ h3 {
     cursor: pointer;
 }
 
+.today-nav-button span {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+}
+
 .today-nav-button:disabled {
     opacity: 0.35;
     cursor: default;
