@@ -19,8 +19,8 @@ export function createGameRenderer(gameOverlayEl, options) {
 		renderBoxscorePeriods(game);
 		renderBoxscoreTeamStats(game);
 		teamsEl.replaceChildren();
-		renderBoxscoreTeam(game.awayTeam);
-		renderBoxscoreTeam(game.homeTeam);
+		renderBoxscoreTeam(game.awayTeam, game.gameStatus === 2);
+		renderBoxscoreTeam(game.homeTeam, game.gameStatus === 2);
 	}
 
 	function renderPlayByPlay(json) {
@@ -201,7 +201,7 @@ export function createGameRenderer(gameOverlayEl, options) {
 		table.appendChild(tbody);
 	}
 
-	function renderBoxscoreTeam(team) {
+	function renderBoxscoreTeam(team, isLive) {
 		const template = documentEl.querySelector("#template-boxscore");
 		const section = template.content.firstElementChild.cloneNode(true);
 		section.querySelectorAll("[data-i18n]").forEach((element) => {
@@ -237,9 +237,10 @@ export function createGameRenderer(gameOverlayEl, options) {
 		const benchWrapper = section
 			.querySelector(".bench")
 			.closest(".players-wrapper");
+		section.querySelector(".on-court-legend").classList.toggle("hidden", !isLive);
 
-		fillPlayersTable(startersBody, starters);
-		fillPlayersTable(benchBody, bench);
+		fillPlayersTable(startersBody, starters, isLive);
+		fillPlayersTable(benchBody, bench, isLive);
 
 		if (!bench.length) {
 			benchWrapper.remove();
@@ -248,7 +249,7 @@ export function createGameRenderer(gameOverlayEl, options) {
 		teamsEl.appendChild(section);
 	}
 
-	function fillPlayersTable(tbody, players) {
+	function fillPlayersTable(tbody, players, isLive) {
 		players.forEach((p) => {
 			const s = p.statistics || {};
 			const tr = document.createElement("tr");
@@ -266,6 +267,12 @@ export function createGameRenderer(gameOverlayEl, options) {
 				posSpan.classList.add("player-pos");
 				posSpan.textContent = p.position || "";
 				playerCell.appendChild(posSpan);
+			}
+			if (isLive && p.oncourt === "1") {
+				const indicator = document.createElement("span");
+				indicator.classList.add("on-court-indicator");
+				indicator.title = t("onCourt");
+				playerCell.appendChild(indicator);
 			}
 			tr.appendChild(nameTd);
 

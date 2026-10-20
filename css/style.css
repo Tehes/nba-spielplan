@@ -1350,6 +1350,33 @@ GAME DETAILS
     flex: 0 0 auto;
 }
 
+.game-page .game-details .on-court-indicator,
+.game-page .game-details .on-court-legend::before {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--live-color);
+}
+
+.game-page .game-details .on-court-indicator {
+    flex: 0 0 auto;
+    align-self: center;
+    margin-left: 6px;
+}
+
+.game-page .game-details .on-court-legend {
+    margin: 16px 0 0;
+    padding-top: 12px;
+    font-size: 0.9rem;
+}
+
+.game-page .game-details .on-court-legend::before {
+    content: "";
+    margin-right: 7px;
+    vertical-align: middle;
+}
+
 .game-page .game-details td:first-of-type {
     width: 25%;
 }
@@ -1639,6 +1666,10 @@ GAME PAGE
 -------------------------------------------------------------------
 */
 
+.game-page {
+    --live-color: #ff6262;
+}
+
 .game-page #game-page {
     display: flex;
     flex: 1;
@@ -1766,7 +1797,7 @@ GAME PAGE
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #ff6262;
+    background: var(--live-color);
     margin-right: 7px;
 }
 

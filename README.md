@@ -82,6 +82,7 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
   - Shows full period scoring (Q1–Q4, OT1+).
   - Lists starters and bench with complete statlines (MIN, PTS, REB, AST, STL, BLK, TOV, PF, FG, 3P,
     FT).
+  - Marks players currently on the court with a red dot during live games.
   - Adds a direct NBA.com or WNBA.com recap link for finished games, opening the official game recap
     externally.
   - Uses static HTML templates for fast client‑side rendering.
