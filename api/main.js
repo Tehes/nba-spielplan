@@ -925,7 +925,7 @@ Deno.serve(async (req, context) => {
 
 			const data = await fetchUpstream(NBA_ODDS_URL, league);
 			const response = respondWithCors(buildOddsPayload(data), origin);
-			response.headers.set("Cache-Control", "no-store");
+			response.headers.set("Cache-Control", "public, max-age=60");
 			return response;
 		}
 

@@ -145,7 +145,7 @@ broadcast labels.
 | `/schedule`            | Raw league schedule             | Fetched fresh per request; client Cache API handles reuse.                               |
 | `/standings`           | Normalized standings            | Uses the active season's official feed and includes NBA divisions.                       |
 | `/scoreboard`          | Live in-day scoreboard feed     | Always proxied without caching; powers the game detail page and in-day score updates. |
-| `/odds`                | Estimated win probabilities     | NBA-only; normalizes FanDuel win odds to 100%; fetched fresh per request.                |
+| `/odds`                | Estimated win probabilities     | NBA-only; normalizes FanDuel win odds to 100%; HTTP-cacheable for 60 seconds.             |
 | `/top-excitement`      | Top excitement-rated games      | Read-only KV endpoint for the current season's cached highlight list.                    |
 | `/backfill-excitement` | Excitement cache warmup         | POST endpoint that queues one lazy, batch-limited KV backfill for the active league.     |
 | `/fetch-excitement`    | Specific cached ratings         | POST endpoint that reads requested game IDs from KV and returns `scores` plus `missing`. |
@@ -171,9 +171,10 @@ while core API payloads use the client's separate data cache.
 The `/odds` endpoint returns `{ updatedAt, games }`. Each game includes `gameId`, `homeTeamId`,
 `awayTeamId`, `homeWinProbability`, and `awayWinProbability`; probabilities are percentages that
 sum to 100. Only FanDuel's US `2way` market is used. Games without valid FanDuel win odds are
-omitted, and an empty feed returns `games: []`. Each request fetches the NBA feed again, without
-an API cache or KV reads or writes. Responses use `Cache-Control: no-store` so
-clients do not retain an additional cached copy. The frontend does not consume this endpoint yet.
+omitted, and an empty feed returns `games: []`. Each request reaching the API fetches the NBA feed
+again, without an API cache or KV reads or writes. Responses use `Cache-Control: public, max-age=60`
+without `stale-while-revalidate`. The frontend does not consume this endpoint yet; its future odds
+requests must allow the HTTP cache, while Cache API storage will provide offline data separately.
 
 ---
 
