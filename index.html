@@ -285,12 +285,12 @@
 	<footer>
 		<p>made by Tehes</p>
 		<p><a href="#top" data-i18n="backToTop">Zurück nach oben</a></p>
-		<div><a href="https://www.threads.net/@tehes83"><img src="svg/threads.svg" width="35" height="35"
-					alt="Threads Logo"></a><a href="https://github.com/tehes"><img src="svg/github.svg" width="35"
-					height="35" alt="Github Logo"></a></div>
+		<div><a href="https://www.threads.net/@tehes83"><img src="svg/threads.svg" width="24" height="24"
+					alt="Threads Logo"></a><a href="https://github.com/tehes"><img src="svg/github.svg" width="24"
+					height="24" alt="Github Logo"></a></div>
 	</footer>
 	<div id="backdrop" class="hidden"></div>
-	<div id="game-overlay" class="hidden">
+	<div id="game-overlay" class="game-details hidden">
 		<div class="close"><img src="img/close.svg" alt="close Icon"></div>
 		<div id="game-overlay-content">
 			<div id="game-excitement">
@@ -374,9 +374,6 @@
 						<div class="bar home">50%</div>
 					</div>
 				</div>
-				<p id="game-recap-link" class="jump-link hidden">
-					<a class="action-link" href="" target="_blank" rel="noopener" data-i18n="watchRecap">Recap auf NBA.com ansehen</a>
-				</p>
 			</div>
 			<div id="boxscore-panel" class="panel">
 				<div id="teams"></div>
@@ -392,6 +389,18 @@
 				<p data-i18n="noPlayByPlay">Keine Play-by-Play-Daten verfügbar.</p>
 			</div>
 		</div>
+		<nav class="game-actions">
+			<button id="game-share" class="action-link" type="button">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M12 16V3m-4 4 4-4 4 4M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8" />
+				</svg>
+				<span data-i18n="shareGame">Teilen</span>
+			</button>
+			<p id="game-recap-link" class="jump-link hidden">
+				<a class="action-link" href="" target="_blank" rel="noopener" data-i18n="watchRecap">Recap auf NBA.com ansehen</a>
+			</p>
+		</nav>
+		<p id="game-share-feedback" class="share-feedback"></p>
 	</div>
 
 	<!-- TEMPLATES -->

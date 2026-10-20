@@ -1,0 +1,243 @@
+.game-page #game-page {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    width: min(1100px, 94%);
+    margin: 24px auto 0;
+    min-width: 0;
+}
+
+.game-page-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.game-page #mode-picker {
+    margin: 0;
+}
+
+.game-page .action-link,
+.game-page .share-feedback,
+#game-details .player-pos,
+#game-details .meter-fill {
+    font-size: 1rem;
+}
+
+#game-hero {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    padding: 26px 30px 32px;
+    border-radius: var(--card-corners);
+    background: var(--neutral800);
+    box-shadow: var(--card-shadow);
+    color: var(--neutral-white);
+    text-align: center;
+}
+
+#game-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(90deg, var(--away-color) 0%, var(--away-color) 33%, var(--home-color) 66%, var(--home-color) 100%);
+    opacity: 0.6;
+}
+
+#game-context {
+    margin: 0 0 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 1rem;
+}
+
+#game-title {
+    font-size: 1rem;
+    font-weight: 400;
+    margin: 0 0 18px;
+}
+
+.game-matchup {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 22px;
+}
+
+.hero-team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+}
+
+.hero-team .team-side,
+.hero-team .team-record {
+    font-size: 1rem;
+    opacity: 0.8;
+}
+
+.hero-team .team-logo {
+    width: clamp(90px, 17vw, 200px);
+    height: clamp(90px, 17vw, 200px);
+    object-fit: contain;
+    margin: 8px 0;
+    filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.2));
+}
+
+.hero-team .team-city {
+    font-size: clamp(1rem, 1.7vw, 1.2rem);
+}
+
+.hero-team .team-name {
+    font-size: clamp(1.3rem, 3vw, 2.2rem);
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
+.hero-team .team-record {
+    margin-top: 10px;
+}
+
+.hero-scoreboard {
+    max-width: 290px;
+}
+
+#game-state {
+    margin: 0 0 6px;
+    font-size: 1rem;
+}
+
+#game-state.is-live::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ff6262;
+    margin-right: 7px;
+}
+
+#game-score {
+    display: block;
+    white-space: nowrap;
+    font-size: clamp(2.1rem, 5.5vw, 4.4rem);
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+#game-date {
+    font-size: 1rem;
+    margin: 14px 0 0;
+}
+
+#game-meta {
+    margin: 16px 0 24px;
+    text-align: center;
+}
+
+#game-details {
+    flex: 1;
+    padding: 24px;
+    border-radius: var(--card-corners);
+    background: var(--card-bg);
+    box-shadow: var(--card-shadow);
+}
+
+#game-details #game-excitement {
+    margin: 0 0 24px;
+}
+
+#game-details #game-excitement-bar {
+    height: 1.5rem;
+}
+
+#game-details .tabs {
+    background: var(--card-bg);
+    margin-top: 0;
+}
+
+#game-details .panel {
+    margin-top: 28px;
+}
+
+#game-details #game-recap-link.hidden {
+    display: none;
+}
+
+#game-details .team + .team {
+    margin-top: 40px;
+}
+
+#game-details .players-table td:first-child,
+#game-details .players-table th:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--card-bg);
+}
+
+#game-message {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+@media (max-width: 600px) {
+    .game-page-nav {
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .game-page-nav .game-actions {
+        gap: 8px;
+    }
+
+    #game-hero {
+        padding: 20px 12px 24px;
+    }
+
+    .game-matchup {
+        gap: 8px;
+        grid-template-columns: minmax(0, 1fr) minmax(100px, auto) minmax(0, 1fr);
+    }
+
+    .hero-scoreboard {
+        min-width: 0;
+    }
+
+    #game-details {
+        padding: 16px 12px;
+    }
+
+    #game-details .tab {
+        padding: 8px;
+    }
+
+    #game-details #playbyplay .body {
+        flex-wrap: wrap;
+    }
+
+    #game-details #playbyplay .description {
+        flex-basis: 100%;
+        order: 1;
+    }
+}
+
+@media (max-width: 380px) {
+    .hero-team .team-logo {
+        width: 72px;
+        height: 72px;
+    }
+
+    .hero-team .team-name {
+        font-size: 1.1rem;
+    }
+
+    #game-score {
+        font-size: 1.75rem;
+    }
+}

@@ -3,6 +3,12 @@
  * - GitHub Pages: user.github.io/projektname/... -> slug = "projektname", scope = /projektname/
  * - Everything else (localhost, custom domain): whole origin is one project
  -------------------------------------------------------------------------------------------------- */
+export const SERVICE_WORKER_CONFIG = {
+	useServiceWorker: true,
+	serviceWorkerVersion: "2026-10-20-v25",
+	autoReloadOnUpdate: true,
+};
+
 function getProjectInfo() {
 	const url = new URL(globalThis.location.href);
 	const pathParts = url.pathname.split("/").filter(Boolean);

@@ -904,7 +904,21 @@ JUMP LINK
     text-transform: uppercase;
 }
 
-.action-link:hover {
+#game-share {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    transition: all var(--transition-duration) ease;
+}
+
+#game-share svg {
+    width: 1.1em;
+    height: 1.1em;
+    flex-shrink: 0;
+}
+
+.action-link:hover,
+#game-share:enabled:hover {
     background-color: var(--text-color);
     color: var(--bg-color);
     cursor: pointer;
@@ -1258,7 +1272,7 @@ GAME OVERLAY
     height: auto;
 }
 
-#game-overlay h3 img {
+.game-details h3 img {
     width: 3rem;
     height: auto;
     vertical-align: middle;
@@ -1283,7 +1297,7 @@ GAME OVERLAY
     margin: 6px 0 0 0;
 }
 
-#game-overlay #game-recap-link:not(.hidden) {
+.game-details #game-recap-link:not(.hidden) {
     display: flex;
     margin-bottom: 30px;
 }
@@ -1341,12 +1355,12 @@ GAME OVERLAY
     font-weight: 700;
 }
 
-#game-overlay #periods,
-#game-overlay #team-stats {
+.game-details #periods,
+.game-details #team-stats {
     margin-bottom: 30px;
 }
 
-#game-overlay .players-wrapper {
+.game-details .players-wrapper {
     overflow-x: auto;
     overflow-y: hidden;
 }
@@ -1355,34 +1369,34 @@ GAME OVERLAY
     margin-top: 20px;
 }
 
-#game-overlay .players-wrapper table {
+.game-details .players-wrapper table {
     min-width: 600px;
 }
 
-#game-overlay .player-cell {
+.game-details .player-cell {
     display: flex;
     align-items: baseline;
     width: clamp(120px, 20vw, 190px);
 }
 
-#game-overlay .player-name {
+.game-details .player-name {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     flex: 0 1 auto;
 }
 
-#game-overlay .player-pos {
+.game-details .player-pos {
     margin-left: 10px;
     font-size: 0.9rem;
     flex: 0 0 auto;
 }
 
-#game-overlay td:first-of-type {
+.game-details td:first-of-type {
     width: 25%;
 }
 
-#game-overlay tr {
+.game-details tr {
     border-bottom: 1px solid var(--divider-color);
 }
 
@@ -1394,19 +1408,19 @@ body:has(#game-overlay:not(.hidden)) {
     overflow: hidden;
 }
 
-#game-overlay #teams:empty::before {
+.game-details #teams:empty::before {
     content: "Boxscore wird geladen …";
     display: block;
     text-align: center;
 }
 
-#game-overlay .stat {
+.game-details .stat {
     display: flex;
     gap: 5px;
     align-items: center;
 }
 
-#game-overlay .stat .bar {
+.game-details .stat .bar {
     padding: 0 10px;
     height: 1.5rem;
     background-color: var(--team-color, var(--neutral500));
@@ -1418,7 +1432,7 @@ body:has(#game-overlay:not(.hidden)) {
     box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-#game-overlay .tabs {
+.game-details .tabs {
     display: flex;
     border: 1px solid var(--text-color);
     border-radius: var(--card-corners);
@@ -1426,7 +1440,7 @@ body:has(#game-overlay:not(.hidden)) {
     max-width: 520px;
 }
 
-#game-overlay .tab {
+.game-details .tab {
     flex: 1 1 auto;
     padding: 6px 10px;
     background-color: transparent;
@@ -1439,28 +1453,28 @@ body:has(#game-overlay:not(.hidden)) {
     text-align: center;
 }
 
-#game-overlay .tab+.tab {
+.game-details .tab+.tab {
     border-left: 1px solid var(--text-color);
 }
 
-#game-overlay .tab.is-active {
+.game-details .tab.is-active {
     background-color: var(--text-color);
     color: var(--bg-color);
 }
 
-#game-overlay .panel {
+.game-details .panel {
     margin-top: 16px;
 }
 
-#game-overlay .panel:not(.is-active) {
+.game-details .panel:not(.is-active) {
     display: none;
 }
 
-#game-overlay label {
+.game-details label {
     margin-bottom: 30px;
 }
 
-#game-overlay .checkmark {
+.game-details .checkmark {
     background-color: var(--progress-background);
 }
 
@@ -1624,4 +1638,68 @@ MEDIA QUERIES
     .division-standings-wrapper {
         grid-template-columns: 1fr;
     }
+}
+
+.game-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.game-actions button,
+#game-retry {
+    border: 1px solid var(--text-color);
+    border-radius: var(--card-corners);
+    background: transparent;
+    color: var(--text-color);
+    padding: 6px 12px;
+    font: inherit;
+    cursor: pointer;
+}
+
+.game-actions button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.game-actions button,
+.game-actions .action-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1.4;
+}
+
+.share-feedback {
+    overflow-wrap: anywhere;
+    font-size: 0.9rem;
+}
+
+.share-feedback:empty {
+    display: none;
+}
+
+#game-overlay .game-actions {
+    justify-content: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--divider-color);
+}
+
+#game-overlay #game-recap-link {
+    margin: 0;
+}
+
+#game-overlay .share-feedback {
+    font-size: 1rem;
+    text-align: center;
+}
+
+:is(#today, #more) .date a {
+    color: inherit;
+    text-underline-offset: 3px;
 }

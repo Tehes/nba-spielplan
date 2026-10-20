@@ -1,0 +1,291 @@
+<!DOCTYPE HTML>
+<html lang="de">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-title" content="NBA-Spielplan" data-i18n-content="appName">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black">
+	<meta name="theme-color" content="hsl(0, 0%, 95%)" media="(prefers-color-scheme: light)">
+	<meta name="theme-color" content="hsl(0, 0%, 20%)" media="(prefers-color-scheme: dark)">
+
+	<title>Spieldetails – NBA-Spielplan</title>
+
+	<!-- SEO -->
+	<meta name="description" 
+		content="Alle NBA-Spiele automatisch in deiner Zeitzone – mit Live-Scores und Prime-Time-Filter. Schnell, werbefrei, offline nutzbar. Einfach zum Homescreen hinzufügen und wie eine App starten.">
+	<meta name="author" content="Tino Sabetta">
+
+	<!-- Open Graph -->
+	<meta property="og:type" content="website">
+	<meta property="og:title" 
+		content="NBA-Spielplan in deiner Zeitzone – schnell, werbefrei, offline nutzbar">
+	<meta property="og:description" 
+		content="Alle NBA-Spiele automatisch in deiner Zeitzone – schnell, werbefrei und auch offline nutzbar. Einfach zum Homescreen hinzufügen und wie eine App starten.">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta property="og:image" content="https://nba-spielplan.de/img/og_image.png">
+
+	<link rel="apple-touch-icon" href="icons/180x180.png" />
+	<link rel="shortcut icon" href="icons/favicon.png">
+	<link rel="manifest" href="manifest.json" id="app-manifest">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link
+		href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+		rel="stylesheet">
+	<link rel="stylesheet" href="css/style.css">
+	<link rel="stylesheet" href="css/game.css">
+
+	<script defer src="https://cloud.umami.is/script.js" data-website-id="a22973c9-51e3-4ed8-b6ab-dcb37e1ec9a3"
+		data-domains="tehes.github.io,nba-spielplan.de,www.nba-spielplan.de"></script>
+</head>
+
+<body class="game-page">
+    <main id="game-page">
+        <nav class="game-page-nav">
+            <div class="game-actions">
+                <a id="schedule-link" class="action-link" href="./" data-i18n="backToSchedule">Spielplan</a>
+                <button id="game-share" type="button" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 16V3m-4 4 4-4 4 4M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8" />
+                    </svg>
+                    <span data-i18n="shareGame">Teilen</span>
+                </button>
+            </div>
+            <select id="mode-picker">
+                <option value="de">🇩🇪 DE</option>
+                <option value="en-us">🇺🇸 EN (US)</option>
+                <option value="en">🌐 EN</option>
+            </select>
+        </nav>
+        <p id="game-share-feedback" class="share-feedback"></p>
+        <p id="request-warning" class="request-warning hidden" data-i18n="requestWarning">Einige Daten konnten nicht aktualisiert werden. Bitte versuche es später erneut.</p>
+        <section id="game-message">
+            <p id="game-message-text" data-i18n="loading">Lädt…</p>
+            <button id="game-retry" type="button" class="hidden" data-i18n="retry">Erneut versuchen</button>
+        </section>
+        <header id="game-hero" class="hidden">
+            <p id="game-context"></p>
+            <h1 id="game-title"></h1>
+            <div class="game-matchup">
+                <div id="away-team" class="hero-team">
+                    <span class="team-side" data-i18n="away">Gast</span>
+                    <img class="team-logo" width="180" height="180" alt="">
+                    <span class="team-city"></span>
+                    <strong class="team-name"></strong>
+                    <span class="team-record"></span>
+                </div>
+                <div class="hero-scoreboard">
+                    <p id="game-state"></p>
+                    <strong id="game-score"></strong>
+                </div>
+                <div id="home-team" class="hero-team">
+                    <span class="team-side" data-i18n="home">Heim</span>
+                    <img class="team-logo" width="180" height="180" alt="">
+                    <span class="team-city"></span>
+                    <strong class="team-name"></strong>
+                    <span class="team-record"></span>
+                </div>
+            </div>
+            <p id="game-date"></p>
+        </header>
+        <p id="game-meta" class="hidden"></p>
+        <section id="game-details" class="game-details hidden">
+			<div id="game-excitement" class="hidden">
+				<h4 data-i18n="excitement">Spannung</h4>
+				<div id="game-excitement-bar" class="meter-container">
+					<div id="game-excitement-value" class="meter-fill">0%</div>
+				</div>
+				<p id="game-excitement-label"></p>
+			</div>
+			<div class="tabs">
+				<button type="button" class="tab is-active" data-target="overview-panel" data-i18n="overview">
+					Übersicht
+				</button>
+				<button type="button" class="tab" data-target="boxscore-panel" data-i18n="boxscore">
+					Boxscore
+				</button>
+				<button type="button" class="tab" data-target="playbyplay-panel" data-i18n="playByPlay">
+					Play by Play
+				</button>
+			</div>
+
+			<div id="overview-panel" class="panel is-active">
+				<p id="pregame-note" class="hidden" data-i18n="statsAfterTipoff">Statistiken sind nach Spielbeginn verfügbar.</p>
+				<h3 id="periods-heading" data-i18n="quarterByQuarter">Viertelverlauf</h3>
+				<div id="periods">
+					<table class="periods-table">
+						<thead>
+						</thead>
+						<tbody>
+						</tbody>
+					</table>
+				</div>
+				<div id="previous-matchups-section" class="hidden">
+					<h3 data-i18n="previousMatchups">Letzte Duelle</h3>
+					<div id="previous-matchups"></div>
+				</div>
+				<h3 id="team-stats-heading" data-i18n="teamComparison">Team-Vergleich</h3>
+				<div id="team-stats">
+					<h5 data-i18n="twoPoints">2 Punkte</h5>
+					<div class="stat" data-stat="twoPointersMade">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
+					</div>
+					<h5 data-i18n="threePoints">3 Punkte</h5>
+					<div class="stat" data-stat="threePointersMade">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
+					</div>
+					<h5 data-i18n="freeThrows">Freiwürfe</h5>
+					<div class="stat" data-stat="freeThrowsMade">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
+					</div>
+					<h5 data-i18n="rebounds">Rebounds</h5>
+					<div class="stat" data-stat="reboundsTotal">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
+					</div>
+					<h5 data-i18n="assists">Assists</h5>
+					<div class="stat" data-stat="assists">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
+					</div>
+					<h5 data-i18n="steals">Steals</h5>
+					<div class="stat" data-stat="steals">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
+					</div>
+					<h5 data-i18n="blocks">Blocks</h5>
+					<div class="stat" data-stat="blocks">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
+					</div>
+					<h5 data-i18n="turnovers">Turnover</h5>
+					<div class="stat" data-stat="turnoversTotal">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
+					</div>
+					<h5 data-i18n="fouls">Fouls</h5>
+					<div class="stat" data-stat="foulsPersonal">
+						<div class="bar away">50%</div>
+						<div class="bar home">50%</div>
+					</div>
+				</div>
+				<p id="game-recap-link" class="jump-link hidden">
+					<a class="action-link" href="" target="_blank" rel="noopener" data-i18n="watchRecap">Recap auf NBA.com ansehen</a>
+				</p>
+			</div>
+			<div id="boxscore-panel" class="panel">
+				<div id="teams"></div>
+			</div>
+		<div id="playbyplay-panel" class="panel">
+			<label class="show-only-made-shots"><span data-i18n="showMadeShotsOnly">Zeige nur getroffene Würfe</span>
+				<input type="checkbox" checked />
+				<span class="checkmark"></span>
+			</label>
+			<div id="playbyplay">
+				<p data-i18n="noPlayByPlay">Keine Play-by-Play-Daten verfügbar.</p>
+			</div>
+		</div>
+        </section>
+    </main>
+    <footer>
+        <p>made by Tehes</p>
+        <p><a href="#top" data-i18n="backToTop">Zurück nach oben</a></p>
+        <div><a href="https://www.threads.net/@tehes83"><img src="svg/threads.svg" width="24" height="24"
+                    alt="Threads Logo"></a><a href="https://github.com/tehes"><img src="svg/github.svg" width="24"
+                    height="24" alt="Github Logo"></a></div>
+    </footer>
+	<template id="template-boxscore">
+		<section class="team">
+			<h3 class="team-title">
+				<img class="team-logo" alt="">
+				<span class="team-name"></span>
+			</h3>
+			<div class="players-wrapper">
+				<table class="players-table starters">
+					<thead>
+						<tr>
+							<th data-i18n="starters">Starter</th>
+							<th>MIN</th>
+							<th>PTS</th>
+							<th>REB</th>
+							<th>AST</th>
+							<th>STL</th>
+							<th>BLK</th>
+							<th>TOV</th>
+							<th>PF</th>
+							<th>FG</th>
+							<th>3P</th>
+							<th>FT</th>
+							<th>+/-</th>
+						</tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+			</div>
+			<div class="players-wrapper">
+				<table class="players-table bench">
+					<thead>
+						<tr>
+							<th data-i18n="bench">Bank</th>
+							<th>MIN</th>
+							<th>PTS</th>
+							<th>REB</th>
+							<th>AST</th>
+							<th>STL</th>
+							<th>BLK</th>
+							<th>TOV</th>
+							<th>PF</th>
+							<th>FG</th>
+							<th>3P</th>
+							<th>FT</th>
+							<th>+/-</th>
+						</tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+			</div>
+		</section>
+	</template>
+	<template id="template-play-by-play">
+		<div class="item">
+			<div class="line"></div>
+			<div class="body">
+				<div class="time"></div>
+				<div class="description"></div>
+				<div class="score">
+					<span class="score-away">
+						<span class="team"></span>
+						<span class="score-value"></span>
+					</span>
+					<span class="score-home">
+						<span class="team"></span>
+						<span class="score-value"></span>
+					</span>
+				</div>
+			</div>
+		</div>
+	</template>
+	<template id="template-previous-matchup">
+		<div class="previous-matchup">
+			<div class="previous-matchup-date"></div>
+			<div class="previous-matchup-team away">
+				<span class="color"></span>
+				<span class="abbr"></span>
+				<span class="score away-score"></span>
+			</div>
+			<div class="previous-matchup-team home">
+				<span class="color"></span>
+				<span class="abbr"></span>
+				<span class="score home-score"></span>
+			</div>
+		</div>
+	</template>
+
+    <script type="module" src="./js/game.js"></script>
+</body>
+</html>

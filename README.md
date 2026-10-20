@@ -93,6 +93,23 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
   - Shows a Top 10 list of the most exciting games once regular-season progress reaches 100%,
     using cached backend ratings.
 
+- **Shareable game detail page**
+  - `game.html?id=0022600001&league=nba&mode=de` opens a standalone game page. `league` accepts
+    `nba` or `wnba`; `mode` uses the same `de`, `en-us`, and `en` values as the schedule.
+  - The team-colored header shows the matchup, local tip-off, venue, broadcasts, and live or final
+    score. Scores are always visible here, independently of the schedule's spoiler preference.
+  - Overview, Boxscore, and Play-by-Play use the same rendering module as the existing overlay.
+    `#overview`, `#boxscore`, and `#playbyplay` can select a tab directly.
+  - Active games refresh every minute while the page is visible. Scheduled games check for tip-off;
+    the schedule refreshes every 15 minutes, and finished games stop polling.
+  - Upcoming tip-off links open the detail page. Live and finished games retain their overlay,
+    with Share and the recap link grouped at the bottom.
+  - Share in the overlay and on the detail page uses the direct `game.html` URL on the site's current origin, including its game ID,
+    league, and language mode. Browsers without native sharing copy the link instead. Social previews
+    use the shared site metadata and image.
+  - Only games in the current schedule are supported. Unavailable games show a link back to the
+    schedule; no season archive is maintained.
+
 - **Play-by-Play Tab**
   - Live-by-play feed with time, description, and score delta.
   - Toggle to show only made shots for a quick scoring view.
@@ -153,8 +170,26 @@ while core API payloads use the client's separate data cache.
 
 ## Development
 
-- Service Worker toggles live in `js/app.js`: set `USE_SERVICE_WORKER` to `false` for local debugging
-  or bump `SERVICE_WORKER_VERSION` to force a fresh cache on deploy.
+- Shared Service Worker settings live in `js/service-worker-registration.js`. Set
+  `SERVICE_WORKER_CONFIG.useServiceWorker` to `false` for local debugging, or bump its
+  `serviceWorkerVersion` once for an application update. Both HTML pages use the same version.
+
+### Game sharing
+
+Publish the frontend files, including `game.html` and the shared JavaScript modules. Sharing uses
+ordinary detail-page URLs and requires no additional backend routes or Deno deployment. The static
+HTML contains the same social preview for every matchup; the URL parameters select the correct game
+when the page opens. The detail page omits a fixed `og:url` so preview services can use the requested
+URL, including its game parameters.
+
+Manual verification:
+
+1. Open scheduled and finished NBA and WNBA games; verify team colors, local dates, scores, and stats.
+2. Follow a live game through its next refresh and final state; simulate a failed request and recovery.
+3. Open the existing overlay, follow its standalone-page link, and share the game from that page.
+4. Check all three tabs, language changes, and the schedule link at mobile and desktop widths.
+5. After deployment, share a direct detail-page URL and verify the common site preview and correct
+   destination; check an unavailable game's link back to the schedule.
 
 ## License and usage
 
