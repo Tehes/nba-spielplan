@@ -56,7 +56,6 @@ const scheduleLink = document.querySelector("#schedule-link");
 const modePicker = document.querySelector("#mode-picker");
 const madeShotsCheckbox = document.querySelector("#playbyplay-panel input");
 const tabs = document.querySelectorAll("#game-details .tab");
-const pregameNote = document.querySelector("#pregame-note");
 const periodsHeading = document.querySelector("#periods-heading");
 const periodsEl = document.querySelector("#periods");
 const statsHeading = document.querySelector("#team-stats-heading");
@@ -443,7 +442,6 @@ function renderGame() {
 	detailsEl.dataset.gameId = gameId;
 	detailsEl.dataset.awayTeam = game.awayTeam.teamTricode;
 	detailsEl.dataset.homeTeam = game.homeTeam.teamTricode;
-	pregameNote.classList.toggle("hidden", !pregame);
 	teamsEl.classList.toggle("request-warning", pregame);
 	playsEl.classList.toggle("request-warning", pregame);
 	[periodsHeading, periodsEl, statsHeading, statsEl].forEach((element) => {
