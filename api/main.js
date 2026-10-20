@@ -2,6 +2,9 @@ import { computeGameExcitement } from "https://tehes.github.io/nba-spielplan/js/
 
 // === Constants ===
 const LEAGUE_STANDINGS_URL = "https://stats.nba.com/stats/leaguestandingsv3";
+const NBA_ODDS_URL = "https://cdn.nba.com/static/json/liveData/odds/odds_todaysGames.json";
+const FANDUEL_BOOK_ID = "sr:book:18186";
+const ODDS_TTL_MS = 5 * 60 * 1000;
 
 const BASE_UPSTREAM_HEADERS = {
 	"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0",
@@ -134,6 +137,8 @@ const cachedSeasonContexts = new Map();
 const SEASON_CONTEXT_TTL_MS = 60 * 1000;
 let kvPromise = null;
 const topExcitementProcessing = new Set();
+let cachedOdds = null;
+let oddsRequest = null;
 
 function getKv() {
 	if (!kvPromise) {
@@ -294,6 +299,60 @@ async function fetchOptionalUpstream(url, league, isStats = false) {
 		console.warn("[optional upstream unavailable]", league.id, url, error);
 		return null;
 	}
+}
+
+function buildOddsPayload(data) {
+	if (!Array.isArray(data?.games)) {
+		throw new Error("Invalid odds response");
+	}
+
+	const games = [];
+	for (const game of data.games) {
+		const market = game.markets?.find((item) => item.name === "2way" && item.group_name === "regular");
+		const book = market?.books?.find((item) => item.id === FANDUEL_BOOK_ID && item.countryCode === "US");
+		if (!book) {
+			continue;
+		}
+
+		const homeOdds = Number(book.outcomes?.find((outcome) => outcome.type === "home")?.odds);
+		const awayOdds = Number(book.outcomes?.find((outcome) => outcome.type === "away")?.odds);
+		if (
+			!/^\d{10}$/.test(game.gameId) || !/^\d+$/.test(game.homeTeamId) || !/^\d+$/.test(game.awayTeamId) ||
+			!Number.isFinite(homeOdds) || !Number.isFinite(awayOdds) || homeOdds <= 1 || awayOdds <= 1
+		) {
+			console.warn("Invalid FanDuel odds for game:", game.gameId);
+			continue;
+		}
+
+		const homeWinProbability = (1 / homeOdds) / (1 / homeOdds + 1 / awayOdds) * 100;
+		games.push({
+			gameId: game.gameId,
+			homeTeamId: game.homeTeamId,
+			awayTeamId: game.awayTeamId,
+			homeWinProbability,
+			awayWinProbability: 100 - homeWinProbability,
+		});
+	}
+
+	return { updatedAt: new Date().toISOString(), games };
+}
+
+function loadOdds() {
+	if (cachedOdds && Date.now() - cachedOdds.cachedAt < ODDS_TTL_MS) {
+		return cachedOdds.data;
+	}
+
+	if (!oddsRequest) {
+		oddsRequest = fetchUpstream(NBA_ODDS_URL, LEAGUES.nba).then((data) => {
+			const payload = buildOddsPayload(data);
+			cachedOdds = { data: payload, cachedAt: Date.now() };
+			return payload;
+		}).finally(() => {
+			oddsRequest = null;
+		});
+	}
+
+	return oddsRequest;
 }
 
 function respondWithOptionalBracket(data, seriesKey, season, origin) {
@@ -872,6 +931,22 @@ Deno.serve(async (req, context) => {
 		// --- /schedule: fetch fresh ---
 		if (PATH === "/schedule") {
 			return proxyWithCors(getScheduleUrl(league, getBroadcastRegionCode(url)), origin, league);
+		}
+
+		if (PATH === "/odds") {
+			if (req.method !== "GET") {
+				return methodNotAllowed(origin);
+			}
+			if (league.id !== "nba") {
+				return new Response("Odds not available for league", {
+					status: 400,
+					headers: withCors(origin, { "content-type": "text/plain; charset=utf-8" }),
+				});
+			}
+
+			const response = respondWithCors(await loadOdds(), origin);
+			response.headers.set("Cache-Control", "no-store");
+			return response;
 		}
 
 		if (PATH === "/top-excitement") {
