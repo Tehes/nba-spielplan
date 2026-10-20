@@ -5,7 +5,6 @@ import {
 	API_BASE_URL,
 	BUCKETS_URL,
 	getBroadcastLabels,
-	getExcitementVerdictKey,
 	getLiveLabel,
 	LEAGUE_STORAGE_KEY,
 	LEAGUES,
@@ -19,8 +18,7 @@ import {
 	SUPPORTED_LEAGUES,
 	SUPPORTED_MODES,
 } from "./game-shared.js";
-import { createGameRenderer } from "./game-renderer.js";
-import { getGamePageUrl, shareGame } from "./game-links.js";
+import { getGamePageUrl } from "./game-links.js";
 import { computeGameExcitement } from "./excitement.js";
 import { initServiceWorkerRegistration, SERVICE_WORKER_CONFIG } from "./service-worker-registration.js";
 
@@ -103,9 +101,6 @@ let games = {
 let istBracket = null;
 let playoffBracket = null;
 
-let currentBoxscore = null;
-let currentPlayByPlay = null;
-
 let eastData = [];
 let westData = [];
 let overallData = [];
@@ -120,7 +115,7 @@ let standingsWest;
 const renderedCoreCacheUrls = new Set();
 let lastCheckedDay = getCalendarDayKey(new Date());
 let requestCycleFailed = false;
-let selectedDay = getStartOfCalendarDay(new Date());
+let selectedDay = getInitialSelectedDay();
 
 // DOM Elements
 const todayHeadlineEl = document.querySelector("#today-headline");
@@ -147,19 +142,6 @@ const checkboxShowScores = document.querySelector(".show-scores input");
 const checkboxShowRating = document.querySelector(".show-rating input");
 const checkboxHidePastGames = document.querySelector(".hide-past-games input");
 const checkboxPrimetime = document.querySelector(".filter-primetime input");
-const checkboxPlayByPlayMadeShots = document.querySelector("#playbyplay-panel input");
-const backdropEl = document.querySelector("#backdrop");
-const gameOverlayEl = document.querySelector("#game-overlay");
-const gameOverlayCloseBtn = gameOverlayEl.querySelector(".close");
-const periodsEl = document.querySelector("#periods");
-const teamsEl = document.querySelector("#teams");
-const gameOverlay = document.getElementById("game-overlay");
-const gameTabs = gameOverlay.querySelectorAll(".tab");
-const gameExcitementEl = document.querySelector("#game-excitement");
-const gameExcitementValueEl = document.querySelector("#game-excitement-value");
-const gameExcitementLabelEl = document.querySelector("#game-excitement-label");
-const gameRecapLinkEl = document.querySelector("#game-recap-link");
-const gameRecapAnchorEl = gameRecapLinkEl.querySelector("a");
 const cupHeadlineEl = document.querySelector("#cup-headline");
 const cupEl = document.querySelector("#cup");
 const cupWestEl = document.querySelector("#cup-west");
@@ -171,19 +153,6 @@ const westernEl = document.querySelector("#western");
 const easternEl = document.querySelector("#eastern");
 const finalsEl = document.querySelector("#finals");
 const manifestLink = document.querySelector("#app-manifest");
-
-const { renderBoxscore, renderPlayByPlay, renderBoxscoreTeamStats, renderPreviousMatchups } = createGameRenderer(
-	gameOverlayEl,
-	{
-		t,
-		getTeamColorValue,
-		getTeamLogoSrc,
-		getScheduleGames,
-		getLocale: () => currentLocale,
-	},
-);
-const gameShareButton = document.querySelector("#game-share");
-const gameShareFeedbackEl = document.querySelector("#game-share-feedback");
 
 // Constants
 const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
@@ -204,10 +173,6 @@ checkboxShowScores.checked = JSON.parse(
 
 checkboxShowRating.checked = JSON.parse(
 	localStorage.getItem("nba-spielplan_showRating") || "true",
-);
-
-checkboxPlayByPlayMadeShots.checked = JSON.parse(
-	localStorage.getItem("nba-spielplan_pbp_madeShotsOnly") || "false",
 );
 
 function getInitialMode() {
@@ -241,6 +206,17 @@ function getInitialLeague() {
 	}
 
 	return "nba";
+}
+
+function getInitialSelectedDay() {
+	const date = new URL(globalThis.location.href).searchParams.get("date");
+	if (/^\d{4}-\d{2}-\d{2}$/.test(date || "")) {
+		const day = new Date(`${date}T00:00:00`);
+		if (!Number.isNaN(day.getTime()) && getCalendarDayKey(day) === date) {
+			return day;
+		}
+	}
+	return getStartOfCalendarDay(new Date());
 }
 
 function getLocale(language) {
@@ -289,10 +265,6 @@ function getStandingsUrl() {
 
 function getScoreboardUrl() {
 	return getLeagueApiUrl("/scoreboard");
-}
-
-function getBoxscoreUrl(gameId) {
-	return getLeagueApiUrl(`/boxscore/${gameId}`);
 }
 
 function getPlayByPlayUrl(gameId, leagueId = currentLeague) {
@@ -472,6 +444,7 @@ function updateTodayNavigation() {
 
 function resetSelectedDay() {
 	selectedDay = getStartOfCalendarDay(new Date());
+	syncSelectedDayUrl();
 	updateTodayNavigation();
 }
 
@@ -492,6 +465,7 @@ function moveSelectedDay(days) {
 	}
 
 	selectedDay = nextDay;
+	syncSelectedDayUrl();
 	renderTodaysGames();
 	renderMoreGames();
 }
@@ -569,6 +543,16 @@ function syncLeagueUrl() {
 	globalThis.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
+function syncSelectedDayUrl() {
+	const url = new URL(globalThis.location.href);
+	if (isSelectedDayToday()) {
+		url.searchParams.delete("date");
+	} else {
+		url.searchParams.set("date", getCalendarDayKey(selectedDay));
+	}
+	globalThis.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
 function applyStaticTranslations() {
 	document.documentElement.lang = currentLanguage;
 
@@ -580,12 +564,6 @@ function applyStaticTranslations() {
 		element.setAttribute("content", t(element.dataset.i18nContent));
 	});
 
-	const boxscoreTemplate = document.querySelector("#template-boxscore");
-	if (boxscoreTemplate) {
-		boxscoreTemplate.content.querySelector(".starters thead th").textContent = t("starters");
-		boxscoreTemplate.content.querySelector(".bench thead th").textContent = t("bench");
-	}
-
 	if (modePicker) {
 		modePicker.value = currentMode;
 	}
@@ -593,7 +571,6 @@ function applyStaticTranslations() {
 	updateLeagueTabs();
 	updateStandingsViewControls();
 	updateTeamPicker();
-	updateGameRecapLink();
 
 	if (manifestLink) {
 		manifestLink.setAttribute(
@@ -614,21 +591,11 @@ function rerenderLocalizedUi() {
 		renderMoreGames();
 		renderTopExcitementGames();
 		updateBrackets();
-		renderPreviousMatchups();
 		storeNextScheduledGame();
 	}
 
 	if (standings) {
 		renderStandings();
-	}
-
-	if (currentBoxscore) {
-		renderBoxscore(currentBoxscore);
-	}
-
-	if (currentPlayByPlay) {
-		renderPlayByPlay(currentPlayByPlay);
-		updateGameExcitementMeter(currentPlayByPlay);
 	}
 }
 
@@ -638,7 +605,7 @@ function applyMode() {
 	currentLocale = getLocale(currentLanguage);
 	localStorage.setItem(MODE_STORAGE_KEY, currentMode);
 	syncModeUrl();
-	resetSelectedDay();
+	syncSelectedDayUrl();
 	applyStaticTranslations();
 	rerenderLocalizedUi();
 }
@@ -742,8 +709,6 @@ function resetLeagueData() {
 	};
 	istBracket = null;
 	playoffBracket = null;
-	currentBoxscore = null;
-	currentPlayByPlay = null;
 	eastData = [];
 	westData = [];
 	overallData = [];
@@ -761,9 +726,6 @@ function resetLeagueData() {
 	resetStandingsRows();
 	updateStandingsViewControls();
 	updateTeamPicker();
-	if (!gameOverlayEl.classList.contains("hidden")) {
-		closeGameOverlay();
-	}
 }
 
 function setLeague(league) {
@@ -905,35 +867,6 @@ function updateLive(liveJson) {
 	updateBrackets();
 	markCoreDataDirtyFromLive();
 	storeNextScheduledGame();
-
-	if (!gameOverlayEl.classList.contains("hidden")) {
-		updateGameRecapLink();
-
-		const gameId = gameOverlayEl.dataset.gameId;
-		const liveGame = liveById.get(gameId);
-
-		if (liveGame?.gameStatus === 2) {
-			const bsUrl = getBoxscoreUrl(gameId);
-			fetchData(
-				bsUrl,
-				(json) => {
-					currentBoxscore = json;
-					renderBoxscore(json);
-				},
-				true,
-			);
-
-			const pbpUrl = getPlayByPlayUrl(gameId);
-			fetchData(
-				pbpUrl,
-				(pbpJson) => {
-					currentPlayByPlay = pbpJson;
-					renderPlayByPlay(pbpJson);
-				},
-				true,
-			);
-		}
-	}
 }
 
 /* --------------------------------------------------------------------------------------------------
@@ -1300,6 +1233,7 @@ function renderTodaysGames() {
 			const card = clone.querySelector(".card");
 			card.dataset.gameCode = g.gameCode;
 			card.dataset.gameId = g.gameId;
+			card.href = getGamePageUrl(g.gameId, currentLeague, currentMode);
 
 			const homeTeam = clone.querySelector(".home-team");
 			const visitingTeam = clone.querySelector(".visiting-team");
@@ -1385,21 +1319,7 @@ function renderTodaysGames() {
 				// SCHEDULED
 				date.classList.remove("live");
 				date.textContent = isPostponed ? "PPD" : g.time;
-				const detailLink = document.createElement("a");
-				detailLink.href = getGamePageUrl(g.gameId, currentLeague, currentMode);
-				detailLink.textContent = date.textContent;
-				detailLink.title = t("gameDetails");
-				date.replaceChildren(detailLink);
 				renderTeamMetaLabels(g, homeWL, visitingWL);
-			}
-
-			// Attach click handler for final or live games
-			if (isFinal || isLive) {
-				card.dataset.clickable = "true";
-				card.addEventListener("click", () => {
-					globalThis.umami?.track("NBA Schedule", { todayOverlayClicked: true });
-					openGameOverlay(g.gameId, g.awayTeam.teamTricode, g.homeTeam.teamTricode);
-				});
 			}
 
 			todayEl.appendChild(clone);
@@ -1481,23 +1401,6 @@ function startExcitementBackfill(leagueId = currentLeague) {
 
 function formatExcitementRating(score) {
 	return `${(score / 10).toFixed(1)}/10`;
-}
-
-function hideGameExcitementMeter() {
-	gameExcitementEl.classList.add("hidden");
-	gameExcitementValueEl.style.width = "0%";
-	gameExcitementValueEl.textContent = "0%";
-	gameExcitementLabelEl.textContent = "";
-}
-
-function renderGameExcitementScore(score) {
-	const rating = formatExcitementRating(score).replace("/10", "");
-	const verdictKey = getExcitementVerdictKey(score);
-
-	gameExcitementValueEl.style.width = `${score}%`;
-	gameExcitementValueEl.textContent = `${score}%`;
-	gameExcitementLabelEl.textContent = t("ratingLabel", { rating, verdict: t(verdictKey) });
-	gameExcitementEl.classList.remove("hidden");
 }
 
 async function fetchExcitementScoresFromKv(gameIds, leagueId = currentLeague) {
@@ -1613,34 +1516,6 @@ async function hydrateExcitementRatings(ratings, leagueId = currentLeague) {
 	});
 }
 
-async function hydrateOverlayExcitement(gameId, leagueId = currentLeague) {
-	const game = getScheduleGames().find((g) => g.gameId === gameId);
-	const live = liveById.get(gameId);
-	const { isFinal } = getGameState(game, live);
-
-	if (!isFinal) {
-		hideGameExcitementMeter();
-		return;
-	}
-
-	const cacheKey = getExcitementCacheKey(leagueId, gameId);
-	if (excitementCache.has(cacheKey)) {
-		renderGameExcitementScore(excitementCache.get(cacheKey));
-		return;
-	}
-
-	hideGameExcitementMeter();
-	const { missing } = await fetchExcitementScoresFromKv([gameId], leagueId);
-	if (
-		currentLeague === leagueId &&
-		gameOverlayEl.dataset.gameId === gameId &&
-		!missing.includes(gameId) &&
-		excitementCache.has(cacheKey)
-	) {
-		renderGameExcitementScore(excitementCache.get(cacheKey));
-	}
-}
-
 function fetchExcitementForGame(gameId, leagueId = currentLeague) {
 	const cacheKey = getExcitementCacheKey(leagueId, gameId);
 
@@ -1673,166 +1548,8 @@ function fetchExcitementForGame(gameId, leagueId = currentLeague) {
 	});
 }
 
-function updateGameExcitementMeter(playByPlayJson) {
-	const gameId = gameOverlayEl.dataset.gameId;
-	const actions = playByPlayJson?.game?.actions || [];
-	const hasData = playByPlayJson && actions.length > 0;
-	const matchesGame = hasData && playByPlayJson?.game?.gameId === gameId;
-
-	if (!matchesGame) {
-		hideGameExcitementMeter();
-		return;
-	}
-
-	const live = liveById.get(gameId);
-	const game = games.finished.concat(games.today).find((g) => g.gameId === gameId);
-	const { isFinal } = getGameState(game, live);
-
-	if (!isFinal) {
-		hideGameExcitementMeter();
-		return;
-	}
-
-	const cacheKey = getExcitementCacheKey(currentLeague, gameId);
-	if (excitementCache.has(cacheKey)) {
-		renderGameExcitementScore(excitementCache.get(cacheKey));
-		return;
-	}
-
-	const score = computeGameExcitement(playByPlayJson, currentLeague);
-	excitementCache.set(cacheKey, score);
-	renderGameExcitementScore(score);
-}
-
-/* --------------------------------------------------------------------------------------------------
-GAME OVERLAY
----------------------------------------------------------------------------------------------------*/
-
-function switchTab(tab) {
-	const targetId = tab.dataset.target;
-	const targetPanel = gameOverlay.querySelector(`#${targetId}`);
-
-	globalThis.umami?.track("NBA Schedule", { overlayTab: targetId });
-
-	// Toggle tab buttons
-	gameOverlay.querySelectorAll(".tab").forEach((t) => {
-		t.classList.toggle("is-active", t === tab);
-	});
-
-	// Toggle panels
-	gameOverlay.querySelectorAll(".panel").forEach((panel) => {
-		panel.classList.toggle("is-active", panel === targetPanel);
-	});
-}
-
-function getNbaRecapUrl(gameId, awayTeamTricode, homeTeamTricode) {
-	const away = awayTeamTricode.toLowerCase();
-	const home = homeTeamTricode.toLowerCase();
-
-	return `https://www.nba.com/game/${away}-vs-${home}-${gameId}?watchRecap=true`;
-}
-
-function getWnbaRecapUrl(gameId) {
-	return `https://www.wnba.com/game/${gameId}?watchRecap=true`;
-}
-
-function getRecapUrl(gameId, awayTeamTricode, homeTeamTricode) {
-	if (currentLeague === "wnba") {
-		return getWnbaRecapUrl(gameId);
-	}
-
-	return getNbaRecapUrl(gameId, awayTeamTricode, homeTeamTricode);
-}
-
-function updateGameRecapLink() {
-	const gameId = gameOverlayEl.dataset.gameId;
-	const awayTeamTricode = gameOverlayEl.dataset.awayTeam;
-	const homeTeamTricode = gameOverlayEl.dataset.homeTeam;
-	const allGames = (games.finished ?? []).concat(games.today ?? [], games.scheduled ?? []);
-	const game = allGames.find((g) => g.gameId === gameId);
-	const live = liveById.get(gameId);
-	const { isFinal } = getGameState(game, live);
-
-	if (!gameId || !awayTeamTricode || !homeTeamTricode || !isFinal) {
-		gameRecapLinkEl.classList.add("hidden");
-		gameRecapAnchorEl.removeAttribute("href");
-		return;
-	}
-
-	const host = getCurrentLeague().recapHost;
-	gameRecapAnchorEl.href = getRecapUrl(gameId, awayTeamTricode, homeTeamTricode);
-	gameRecapAnchorEl.textContent = t("watchRecapHost", { host });
-	gameRecapLinkEl.classList.remove("hidden");
-}
-
 function getScheduleGames() {
 	return schedule?.leagueSchedule?.gameDates?.flatMap((date) => date.games || []) || [];
-}
-
-function openGameOverlay(gameId, awayTeamTricode, homeTeamTricode) {
-	backdropEl.classList.remove("hidden");
-	gameOverlayEl.classList.remove("hidden");
-	gameOverlayEl.dataset.gameId = gameId;
-	gameOverlayEl.dataset.awayTeam = awayTeamTricode || "";
-	gameOverlayEl.dataset.homeTeam = homeTeamTricode || "";
-	gameShareFeedbackEl.textContent = "";
-	updateGameRecapLink();
-	renderPreviousMatchups();
-	hydrateOverlayExcitement(gameId, currentLeague).catch((error) => {
-		console.warn("Overlay excitement could not be hydrated:", error);
-	});
-
-	// render cached data first (if matching)
-	if (currentBoxscore && currentBoxscore.game && currentBoxscore.game.gameId === gameId) {
-		renderBoxscore(currentBoxscore);
-	}
-	if (currentPlayByPlay?.game?.gameId === gameId) {
-		renderPlayByPlay(currentPlayByPlay);
-		updateGameExcitementMeter(currentPlayByPlay);
-	}
-
-	// fetch fresh data if live or not cached
-	const liveGame = liveById.get(gameId);
-	const forceFresh = liveGame?.gameStatus === 2;
-
-	const bsUrl = getBoxscoreUrl(gameId);
-	const pbpUrl = getPlayByPlayUrl(gameId);
-	fetchData(
-		bsUrl,
-		(json) => {
-			currentBoxscore = json;
-			renderBoxscore(json);
-		},
-		forceFresh,
-	);
-
-	fetchData(
-		pbpUrl,
-		(pbpJson) => {
-			currentPlayByPlay = pbpJson;
-			renderPlayByPlay(pbpJson);
-			updateGameExcitementMeter(pbpJson);
-		},
-		forceFresh,
-	);
-}
-
-function closeGameOverlay() {
-	backdropEl.classList.add("hidden");
-	gameOverlayEl.classList.add("hidden");
-	gameOverlayEl.dataset.gameId = "";
-	gameOverlayEl.dataset.awayTeam = "";
-	gameOverlayEl.dataset.homeTeam = "";
-	updateGameRecapLink();
-	renderPreviousMatchups();
-
-	// Reset UI
-	teamsEl.replaceChildren();
-	periodsEl.querySelector("thead").replaceChildren();
-	periodsEl.querySelector("tbody").replaceChildren();
-	renderBoxscoreTeamStats(null);
-	renderPlayByPlay(null);
-	updateGameExcitementMeter(null);
 }
 
 /* --------------------------------------------------------------------------------------------------
@@ -1973,6 +1690,8 @@ function renderMoreGames() {
 		visitingAbbr.textContent = g.awayTeam.teamTricode;
 		visitingColor.style.setProperty("--team-color", getTeamColorValue(g.awayTeam.teamTricode));
 		card.dataset.abbr = `${g.awayTeam.teamTricode}/${g.homeTeam.teamTricode}`;
+		card.dataset.gameId = g.gameId;
+		card.href = getGamePageUrl(g.gameId, currentLeague, currentMode);
 		if (isLive) {
 			date.classList.add("live");
 			date.innerHTML = getLiveLabel(live, t);
@@ -2004,21 +1723,6 @@ function renderMoreGames() {
 		} else {
 			homeWL.textContent = `${g.homeTeam.wins}-${g.homeTeam.losses}`;
 			visitingWL.textContent = `${g.awayTeam.wins}-${g.awayTeam.losses}`;
-		}
-
-		if (isFinal || isLive) {
-			card.dataset.gameId = g.gameId;
-			card.dataset.clickable = "true";
-			card.addEventListener("click", () => {
-				globalThis.umami?.track("NBA Schedule", { moreOverlayClicked: true });
-				openGameOverlay(g.gameId, g.awayTeam.teamTricode, g.homeTeam.teamTricode);
-			});
-		} else {
-			const detailLink = document.createElement("a");
-			detailLink.href = getGamePageUrl(g.gameId, currentLeague, currentMode);
-			detailLink.textContent = date.textContent;
-			detailLink.title = t("gameDetails");
-			date.replaceChildren(detailLink);
 		}
 
 		moreEl.appendChild(clone);
@@ -2113,15 +1817,7 @@ function renderTopExcitementCard(item) {
 
 	if (scheduleGame) {
 		card.dataset.gameId = item.gameId;
-		card.dataset.clickable = "true";
-		card.addEventListener("click", () => {
-			globalThis.umami?.track("NBA Schedule", { topExcitementOverlayClicked: true });
-			openGameOverlay(
-				item.gameId,
-				item.awayTeam?.teamTricode,
-				item.homeTeam?.teamTricode,
-			);
-		});
+		card.href = getGamePageUrl(item.gameId, currentLeague, currentMode);
 	}
 
 	return clone;
@@ -2396,7 +2092,6 @@ function handleScheduleData(json) {
 		renderMoreGames();
 		loadTopExcitementGames();
 		updateBrackets();
-		renderPreviousMatchups();
 	} else {
 		console.log(
 			"Schedule data not available. Skipping schedule rendering.",
@@ -2696,18 +2391,6 @@ function init() {
 		showConferenceStandings,
 		showDivisionStandings,
 	});
-	backdropEl.addEventListener("click", closeGameOverlay);
-	gameOverlayCloseBtn.addEventListener("click", closeGameOverlay);
-	gameShareButton.addEventListener("click", () => {
-		const gameId = gameOverlayEl.dataset.gameId;
-		const game = getScheduleGames().find((item) => item.gameId === gameId);
-		const title =
-			`${game.awayTeam.teamCity} ${game.awayTeam.teamName} @ ${game.homeTeam.teamCity} ${game.homeTeam.teamName}`;
-		shareGame(gameId, currentLeague, currentMode, title, gameShareFeedbackEl, t);
-	});
-	gameTabs.forEach((tab) => {
-		tab.addEventListener("click", () => switchTab(tab));
-	});
 	todayPrevButton.addEventListener("click", () => {
 		moveSelectedDay(-1);
 	});
@@ -2760,16 +2443,6 @@ function init() {
 	checkboxShowScores.addEventListener("change", () => {
 		localStorage.setItem("nba-spielplan_showScores", checkboxShowScores.checked);
 		renderTodaysGames();
-	});
-
-	checkboxPlayByPlayMadeShots.addEventListener("change", () => {
-		localStorage.setItem(
-			"nba-spielplan_pbp_madeShotsOnly",
-			checkboxPlayByPlayMadeShots.checked,
-		);
-		if (currentPlayByPlay && gameOverlayEl.dataset.gameId === currentPlayByPlay.game.gameId) {
-			renderPlayByPlay(currentPlayByPlay);
-		}
 	});
 
 	document.addEventListener("DOMContentLoaded", async function () {

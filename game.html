@@ -35,7 +35,6 @@
 		href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
 		rel="stylesheet">
 	<link rel="stylesheet" href="css/style.css">
-	<link rel="stylesheet" href="css/game.css">
 
 	<script defer src="https://cloud.umami.is/script.js" data-website-id="a22973c9-51e3-4ed8-b6ab-dcb37e1ec9a3"
 		data-domains="tehes.github.io,nba-spielplan.de,www.nba-spielplan.de"></script>
@@ -67,7 +66,7 @@
         </section>
         <header id="game-hero" class="hidden">
             <p id="game-context"></p>
-            <h1 id="game-title"></h1>
+            <h1 id="game-date"></h1>
             <div class="game-matchup">
                 <div id="away-team" class="hero-team">
                     <span class="team-side" data-i18n="away">Gast</span>
@@ -88,9 +87,11 @@
                     <span class="team-record"></span>
                 </div>
             </div>
-            <p id="game-date"></p>
+            <p id="game-meta">
+                <span id="game-venue"></span>
+                <span id="game-broadcast" class="broadcast-label"></span>
+            </p>
         </header>
-        <p id="game-meta" class="hidden"></p>
         <section id="game-details" class="game-details hidden">
 			<div id="game-excitement" class="hidden">
 				<h4 data-i18n="excitement">Spannung</h4>

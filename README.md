@@ -34,7 +34,9 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
     `EN (US)`, and no broadcast labels in `EN`.
   - Polls the live scoreboard every minute while at least one game is live, overlaying in-progress
     scores.
-  - Cards are clickable and open the built-in overview, boxscore, and play-by-play overlay.
+  - Entire game cards link to the game detail page, including scheduled, live, and finished games.
+  - A selected day other than today is stored in the URL as `date=YYYY-MM-DD`, so browser Back
+    and reloading restore it. Today uses no date parameter; without a valid date, the schedule starts with today.
 
 - **More games view**
   - Lists recent results plus upcoming games, grouped by date.
@@ -73,8 +75,8 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
     persist in `localStorage`.
   - Data automatically refreshes when the tab becomes visible or when a new day starts.
 
-- **Game detail overlay**
-  - Opens when clicking any live or finished game.
+- **Game details**
+  - Open when clicking a game card.
   - Splits game details into Overview, Boxscore, and Play-by-Play tabs.
   - Shows previous head-to-head matchups between the two teams before the selected game.
   - Shows full period scoring (Q1–Q4, OT1+).
@@ -87,7 +89,7 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
 - **Excitement meter (german: Spannungsmeter)**
   - Calculates an excitement score (0–100) for finished games from play-by-play closeness, lead
     changes, comebacks, crunch-time moments, offense, and OT bonuses.
-  - Shows a labeled 1–10 rating above the overlay tabs once a game is final.
+  - Shows a labeled 1–10 rating above the detail-page tabs once a game is final.
   - Reads cached ratings from the backend first and falls back to client-side play-by-play
     calculation for missing games.
   - Shows a Top 10 list of the most exciting games once regular-season progress reaches 100%,
@@ -98,13 +100,11 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
     `nba` or `wnba`; `mode` uses the same `de`, `en-us`, and `en` values as the schedule.
   - The team-colored header shows the matchup, local tip-off, venue, broadcasts, and live or final
     score. Scores are always visible here, independently of the schedule's spoiler preference.
-  - Overview, Boxscore, and Play-by-Play use the same rendering module as the existing overlay.
-    `#overview`, `#boxscore`, and `#playbyplay` can select a tab directly.
+  - Overview, Boxscore, and Play-by-Play use the game rendering module. `#overview`, `#boxscore`,
+    and `#playbyplay` can select a tab directly.
   - Active games refresh every minute while the page is visible. Scheduled games check for tip-off;
     the schedule refreshes every 15 minutes, and finished games stop polling.
-  - Upcoming tip-off links open the detail page. Live and finished games retain their overlay,
-    with Share and the recap link grouped at the bottom.
-  - Share in the overlay and on the detail page uses the direct `game.html` URL on the site's current origin, including its game ID,
+  - Share on the detail page uses the direct `game.html` URL on the site's current origin, including its game ID,
     league, and language mode. Browsers without native sharing copy the link instead. Social previews
     use the shared site metadata and image.
   - Only games in the current schedule are supported. Unavailable games show a link back to the
@@ -143,7 +143,7 @@ broadcast labels.
 | ---------------------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
 | `/schedule`            | Raw league schedule             | Fetched fresh per request; client Cache API handles reuse.                               |
 | `/standings`           | Normalized standings            | Uses the active season's official feed and includes NBA divisions.                       |
-| `/scoreboard`          | Live in-day scoreboard feed     | Always proxied without caching; powers the game detail overlay and in-day score updates. |
+| `/scoreboard`          | Live in-day scoreboard feed     | Always proxied without caching; powers the game detail page and in-day score updates. |
 | `/top-excitement`      | Top excitement-rated games      | Read-only KV endpoint for the current season's cached highlight list.                    |
 | `/backfill-excitement` | Excitement cache warmup         | POST endpoint that queues one lazy, batch-limited KV backfill for the active league.     |
 | `/fetch-excitement`    | Specific cached ratings         | POST endpoint that reads requested game IDs from KV and returns `scores` plus `missing`. |
@@ -186,7 +186,8 @@ Manual verification:
 
 1. Open scheduled and finished NBA and WNBA games; verify team colors, local dates, scores, and stats.
 2. Follow a live game through its next refresh and final state; simulate a failed request and recovery.
-3. Open the existing overlay, follow its standalone-page link, and share the game from that page.
+3. Select a schedule day, open a game by clicking its card, then use browser Back to verify the
+   selected day is restored. Open the game again and share it from the detail page.
 4. Check all three tabs, language changes, and the schedule link at mobile and desktop widths.
 5. After deployment, share a direct detail-page URL and verify the common site preview and correct
    destination; check an unavailable game's link back to the schedule.

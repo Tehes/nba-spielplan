@@ -33,14 +33,14 @@ let statsLoaded = false;
 
 const detailsEl = document.querySelector("#game-details");
 const heroEl = document.querySelector("#game-hero");
-const titleEl = document.querySelector("#game-title");
 const contextEl = document.querySelector("#game-context");
 const awayEl = document.querySelector("#away-team");
 const homeEl = document.querySelector("#home-team");
 const stateEl = document.querySelector("#game-state");
 const scoreEl = document.querySelector("#game-score");
 const dateEl = document.querySelector("#game-date");
-const metaEl = document.querySelector("#game-meta");
+const venueEl = document.querySelector("#game-venue");
+const broadcastEl = document.querySelector("#game-broadcast");
 const warningEl = document.querySelector("#request-warning");
 const messageEl = document.querySelector("#game-message");
 const messageTextEl = document.querySelector("#game-message-text");
@@ -237,7 +237,6 @@ function showMessage(key, canRetry = false) {
 	messageEl.classList.remove("hidden");
 	heroEl.classList.add("hidden");
 	detailsEl.classList.add("hidden");
-	metaEl.classList.add("hidden");
 	shareButton.disabled = true;
 }
 
@@ -260,6 +259,10 @@ function renderHeroTeam(element, team, liveTeam) {
 	return liveTeam?.score ?? team.score;
 }
 
+function getGameTitle() {
+	return `${game.awayTeam.teamCity} ${game.awayTeam.teamName} @ ${game.homeTeam.teamCity} ${game.homeTeam.teamName}`;
+}
+
 function renderGame() {
 	const currentGame = getCurrentGameData();
 	const status = getGameStatus();
@@ -267,10 +270,7 @@ function renderGame() {
 	const pregame = status === 1;
 	const awayScore = renderHeroTeam(awayEl, game.awayTeam, currentGame.awayTeam);
 	const homeScore = renderHeroTeam(homeEl, game.homeTeam, currentGame.homeTeam);
-	const title =
-		`${game.awayTeam.teamCity} ${game.awayTeam.teamName} @ ${game.homeTeam.teamCity} ${game.homeTeam.teamName}`;
-	titleEl.textContent = title;
-	document.title = `${title} – ${t("appName")}`;
+	document.title = `${getGameTitle()} – ${t("appName")}`;
 	contextEl.textContent = [LEAGUES[leagueId].label, game.gameLabel || game.gameSubtype, game.gameSubLabel].filter(
 		Boolean,
 	).join(" · ");
@@ -304,11 +304,8 @@ function renderGame() {
 			timeZoneName: "short",
 		})
 		: t("notScheduled");
-	metaEl.textContent = [
-		game.arenaName,
-		game.arenaCity,
-		...getBroadcastLabels(game, MODES[mode].broadcastRegion, MODES[mode].language),
-	].filter(Boolean).join(" · ");
+	venueEl.textContent = [game.arenaName, game.arenaCity].filter(Boolean).join(" · ");
+	broadcastEl.textContent = getBroadcastLabels(game, MODES[mode].broadcastRegion, MODES[mode].language).join(" · ");
 
 	detailsEl.dataset.gameId = gameId;
 	detailsEl.dataset.awayTeam = game.awayTeam.teamTricode;
@@ -339,7 +336,6 @@ function renderGame() {
 	}
 	heroEl.classList.remove("hidden");
 	detailsEl.classList.remove("hidden");
-	metaEl.classList.remove("hidden");
 	messageEl.classList.add("hidden");
 	shareButton.disabled = false;
 }
@@ -454,7 +450,7 @@ function init() {
 		}
 	});
 	shareButton.addEventListener("click", () => {
-		shareGame(gameId, leagueId, mode, titleEl.textContent, feedbackEl, t);
+		shareGame(gameId, leagueId, mode, getGameTitle(), feedbackEl, t);
 	});
 	retryButton.addEventListener("click", () => refreshGame());
 	document.addEventListener("visibilitychange", () => {

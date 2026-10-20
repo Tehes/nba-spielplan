@@ -289,120 +289,6 @@
 					alt="Threads Logo"></a><a href="https://github.com/tehes"><img src="svg/github.svg" width="24"
 					height="24" alt="Github Logo"></a></div>
 	</footer>
-	<div id="backdrop" class="hidden"></div>
-	<div id="game-overlay" class="game-details hidden">
-		<div class="close"><img src="img/close.svg" alt="close Icon"></div>
-		<div id="game-overlay-content">
-			<div id="game-excitement">
-				<h4 data-i18n="excitement">Spannung</h4>
-				<div id="game-excitement-bar" class="meter-container">
-					<div id="game-excitement-value" class="meter-fill">0%</div>
-				</div>
-				<p id="game-excitement-label"></p>
-			</div>
-			<div class="tabs">
-				<button type="button" class="tab is-active" data-target="overview-panel" data-i18n="overview">
-					Übersicht
-				</button>
-				<button type="button" class="tab" data-target="boxscore-panel" data-i18n="boxscore">
-					Boxscore
-				</button>
-				<button type="button" class="tab" data-target="playbyplay-panel" data-i18n="playByPlay">
-					Play by Play
-				</button>
-			</div>
-
-			<div id="overview-panel" class="panel is-active">
-				<h3 data-i18n="quarterByQuarter">Viertelverlauf</h3>
-				<div id="periods">
-					<table class="periods-table">
-						<thead>
-						</thead>
-						<tbody>
-						</tbody>
-					</table>
-				</div>
-				<div id="previous-matchups-section" class="hidden">
-					<h3 data-i18n="previousMatchups">Letzte Duelle</h3>
-					<div id="previous-matchups"></div>
-				</div>
-				<h3 data-i18n="teamComparison">Team-Vergleich</h3>
-				<div id="team-stats">
-					<h5 data-i18n="twoPoints">2 Punkte</h5>
-					<div class="stat" data-stat="twoPointersMade">
-						<div class="bar away">50%</div>
-						<div class="bar home">50%</div>
-					</div>
-					<h5 data-i18n="threePoints">3 Punkte</h5>
-					<div class="stat" data-stat="threePointersMade">
-						<div class="bar away">50%</div>
-						<div class="bar home">50%</div>
-					</div>
-					<h5 data-i18n="freeThrows">Freiwürfe</h5>
-					<div class="stat" data-stat="freeThrowsMade">
-						<div class="bar away">50%</div>
-						<div class="bar home">50%</div>
-					</div>
-					<h5 data-i18n="rebounds">Rebounds</h5>
-					<div class="stat" data-stat="reboundsTotal">
-						<div class="bar away">50%</div>
-						<div class="bar home">50%</div>
-					</div>
-					<h5 data-i18n="assists">Assists</h5>
-					<div class="stat" data-stat="assists">
-						<div class="bar away">50%</div>
-						<div class="bar home">50%</div>
-					</div>
-					<h5 data-i18n="steals">Steals</h5>
-					<div class="stat" data-stat="steals">
-						<div class="bar away">50%</div>
-						<div class="bar home">50%</div>
-					</div>
-					<h5 data-i18n="blocks">Blocks</h5>
-					<div class="stat" data-stat="blocks">
-						<div class="bar away">50%</div>
-						<div class="bar home">50%</div>
-					</div>
-					<h5 data-i18n="turnovers">Turnover</h5>
-					<div class="stat" data-stat="turnoversTotal">
-						<div class="bar away">50%</div>
-						<div class="bar home">50%</div>
-					</div>
-					<h5 data-i18n="fouls">Fouls</h5>
-					<div class="stat" data-stat="foulsPersonal">
-						<div class="bar away">50%</div>
-						<div class="bar home">50%</div>
-					</div>
-				</div>
-			</div>
-			<div id="boxscore-panel" class="panel">
-				<div id="teams"></div>
-			</div>
-		</div>
-
-		<div id="playbyplay-panel" class="panel">
-			<label class="show-only-made-shots"><span data-i18n="showMadeShotsOnly">Zeige nur getroffene Würfe</span>
-				<input type="checkbox" checked />
-				<span class="checkmark"></span>
-			</label>
-			<div id="playbyplay">
-				<p data-i18n="noPlayByPlay">Keine Play-by-Play-Daten verfügbar.</p>
-			</div>
-		</div>
-		<nav class="game-actions">
-			<button id="game-share" class="action-link" type="button">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M12 16V3m-4 4 4-4 4 4M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8" />
-				</svg>
-				<span data-i18n="shareGame">Teilen</span>
-			</button>
-			<p id="game-recap-link" class="jump-link hidden">
-				<a class="action-link" href="" target="_blank" rel="noopener" data-i18n="watchRecap">Recap auf NBA.com ansehen</a>
-			</p>
-		</nav>
-		<p id="game-share-feedback" class="share-feedback"></p>
-	</div>
-
 	<!-- TEMPLATES -->
 	<template id="template-empty-today">
 		<div class="empty-state">
@@ -414,7 +300,7 @@
 		</div>
 	</template>
 	<template id="template-today">
-		<div class="card">
+		<a class="card">
 			<div class="date"></div>
 			<div class="visiting-team"><img src="" loading="lazy" alt="" class="logo">
 				<span class="name"></span>
@@ -430,10 +316,10 @@
 			</div>
 			<div class="broadcast-label"></div>
 			<div class="game-label"></div>
-		</div>
+		</a>
 	</template>
 	<template id="template-more">
-		<div class="card" data-code="">
+		<a class="card" data-code="">
 			<div class="date"></div>
 			<div class="visiting-team"><span class="color"></span><span class="name"></span><span
 					class="abbr"></span><span class="wl"></span><span class="score"></span></div>
@@ -441,10 +327,10 @@
 					class="wl"></span><span class="score"></span></div>
 			<div class="broadcast-label"></div>
 			<div class="game-label"></div>
-		</div>
+		</a>
 	</template>
 	<template id="template-top-excitement">
-		<div class="card">
+		<a class="card">
 			<div class="rating"></div>
 			<div class="date"></div>
 			<div class="visiting-team"><span class="color"></span><span class="name"></span><span
@@ -452,7 +338,7 @@
 			<div class="home-team"><span class="color"></span><span class="name"></span><span class="abbr"></span><span
 					class="score"></span></div>
 			<div class="game-label"></div>
-		</div>
+		</a>
 	</template>
 	<template id="template-matchup">
 		<div class="matchup" data-round="">
@@ -463,92 +349,6 @@
 			<div class="teamB">
 				<div class="score"></div>
 				<div class="teamname"></div>
-			</div>
-		</div>
-	</template>
-	<template id="template-boxscore">
-		<section class="team">
-			<h3 class="team-title">
-				<img class="team-logo" alt="">
-				<span class="team-name"></span>
-			</h3>
-			<div class="players-wrapper">
-				<table class="players-table starters">
-					<thead>
-						<tr>
-							<th data-i18n="starters">Starter</th>
-							<th>MIN</th>
-							<th>PTS</th>
-							<th>REB</th>
-							<th>AST</th>
-							<th>STL</th>
-							<th>BLK</th>
-							<th>TOV</th>
-							<th>PF</th>
-							<th>FG</th>
-							<th>3P</th>
-							<th>FT</th>
-							<th>+/-</th>
-						</tr>
-					</thead>
-					<tbody></tbody>
-				</table>
-			</div>
-			<div class="players-wrapper">
-				<table class="players-table bench">
-					<thead>
-						<tr>
-							<th data-i18n="bench">Bank</th>
-							<th>MIN</th>
-							<th>PTS</th>
-							<th>REB</th>
-							<th>AST</th>
-							<th>STL</th>
-							<th>BLK</th>
-							<th>TOV</th>
-							<th>PF</th>
-							<th>FG</th>
-							<th>3P</th>
-							<th>FT</th>
-							<th>+/-</th>
-						</tr>
-					</thead>
-					<tbody></tbody>
-				</table>
-			</div>
-		</section>
-	</template>
-	<template id="template-play-by-play">
-		<div class="item">
-			<div class="line"></div>
-			<div class="body">
-				<div class="time"></div>
-				<div class="description"></div>
-				<div class="score">
-					<span class="score-away">
-						<span class="team"></span>
-						<span class="score-value"></span>
-					</span>
-					<span class="score-home">
-						<span class="team"></span>
-						<span class="score-value"></span>
-					</span>
-				</div>
-			</div>
-		</div>
-	</template>
-	<template id="template-previous-matchup">
-		<div class="previous-matchup">
-			<div class="previous-matchup-date"></div>
-			<div class="previous-matchup-team away">
-				<span class="color"></span>
-				<span class="abbr"></span>
-				<span class="score away-score"></span>
-			</div>
-			<div class="previous-matchup-team home">
-				<span class="color"></span>
-				<span class="abbr"></span>
-				<span class="score home-score"></span>
 			</div>
 		</div>
 	</template>

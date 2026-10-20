@@ -5,7 +5,7 @@
  -------------------------------------------------------------------------------------------------- */
 export const SERVICE_WORKER_CONFIG = {
 	useServiceWorker: true,
-	serviceWorkerVersion: "2026-10-20-v26",
+	serviceWorkerVersion: "2026-10-20-v27",
 	autoReloadOnUpdate: true,
 };
 
