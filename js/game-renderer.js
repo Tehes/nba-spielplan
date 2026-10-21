@@ -41,7 +41,12 @@ export function createGameRenderer(gameOverlayEl, options) {
 
 		const filtered = actions.filter((a) => {
 			if (a.actionType === "substitution") return false;
-			if (checkboxPlayByPlayMadeShots.checked && a.shotResult !== "Made") return false;
+			if (
+				checkboxPlayByPlayMadeShots.checked && a.shotResult !== "Made" &&
+				a.actionType !== "period" && a.actionType !== "game"
+			) {
+				return false;
+			}
 			return true;
 		});
 
