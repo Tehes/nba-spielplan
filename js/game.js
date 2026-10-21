@@ -18,6 +18,7 @@ import { initServiceWorkerRegistration, SERVICE_WORKER_CONFIG } from "./service-
 const REFRESH_INTERVAL_MS = 60000;
 const SCHEDULE_REFRESH_MS = 15 * 60000;
 const ODDS_REFRESH_MS = 5 * 60000;
+const GAME_MAX_DURATION_MS = (3 * 60 + 15) * 60 * 1000; // 3h 15m
 let gameId = "";
 let leagueId = "nba";
 let mode = "de";
@@ -397,6 +398,11 @@ function renderGame() {
 	const status = getGameStatus();
 	const postponed = game.postponedStatus === "Y" || game.gameStatusText === "PPD";
 	const pregame = status === 1;
+	const date = new Date(game.gameDateTimeUTC);
+	const validDate = !Number.isNaN(date.getTime());
+	const now = Date.now();
+	const soon = pregame && !postponed && validDate && now >= date.getTime() &&
+		now < date.getTime() + GAME_MAX_DURATION_MS;
 	const awayScore = renderHeroTeam(awayEl, game.awayTeam, currentGame.awayTeam);
 	const homeScore = renderHeroTeam(homeEl, game.homeTeam, currentGame.homeTeam);
 	document.title = `${getGameTitle()} – ${t("appName")}`;
@@ -405,18 +411,16 @@ function renderGame() {
 	).join(" · ");
 	heroEl.style.setProperty("--away-color", getTeamColorValue(game.awayTeam.teamTricode));
 	heroEl.style.setProperty("--home-color", getTeamColorValue(game.homeTeam.teamTricode));
-	stateEl.classList.toggle("is-live", !scheduleFromCache && status === 2 && !postponed);
+	stateEl.classList.toggle("is-live", !scheduleFromCache && (status === 2 || soon) && !postponed);
 	stateEl.textContent = scheduleFromCache
 		? ""
 		: postponed
 		? t("postponed")
 		: status === 3
 		? t("final")
-		: status === 2
+		: status === 2 || soon
 		? getLiveLabel(currentGame, t)
 		: t("beforeTipoff");
-	const date = new Date(game.gameDateTimeUTC);
-	const validDate = !Number.isNaN(date.getTime());
 	scoreEl.textContent = pregame
 		? postponed
 			? "–"
