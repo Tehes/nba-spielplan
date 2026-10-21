@@ -62,8 +62,6 @@ export const messages = {
 	de: {
 		appName: "NBA-Spielplan",
 		shareGame: "Teilen",
-		linkCopied: "Link kopiert.",
-		copyLinkManually: "Link zum Kopieren:",
 		backToSchedule: "Spielplan",
 		gameNotFound: "Diese Partie ist im aktuellen Spielplan nicht verfügbar.",
 		gameLoadFailed: "Die Spieldaten konnten nicht geladen werden.",
@@ -160,8 +158,6 @@ export const messages = {
 	en: {
 		appName: "NBA Schedule",
 		shareGame: "Share",
-		linkCopied: "Link copied.",
-		copyLinkManually: "Link to copy:",
 		backToSchedule: "Schedule",
 		gameNotFound: "This game is not available in the current schedule.",
 		gameLoadFailed: "Game data could not be loaded.",

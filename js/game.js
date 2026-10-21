@@ -51,7 +51,6 @@ const messageEl = document.querySelector("#game-message");
 const messageTextEl = document.querySelector("#game-message-text");
 const retryButton = document.querySelector("#game-retry");
 const shareButton = document.querySelector("#game-share");
-const feedbackEl = document.querySelector("#game-share-feedback");
 const scheduleLink = document.querySelector("#schedule-link");
 const modePicker = document.querySelector("#mode-picker");
 const madeShotsCheckbox = document.querySelector("#playbyplay-panel input");
@@ -591,7 +590,6 @@ function init() {
 		} catch (error) {
 			console.warn("Game language could not be saved:", error);
 		}
-		feedbackEl.textContent = "";
 		applyMode();
 		lastScheduleRefresh = 0;
 		refreshGame();
@@ -607,7 +605,7 @@ function init() {
 		}
 	});
 	shareButton.addEventListener("click", () => {
-		shareGame(gameId, leagueId, mode, getGameTitle(), feedbackEl, t);
+		shareGame(gameId, leagueId, mode, getGameTitle());
 	});
 	retryButton.addEventListener("click", () => refreshGame());
 	document.addEventListener("visibilitychange", () => {

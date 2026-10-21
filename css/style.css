@@ -930,19 +930,21 @@ MORE
 */
 
 #more,
-#top-excitement {
+#top-excitement,
+#previous-matchups {
     gap: 15px;
 }
 
 #more .card,
-#top-excitement .card {
+#top-excitement .card,
+#previous-matchups .card {
     justify-content: flex-start;
     padding: 10px;
     font-size: clamp(1rem, 3vw, 1.2rem);
     gap: 1%;
 }
 
-:is(#more, #top-excitement) :is(.home-team, .visiting-team) {
+:is(#more, #top-excitement, #previous-matchups) :is(.home-team, .visiting-team) {
     flex: 1 0 39%;
     display: flex;
     justify-content: left;
@@ -950,7 +952,7 @@ MORE
     gap: 8px;
 }
 
-:is(#more, #top-excitement) .date {
+:is(#more, #top-excitement, #previous-matchups) .date {
     flex: 0 0 20%;
 }
 
@@ -959,12 +961,12 @@ MORE
     white-space: nowrap;
 }
 
-:is(#more, #top-excitement) .score {
+:is(#more, #top-excitement, #previous-matchups) .score {
     font-size: 1.4rem;
     font-weight: 700;
 }
 
-:is(#more, #top-excitement) .color {
+:is(#more, #top-excitement, #previous-matchups) .color {
     width: 4px;
     height: 100%;
     background-color: var(--team-color, var(--neutral400));
@@ -1242,30 +1244,25 @@ GAME DETAILS
 }
 
 .game-page #game-excitement {
-    margin: 20px 0 0;
+    margin: 0 0 24px;
     color: var(--text-color);
 }
 
-.game-page #game-excitement h4 {
+.game-page #game-excitement h3 {
     margin: 0;
-}
-
-.game-page #game-excitement-bar {
-    height: 1.5rem;
-    margin-top: 4px;
 }
 
 .game-page #game-excitement-label {
     margin: 6px 0 0 0;
 }
 
-.game-page .game-details #game-recap-link:not(.hidden) {
+.game-page #game-recap-link:not(.hidden) {
     display: flex;
-    margin-bottom: 30px;
+    margin: 0 0 30px;
 }
 
-.game-page #previous-matchups-section {
-    margin-bottom: 30px;
+.game-page #previous-matchups-section h3 {
+    margin: 0 0 10px;
 }
 
 .game-page #game-odds {
@@ -1286,51 +1283,7 @@ GAME DETAILS
 
 .game-page #previous-matchups {
     display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    padding-bottom: 10px;
-}
-
-.game-page #previous-matchups .previous-matchup {
-    display: flex;
-    flex: 0 0 auto;
-    scroll-snap-align: center;
-    justify-content: flex-start;
-    align-items: stretch;
-    padding: 10px;
-    background-color: var(--progress-background);
-    border-radius: var(--card-corners);
-    gap: 8px;
-}
-
-.game-page #previous-matchups .previous-matchup-date {
-    display: flex;
-    align-items: center;
-    flex: 0 0 auto;
-    color: light-dark(var(--neutral700), var(--neutral300));
-    white-space: nowrap;
-}
-
-.game-page #previous-matchups .previous-matchup-team {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    justify-content: left;
-}
-
-.game-page #previous-matchups .color {
-    width: 4px;
-    min-height: 1.8rem;
-    align-self: stretch;
-    background-color: var(--team-color, var(--neutral400));
-}
-
-.game-page #previous-matchups .score {
-    font-size: 1.2rem;
-    font-weight: 700;
+    flex-direction: column;
 }
 
 .game-page .game-details #periods,
@@ -1587,11 +1540,11 @@ MEDIA QUERIES
         font-size: clamp(1.2rem, 4vw, 1.5rem);
     }
 
-    :is(#more, #top-excitement) :is(.home-team, .visiting-team) {
+    :is(#more, #top-excitement, #previous-matchups) :is(.home-team, .visiting-team) {
         flex: 1 0 34%;
     }
 
-    :is(#more, #top-excitement) .date {
+    :is(#more, #top-excitement, #previous-matchups) .date {
         flex: 0 0 30%;
     }
 
@@ -1666,14 +1619,6 @@ MEDIA QUERIES
     line-height: 1.4;
 }
 
-.game-page .share-feedback {
-    overflow-wrap: anywhere;
-}
-
-.game-page .share-feedback:empty {
-    display: none;
-}
-
 /*
 -------------------------------------------------------------------
 GAME PAGE
@@ -1707,9 +1652,7 @@ GAME PAGE
 }
 
 .game-page .action-link,
-.game-page .share-feedback,
-.game-page #game-details .player-pos,
-.game-page #game-excitement .meter-fill {
+.game-page #game-details .player-pos {
     font-size: 1rem;
 }
 
@@ -1855,7 +1798,7 @@ GAME PAGE
     margin-top: 28px;
 }
 
-.game-page #game-details #game-recap-link.hidden {
+.game-page #game-recap-link.hidden {
     display: none;
 }
 

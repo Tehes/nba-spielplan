@@ -58,7 +58,13 @@
                 <option value="en">🌐 EN</option>
             </select>
         </nav>
-        <p id="game-share-feedback" class="share-feedback"></p>
+        <div id="game-excitement" class="hidden">
+            <h3 data-i18n="excitement">Spannung</h3>
+            <div id="game-excitement-bar" class="meter-container">
+                <div id="game-excitement-value" class="meter-fill">0%</div>
+            </div>
+            <p id="game-excitement-label"></p>
+        </div>
         <p id="request-warning" class="request-warning hidden" data-i18n="requestWarning">Einige Daten konnten nicht aktualisiert werden. Bitte versuche es später erneut.</p>
         <section id="game-message" class="hidden">
             <p id="game-message-text" data-i18n="loading">Lädt…</p>
@@ -92,13 +98,6 @@
                 <span id="game-broadcast" class="broadcast-label"></span>
             </p>
         </header>
-        <div id="game-excitement" class="hidden">
-            <h4 data-i18n="excitement">Spannung</h4>
-            <div id="game-excitement-bar" class="meter-container">
-                <div id="game-excitement-value" class="meter-fill">0%</div>
-            </div>
-            <p id="game-excitement-label"></p>
-        </div>
         <section id="game-details" class="game-details is-loading">
 			<div class="tabs">
 				<button type="button" class="tab is-active" data-target="overview-panel" data-i18n="overview" disabled>
@@ -139,10 +138,6 @@
 						<div class="bar away"></div>
 						<div class="bar home"></div>
 					</div>
-				</div>
-				<div id="previous-matchups-section" class="hidden">
-					<h3 data-i18n="previousMatchups">Letzte Duelle</h3>
-					<div id="previous-matchups"></div>
 				</div>
 				<h3 id="team-stats-heading" data-i18n="teamComparison">Team-Vergleich</h3>
 				<div id="team-stats">
@@ -192,9 +187,6 @@
 						<div class="bar home">50%</div>
 					</div>
 				</div>
-				<p id="game-recap-link" class="jump-link hidden">
-					<a class="action-link" href="" target="_blank" rel="noopener" data-i18n="watchRecap">Recap auf NBA.com ansehen</a>
-				</p>
 			</div>
 			<div id="boxscore-panel" class="panel">
 				<div id="teams"></div>
@@ -208,6 +200,13 @@
 				<p data-i18n="noPlayByPlay">Keine Play-by-Play-Daten verfügbar.</p>
 			</div>
 		</div>
+        </section>
+        <p id="game-recap-link" class="jump-link hidden">
+            <a class="action-link" href="" target="_blank" rel="noopener" data-i18n="watchRecap">Recap auf NBA.com ansehen</a>
+        </p>
+        <section id="previous-matchups-section" class="hidden">
+            <h3 data-i18n="previousMatchups">Letzte Duelle</h3>
+            <div id="previous-matchups"></div>
         </section>
     </main>
     <footer>
@@ -290,15 +289,17 @@
 		</div>
 	</template>
 	<template id="template-previous-matchup">
-		<div class="previous-matchup">
-			<div class="previous-matchup-date"></div>
-			<div class="previous-matchup-team away">
+		<div class="card">
+			<div class="date"></div>
+			<div class="visiting-team away">
 				<span class="color"></span>
+				<span class="name"></span>
 				<span class="abbr"></span>
 				<span class="score away-score"></span>
 			</div>
-			<div class="previous-matchup-team home">
+			<div class="home-team home">
 				<span class="color"></span>
+				<span class="name"></span>
 				<span class="abbr"></span>
 				<span class="score home-score"></span>
 			</div>

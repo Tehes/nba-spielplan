@@ -6,8 +6,8 @@ export function createGameRenderer(gameOverlayEl, options) {
 	const periodsEl = gameOverlayEl.querySelector("#periods");
 	const teamStatsEl = gameOverlayEl.querySelector("#team-stats");
 	const teamsEl = gameOverlayEl.querySelector("#teams");
-	const previousMatchupsSectionEl = gameOverlayEl.querySelector("#previous-matchups-section");
-	const previousMatchupsEl = gameOverlayEl.querySelector("#previous-matchups");
+	const previousMatchupsSectionEl = documentEl.querySelector("#previous-matchups-section");
+	const previousMatchupsEl = documentEl.querySelector("#previous-matchups");
 	const checkboxPlayByPlayMadeShots = gameOverlayEl.querySelector("#playbyplay-panel input");
 
 	function renderBoxscore(json) {
@@ -377,7 +377,7 @@ export function createGameRenderer(gameOverlayEl, options) {
 			const hasScores = awayScore !== null && awayScore !== undefined && awayScore !== "" &&
 				homeScore !== null && homeScore !== undefined && homeScore !== "";
 
-			item.querySelector(".previous-matchup-date").textContent = gameDate.toLocaleDateString(getLocale(), {
+			item.querySelector(".date").textContent = gameDate.toLocaleDateString(getLocale(), {
 				weekday: "short",
 				day: "2-digit",
 				month: "2-digit",
@@ -390,8 +390,10 @@ export function createGameRenderer(gameOverlayEl, options) {
 			const homeScoreEl = item.querySelector(".home-score");
 
 			awayEl.style.setProperty("--team-color", getTeamColorValue(awayTeam.teamTricode));
+			awayEl.querySelector(".name").textContent = `${awayTeam.teamCity} ${awayTeam.teamName}`.trim();
 			awayEl.querySelector(".abbr").textContent = awayTeam.teamTricode;
 			homeEl.style.setProperty("--team-color", getTeamColorValue(homeTeam.teamTricode));
+			homeEl.querySelector(".name").textContent = `${homeTeam.teamCity} ${homeTeam.teamName}`.trim();
 			homeEl.querySelector(".abbr").textContent = homeTeam.teamTricode;
 
 			awayScoreEl.textContent = hasScores ? awayScore : "–";

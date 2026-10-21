@@ -4,9 +4,8 @@ export function getGamePageUrl(gameId, league, mode) {
 	return url.href;
 }
 
-export async function shareGame(gameId, league, mode, title, feedback, t) {
+export async function shareGame(gameId, league, mode, title) {
 	const url = getGamePageUrl(gameId, league, mode);
-	feedback.textContent = "";
 
 	if (navigator.share) {
 		try {
@@ -22,9 +21,7 @@ export async function shareGame(gameId, league, mode, title, feedback, t) {
 
 	try {
 		await navigator.clipboard.writeText(url);
-		feedback.textContent = t("linkCopied");
 	} catch (error) {
 		console.warn("Game link could not be copied:", error);
-		feedback.textContent = `${t("copyLinkManually")} ${url}`;
 	}
 }
