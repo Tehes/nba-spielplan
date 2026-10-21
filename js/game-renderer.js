@@ -52,6 +52,9 @@ export function createGameRenderer(gameOverlayEl, options) {
 
 		filtered.forEach((action) => {
 			const item = template.content.firstElementChild.cloneNode(true);
+			if (action.actionType === "period" || action.actionType === "game") {
+				item.classList.add("period-marker");
+			}
 
 			if (action.teamTricode) {
 				item.style.setProperty("--team-color", getTeamColorValue(action.teamTricode));
