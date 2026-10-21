@@ -1813,6 +1813,14 @@ GAME PAGE
     background: var(--card-bg);
 }
 
+.game-page #game-details .players-table td:first-child {
+    transition: background-color var(--transition-duration);
+}
+
+.game-page #game-details .players-table tr:hover td:first-child {
+    background-color: var(--team-color, var(--neutral400));
+}
+
 .game-page #game-message {
     text-align: center;
     padding: 40px 20px;
