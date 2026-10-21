@@ -1379,10 +1379,6 @@ function getGameState(game, live, now = new Date()) {
 	return { isPostponed, isFinal, isLive, inLiveWindow };
 }
 
-// Helper to format ISO 8601 PTxxMxxS durations to M:SS
-
-// Build a label for live games based on period and gameClock from live scoreboard data
-
 function startExcitementBackfill(leagueId = currentLeague) {
 	fetch(getBackfillExcitementUrl(leagueId), { method: "POST" })
 		.then((response) => {

@@ -1366,7 +1366,6 @@ GAME DETAILS
 
 .game-page .game-details .player-pos {
     margin-left: 10px;
-    font-size: 0.9rem;
     flex: 0 0 auto;
 }
 
@@ -1461,10 +1460,6 @@ GAME DETAILS
 .game-page .game-details .tab.is-active {
     background-color: var(--text-color);
     color: var(--bg-color);
-}
-
-.game-page .game-details .panel {
-    margin-top: 16px;
 }
 
 .game-page .game-details .panel:not(.is-active) {
@@ -1673,7 +1668,6 @@ MEDIA QUERIES
 
 .game-page .share-feedback {
     overflow-wrap: anywhere;
-    font-size: 0.9rem;
 }
 
 .game-page .share-feedback:empty {

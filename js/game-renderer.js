@@ -412,5 +412,5 @@ export function createGameRenderer(gameOverlayEl, options) {
 		previousMatchupsSectionEl.classList.remove("hidden");
 	}
 
-	return { renderBoxscore, renderPlayByPlay, renderBoxscoreTeamStats, renderPreviousMatchups };
+	return { renderBoxscore, renderPlayByPlay, renderPreviousMatchups };
 }

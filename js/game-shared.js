@@ -61,7 +61,6 @@ export const BUCKETS_URL = "https://tehes.github.io/buckets/";
 export const messages = {
 	de: {
 		appName: "NBA-Spielplan",
-		gameDetails: "Detailseite öffnen",
 		shareGame: "Teilen",
 		linkCopied: "Link kopiert.",
 		copyLinkManually: "Link zum Kopieren:",
@@ -160,7 +159,6 @@ export const messages = {
 	},
 	en: {
 		appName: "NBA Schedule",
-		gameDetails: "Open game details",
 		shareGame: "Share",
 		linkCopied: "Link copied.",
 		copyLinkManually: "Link to copy:",
