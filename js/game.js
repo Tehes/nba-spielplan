@@ -448,11 +448,14 @@ function renderGame() {
 	teamsEl.classList.toggle("request-warning", pregame);
 	playsEl.classList.toggle("request-warning", pregame);
 	[periodsHeading, periodsEl, statsHeading, statsEl].forEach((element) => {
-		element.classList.toggle("hidden", pregame || !boxscore);
+		element.classList.toggle("hidden", !pregame && !boxscore);
 	});
 	if (boxscore && !pregame) {
 		renderer.renderBoxscore({ game: boxscore });
 	} else {
+		if (pregame) {
+			renderer.renderOverview(currentGame);
+		}
 		teamsEl.textContent = t(pregame ? "statsAfterTipoff" : statsLoaded ? "noBoxscore" : "loading");
 	}
 	renderOdds();

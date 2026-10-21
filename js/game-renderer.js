@@ -16,8 +16,7 @@ export function createGameRenderer(gameOverlayEl, options) {
 			return;
 		}
 
-		renderBoxscorePeriods(game);
-		renderBoxscoreTeamStats(game);
+		renderOverview(game);
 		teamsEl.replaceChildren();
 		renderBoxscoreTeam(game.awayTeam, game.gameStatus === 2);
 		renderBoxscoreTeam(game.homeTeam, game.gameStatus === 2);
@@ -97,11 +96,16 @@ export function createGameRenderer(gameOverlayEl, options) {
 		});
 	}
 
+	function renderOverview(game) {
+		renderBoxscorePeriods(game);
+		renderBoxscoreTeamStats(game);
+	}
+
 	function renderBoxscoreTeamStats(game) {
 		const homeTeam = game?.homeTeam;
 		const awayTeam = game?.awayTeam;
-		const homeStats = homeTeam?.statistics || {};
-		const awayStats = awayTeam?.statistics || {};
+		const homeStats = game.gameStatus === 1 ? {} : homeTeam?.statistics || {};
+		const awayStats = game.gameStatus === 1 ? {} : awayTeam?.statistics || {};
 
 		teamStatsEl.querySelectorAll(".bar").forEach((bar) => {
 			bar.style.width = "50%";
@@ -139,7 +143,10 @@ export function createGameRenderer(gameOverlayEl, options) {
 	function renderBoxscorePeriods(game) {
 		const home = game.homeTeam;
 		const away = game.awayTeam;
-		const periods = (home.periods && home.periods.length ? home.periods : away.periods) || [];
+		const pregame = game.gameStatus === 1;
+		const periods = pregame
+			? [1, 2, 3, 4].map((period) => ({ period, periodType: "REGULAR" }))
+			: (home.periods && home.periods.length ? home.periods : away.periods) || [];
 		const table = periodsEl.querySelector(".periods-table");
 		const thead = table.querySelector("thead");
 		const tbody = table.querySelector("tbody");
@@ -184,12 +191,12 @@ export function createGameRenderer(gameOverlayEl, options) {
 					team.periods.find(
 						(tp) => tp.period === p.period && tp.periodType === p.periodType,
 					);
-				cell.textContent = periodData ? periodData.score : "";
+				cell.textContent = pregame ? 0 : periodData ? periodData.score : "";
 				row.appendChild(cell);
 			});
 
 			const totalCell = document.createElement("td");
-			totalCell.textContent = team.score ?? "";
+			totalCell.textContent = pregame ? 0 : team.score ?? "";
 			row.appendChild(totalCell);
 
 			tbody.appendChild(row);
@@ -414,5 +421,5 @@ export function createGameRenderer(gameOverlayEl, options) {
 		previousMatchupsSectionEl.classList.remove("hidden");
 	}
 
-	return { renderBoxscore, renderPlayByPlay, renderPreviousMatchups };
+	return { renderBoxscore, renderOverview, renderPlayByPlay, renderPreviousMatchups };
 }
