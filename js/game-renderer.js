@@ -371,7 +371,8 @@ export function createGameRenderer(gameOverlayEl, options) {
 				const isSamePair = (away === currentAway && home === currentHome) ||
 					(away === currentHome && home === currentAway);
 
-				return game.gameId !== gameId && gameDate && gameDate < currentDate && isSamePair;
+				return game.gameStatus === 3 && game.gameId !== gameId && gameDate && gameDate < currentDate &&
+					isSamePair;
 			})
 			.sort((a, b) => getGameLocalDate(b) - getGameLocalDate(a));
 
