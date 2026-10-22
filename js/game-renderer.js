@@ -394,7 +394,6 @@ export function createGameRenderer(gameOverlayEl, options) {
 				homeScore !== null && homeScore !== undefined && homeScore !== "";
 
 			item.querySelector(".date").textContent = gameDate.toLocaleDateString(getLocale(), {
-				weekday: "short",
 				day: "2-digit",
 				month: "2-digit",
 				year: "numeric",
