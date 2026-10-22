@@ -739,14 +739,22 @@ TODAY
     font-size: 0.9rem;
 }
 
+#today .card:has(.broadcast-label:not(:empty) + .game-label:not(:empty)) {
+    overflow: hidden;
+}
+
 #today .broadcast-label:not(:empty):has(+ .game-label:not(:empty)) {
-    border-radius: 0 0 0 var(--card-corners);
+    border-radius: 0;
     flex: 1 0 18%;
     min-width: fit-content;
     max-width: 20%;
+    /* Fill wrapped rows without changing label widths or wrap points. */
+    box-shadow: 0 0 0 100vmax var(--progress-background);
+    clip-path: inset(0 -100vmax);
 }
 
 #today .broadcast-label:not(:empty)+.game-label:not(:empty) {
+    position: relative;
     border-radius: 0 0 var(--card-corners) 0;
 }
 

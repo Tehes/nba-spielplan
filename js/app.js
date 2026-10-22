@@ -1299,7 +1299,7 @@ function renderTodaysGames() {
 					if (cachedScore != null) {
 						date.textContent = formatExcitementRating(cachedScore);
 					} else {
-						date.textContent = t("loading");
+						date.textContent = "…";
 						pendingExcitementRatings.push({ gameId: g.gameId, element: date });
 					}
 				} else {
