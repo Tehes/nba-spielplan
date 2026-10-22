@@ -261,6 +261,12 @@ h3 {
     margin: 10px 0 20px 0;
 }
 
+@media (display-mode: standalone) {
+    .top-menu {
+        margin-top: 24px;
+    }
+}
+
 .league-tabs,
 .game-page .game-details .tabs {
     display: flex;
