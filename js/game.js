@@ -421,9 +421,8 @@ function renderGame() {
 	const awayScore = renderHeroTeam(awayEl, game.awayTeam, currentGame.awayTeam);
 	const homeScore = renderHeroTeam(homeEl, game.homeTeam, currentGame.homeTeam);
 	document.title = `${getGameTitle()} – ${t("appName")}`;
-	contextEl.textContent = [LEAGUES[leagueId].label, game.gameLabel || game.gameSubtype, game.gameSubLabel].filter(
-		Boolean,
-	).join(" · ");
+	contextEl.textContent = [game.gameLabel || game.gameSubtype, game.gameSubLabel].filter(Boolean).join(" · ") ||
+		LEAGUES[leagueId].label;
 	heroEl.style.setProperty("--away-color", getTeamColorValue(game.awayTeam.teamTricode));
 	heroEl.style.setProperty("--home-color", getTeamColorValue(game.homeTeam.teamTricode));
 	stateEl.classList.toggle("is-live", !scheduleFromCache && (status === 2 || soon) && !postponed);
