@@ -46,6 +46,15 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
   - Uses team color accents so you can scan cards quickly.
   - Shows broadcast labels based on the selected mode.
 
+- **Broadcaster filter**
+  - Find games in the More games view that are listed for the broadcasters you use.
+  - Select one or more providers; games match if any selected provider carries them. Combine the
+    selection with the team, prime-time, and past-games filters.
+  - Provider options come from the loaded schedule for the selected league and region. The filter
+    is hidden when no providers are available, including in the global `EN` mode.
+  - Defaults to all providers, including games without broadcast information. Selection resets on
+    reload or league/mode changes.
+
 - **League menu**
   - Top menu switches between NBA and WNBA schedules.
   - Team filters, logos, colors, standings, boxscores, play-by-play data, and recap links follow the
