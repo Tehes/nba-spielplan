@@ -46,9 +46,6 @@
             <div class="game-actions">
                 <a id="schedule-link" class="action-link" href="./" data-i18n="backToSchedule">Spielplan</a>
                 <button id="game-share" type="button" disabled>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 16V3m-4 4 4-4 4 4M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8" />
-                    </svg>
                     <span data-i18n="shareGame">Teilen</span>
                 </button>
             </div>
@@ -95,9 +92,14 @@
             </div>
             <p id="game-meta">
                 <span id="game-venue"></span>
-                <span id="game-broadcast" class="broadcast-label"></span>
             </p>
         </header>
+        <div id="game-watch" class="hidden">
+            <div id="game-broadcast-links"></div>
+            <a id="game-recap-link" class="action-link hidden" href="" target="_blank" rel="noopener">
+                <span data-i18n="recapShort">Recap</span>
+            </a>
+        </div>
         <section id="game-details" class="game-details is-loading">
 			<div class="tabs">
 				<button type="button" class="tab is-active" data-target="overview-panel" data-i18n="overview" disabled>
@@ -201,9 +203,6 @@
 			</div>
 		</div>
         </section>
-        <p id="game-recap-link" class="jump-link hidden">
-            <a class="action-link" href="" target="_blank" rel="noopener" data-i18n="watchRecap">Recap auf NBA.com ansehen</a>
-        </p>
         <section id="previous-matchups-section" class="hidden">
             <h3 data-i18n="previousMatchups">Letzte Duelle</h3>
             <div id="previous-matchups"></div>
@@ -268,6 +267,11 @@
 			</div>
 			<p class="on-court-legend hidden" data-i18n="onCourt">Auf dem Platz</p>
 		</section>
+	</template>
+	<template id="template-broadcast-provider">
+		<span class="broadcast-provider">
+			<span></span>
+		</span>
 	</template>
 	<template id="template-play-by-play">
 		<div class="item">

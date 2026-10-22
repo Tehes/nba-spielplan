@@ -89,10 +89,14 @@
     box-sizing: border-box;
 }
 
-html {
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+html,
+body {
     margin: 0;
     padding: 0;
+}
+
+html {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
     min-height: 100dvh;
     scroll-behavior: smooth;
 }
@@ -100,8 +104,6 @@ html {
 body {
     font-family: 'Kanit', sans-serif;
     background-color: var(--bg-color);
-    margin: 0;
-    padding: 0;
     color: var(--text-color);
     font-size: 100%;
     min-height: inherit;
@@ -182,14 +184,17 @@ main {
     text-transform: uppercase;
 }
 
+h1,
+h2 {
+    margin: 0 0 10px 0;
+}
+
 h1 {
     font-size: clamp(1.5rem, 4vw, 2rem);
-    margin: 0 0 10px 0;
 }
 
 h2 {
     font-size: clamp(1rem, 4vw, 1.5rem);
-    margin: 0 0 10px 0;
 }
 
 h3 {
@@ -256,10 +261,14 @@ h3 {
     margin: 10px 0 20px 0;
 }
 
-.league-tabs {
+.league-tabs,
+.game-page .game-details .tabs {
     display: flex;
     border: 1px solid var(--text-color);
     border-radius: var(--card-corners);
+}
+
+.league-tabs {
     max-width: 320px;
 }
 
@@ -271,9 +280,9 @@ h3 {
         calc(100% - 2.5em) 50%;
 }
 
-.league-tabs .tab {
+.league-tabs .tab,
+.game-page .game-details .tab {
     flex: 1 1 auto;
-    padding: 6px 30px;
     background-color: transparent;
     border: none;
     color: var(--text-color);
@@ -284,11 +293,17 @@ h3 {
     text-align: center;
 }
 
-.league-tabs .tab+.tab {
+.league-tabs .tab {
+    padding: 6px 30px;
+}
+
+.league-tabs .tab+.tab,
+.game-page .game-details .tab+.tab {
     border-left: 1px solid var(--text-color);
 }
 
-.league-tabs .tab.is-active {
+.league-tabs .tab.is-active,
+.game-page .game-details .tab.is-active {
     background-color: var(--text-color);
     color: var(--bg-color);
 }
@@ -376,17 +391,28 @@ main div span {
     flex-wrap: wrap;
 }
 
-/* Add a play icon before the broadcast label if it's not empty */
-.broadcast-label:not(:empty)::before {
+.broadcast-label:not(:empty)::before,
+.game-page #game-share::before,
+.game-page #game-watch .broadcast-provider::before,
+.game-page #game-recap-link::before {
     content: "";
     display: inline-block;
-    width: 0;
-    height: 0;
+    background-color: currentColor;
+    mask-position: center;
+    mask-size: contain;
+    mask-repeat: no-repeat;
+}
+
+.broadcast-label:not(:empty)::before,
+.game-page #game-watch .broadcast-provider::before {
+    mask-image: url("../svg/tv.svg");
+}
+
+.broadcast-label:not(:empty)::before {
+    width: 1em;
+    height: 1em;
     margin-right: 0.45em;
-    border-top: 0.38em solid transparent;
-    border-bottom: 0.38em solid transparent;
-    border-left: 0.55em solid currentColor;
-    transform: translateY(0.05em);
+    vertical-align: -0.125em;
 }
 
 /*
@@ -491,10 +517,7 @@ PLAYOFFS and NBA CUP
     align-self: center;
 }
 
-#playoffs .conference-finals {
-    align-self: flex-end;
-}
-
+#playoffs .conference-finals,
 #cup .east-semifinal,
 #cup .west-semifinal {
     align-self: flex-end;
@@ -578,103 +601,83 @@ PLAYOFFS and NBA CUP
 
 #cup #cup-west .matchup:first-child::after,
 #cup #cup-east .matchup:first-child::after,
-#playoffs .round-1.slot-top::after {
-    top: 100%;
+#playoffs .round-1.slot-top::after,
+#cup #cup-west .matchup:last-child::after,
+#cup #cup-east .matchup:last-child::after,
+#playoffs .round-1.slot-bottom::after,
+#playoffs .round-3::before,
+#playoffs .round-3::after {
     left: 50%;
     width: var(--bracket-stroke-width);
-    height: var(--bracket-round-link-height);
     transform: translateX(-50%);
     background-color: var(--bracket-stroke-color);
+}
+
+#cup .west-semifinal::before,
+#cup .east-semifinal::before,
+#cup .final::before,
+#cup .final::after,
+#playoffs .round-2.outer-bracket-left::before,
+#playoffs .round-2.outer-bracket-right::before,
+#playoffs .conference-west .round-2:is(.pair-a, .pair-b)::after,
+#playoffs .conference-east .round-2:is(.pair-a, .pair-b)::after,
+#playoffs .round-4::before,
+#playoffs .round-4::after {
+    top: 50%;
+    height: var(--bracket-stroke-width);
+    transform: translateY(-50%);
+    background-color: var(--bracket-stroke-color);
+}
+
+#playoffs .round-2.outer-bracket-left::before,
+#playoffs .round-2.outer-bracket-right::before,
+#playoffs .conference-west .round-2:is(.pair-a, .pair-b)::after,
+#playoffs .conference-east .round-2:is(.pair-a, .pair-b)::after,
+#cup .west-semifinal::before,
+#cup .east-semifinal::before {
+    width: var(--bracket-side-link-length);
+}
+
+#cup #cup-west .matchup:first-child::after,
+#cup #cup-east .matchup:first-child::after,
+#playoffs .round-1.slot-top::after {
+    top: 100%;
+    height: var(--bracket-round-link-height);
 }
 
 #cup #cup-west .matchup:last-child::after,
 #cup #cup-east .matchup:last-child::after,
 #playoffs .round-1.slot-bottom::after {
     bottom: 100%;
-    left: 50%;
-    width: var(--bracket-stroke-width);
     height: var(--bracket-round-link-height);
-    transform: translateX(-50%);
-    background-color: var(--bracket-stroke-color);
-}
-
-#cup .west-semifinal::before,
-#cup .east-semifinal::before {
-    top: 50%;
-    width: var(--bracket-side-link-length);
-    height: var(--bracket-stroke-width);
-    transform: translateY(-50%);
-    background-color: var(--bracket-stroke-color);
-}
-
-#cup .west-semifinal::before {
-    right: 100%;
-}
-
-#cup .east-semifinal::before {
-    left: 100%;
 }
 
 #cup .final::before,
-#cup .final::after {
-    top: 50%;
+#cup .final::after,
+#playoffs .round-4::before,
+#playoffs .round-4::after {
     width: var(--bracket-final-link-length);
-    height: var(--bracket-stroke-width);
-    transform: translateY(-50%);
-    background-color: var(--bracket-stroke-color);
 }
 
-#cup .final::before {
+#cup .west-semifinal::before,
+#cup .final::before,
+#playoffs .round-2.outer-bracket-left::before,
+#playoffs .conference-east .round-2:is(.pair-a, .pair-b)::after,
+#playoffs .round-4::before {
     right: 100%;
 }
 
-#cup .final::after {
+#cup .east-semifinal::before,
+#cup .final::after,
+#playoffs .round-2.outer-bracket-right::before,
+#playoffs .conference-west .round-2:is(.pair-a, .pair-b)::after,
+#playoffs .round-4::after {
     left: 100%;
-}
-
-#playoffs .round-2.outer-bracket-left::before {
-    top: 50%;
-    right: 100%;
-    width: var(--bracket-side-link-length);
-    height: var(--bracket-stroke-width);
-    transform: translateY(-50%);
-    background-color: var(--bracket-stroke-color);
-}
-
-#playoffs .round-2.outer-bracket-right::before {
-    top: 50%;
-    left: 100%;
-    width: var(--bracket-side-link-length);
-    height: var(--bracket-stroke-width);
-    transform: translateY(-50%);
-    background-color: var(--bracket-stroke-color);
-}
-
-#playoffs .conference-west .round-2:is(.pair-a, .pair-b)::after {
-    top: 50%;
-    left: 100%;
-    width: var(--bracket-side-link-length);
-    height: var(--bracket-stroke-width);
-    transform: translateY(-50%);
-    background-color: var(--bracket-stroke-color);
-}
-
-#playoffs .conference-east .round-2:is(.pair-a, .pair-b)::after {
-    top: 50%;
-    right: 100%;
-    width: var(--bracket-side-link-length);
-    height: var(--bracket-stroke-width);
-    transform: translateY(-50%);
-    background-color: var(--bracket-stroke-color);
 }
 
 #playoffs .round-3::before,
 #playoffs .round-3::after {
-    left: 50%;
-    width: var(--bracket-stroke-width);
     height: 124px;
-    transform: translateX(-50%);
-    background-color: var(--bracket-stroke-color);
 }
 
 #playoffs .round-3::before {
@@ -683,23 +686,6 @@ PLAYOFFS and NBA CUP
 
 #playoffs .round-3::after {
     top: 100%;
-}
-
-#playoffs .round-4::before,
-#playoffs .round-4::after {
-    top: 50%;
-    width: var(--bracket-final-link-length);
-    height: var(--bracket-stroke-width);
-    transform: translateY(-50%);
-    background-color: var(--bracket-stroke-color);
-}
-
-#playoffs .round-4::before {
-    right: 100%;
-}
-
-#playoffs .round-4::after {
-    left: 100%;
 }
 
 /*
@@ -891,29 +877,32 @@ JUMP LINK
     margin-top: 30px;
 }
 
-.action-link {
-    font-size: clamp(0.8rem, 2vw, 1rem);
-    padding: 6px 10px;
+.action-link,
+.game-page #game-watch .broadcast-provider {
     color: var(--text-color);
-    border: 1px solid var(--text-color);
     border-radius: var(--card-corners);
+    text-transform: uppercase;
+}
+
+.action-link {
+    font-size: var(--action-link-font-size, clamp(0.8rem, 2vw, 1rem));
+    padding: 6px 10px;
+    border: 1px solid var(--text-color);
     text-decoration: none;
     transition: all var(--transition-duration) ease;
-    text-transform: uppercase;
 }
 
 .game-page #game-share {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45em;
+    gap: 0.25em;
     transition: all var(--transition-duration) ease;
     text-transform: uppercase;
 }
 
-.game-page #game-share svg {
+.game-page #game-share::before {
     width: 1.1em;
     height: 1.1em;
     flex-shrink: 0;
+    mask-image: url("../svg/share.svg");
 }
 
 .action-link:hover,
@@ -1029,7 +1018,6 @@ select {
     box-shadow: var(--card-shadow);
     background-color: var(--card-bg);
     color: var(--text-color);
-    font-size: inherit;
     font: inherit;
     padding: 10px 50px 10px 10px;
     border-radius: var(--card-corners);
@@ -1256,16 +1244,14 @@ GAME DETAILS
     margin: 6px 0 0 0;
 }
 
-.game-page #game-recap-link:not(.hidden) {
-    display: flex;
-    margin: 0 0 30px;
-}
-
 .game-page #previous-matchups-section h3 {
     margin: 0 0 10px;
 }
 
-.game-page #game-odds {
+.game-page #game-odds,
+.game-page .game-details #periods,
+.game-page .game-details #team-stats,
+.game-page .game-details label {
     margin-bottom: 30px;
 }
 
@@ -1284,11 +1270,6 @@ GAME DETAILS
 .game-page #previous-matchups {
     display: flex;
     flex-direction: column;
-}
-
-.game-page .game-details #periods,
-.game-page .game-details #team-stats {
-    margin-bottom: 30px;
 }
 
 .game-page .game-details .players-wrapper {
@@ -1318,6 +1299,7 @@ GAME DETAILS
 }
 
 .game-page .game-details .player-pos {
+    font-size: 1rem;
     margin-left: 10px;
     flex: 0 0 auto;
 }
@@ -1386,41 +1368,16 @@ GAME DETAILS
 }
 
 .game-page .game-details .tabs {
-    display: flex;
-    border: 1px solid var(--text-color);
-    border-radius: var(--card-corners);
-    margin: 10px auto 0 auto;
+    margin: 0 auto;
     max-width: 520px;
 }
 
 .game-page .game-details .tab {
-    flex: 1 1 auto;
     padding: 6px 10px;
-    background-color: transparent;
-    border: none;
-    color: var(--text-color);
-    font: inherit;
-    font-size: 1rem;
-    text-transform: uppercase;
-    cursor: pointer;
-    text-align: center;
-}
-
-.game-page .game-details .tab+.tab {
-    border-left: 1px solid var(--text-color);
-}
-
-.game-page .game-details .tab.is-active {
-    background-color: var(--text-color);
-    color: var(--bg-color);
 }
 
 .game-page .game-details .panel:not(.is-active) {
     display: none;
-}
-
-.game-page .game-details label {
-    margin-bottom: 30px;
 }
 
 .game-page .game-details .checkmark {
@@ -1635,7 +1592,7 @@ MEDIA QUERIES
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 6px 12px;
+    padding: 6px 10px;
     font: inherit;
     font-size: 1rem;
     line-height: 1.4;
@@ -1648,6 +1605,7 @@ GAME PAGE
 */
 
 .game-page {
+    --action-link-font-size: 1rem;
     --live-color: #ff6262;
 }
 
@@ -1671,11 +1629,6 @@ GAME PAGE
 
 .game-page #mode-picker {
     margin: 0;
-}
-
-.game-page .action-link,
-.game-page #game-details .player-pos {
-    font-size: 1rem;
 }
 
 .game-page #game-hero {
@@ -1811,9 +1764,50 @@ GAME PAGE
     box-shadow: var(--card-shadow);
 }
 
+.game-page #game-watch:not(.hidden),
+.game-page #game-broadcast-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.game-page #game-watch {
+    margin-top: 24px;
+}
+
+.game-page #game-broadcast-links:empty {
+    display: none;
+}
+
+.game-page #game-watch .action-link,
+.game-page #game-watch .broadcast-provider {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25em;
+}
+
+.game-page #game-watch .broadcast-provider {
+    font-size: 1rem;
+    padding: 7px 11px;
+    background-color: light-dark(var(--neutral200), var(--neutral700));
+}
+
+.game-page #game-watch .broadcast-provider::before,
+.game-page #game-recap-link::before {
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+}
+
+.game-page #game-recap-link::before {
+    mask-image: url("../svg/play.svg");
+}
+
 .game-page #game-details .tabs {
     background: var(--card-bg);
-    margin-top: 0;
 }
 
 .game-page #game-details .panel {

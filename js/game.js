@@ -46,7 +46,9 @@ const stateEl = document.querySelector("#game-state");
 const scoreEl = document.querySelector("#game-score");
 const dateEl = document.querySelector("#game-date");
 const venueEl = document.querySelector("#game-venue");
-const broadcastEl = document.querySelector("#game-broadcast");
+const broadcastLinksEl = document.querySelector("#game-broadcast-links");
+const broadcastProviderTemplate = document.querySelector("#template-broadcast-provider");
+const watchEl = document.querySelector("#game-watch");
 const warningEl = document.querySelector("#request-warning");
 const messageEl = document.querySelector("#game-message");
 const messageTextEl = document.querySelector("#game-message-text");
@@ -365,6 +367,7 @@ function showMessage(key, canRetry = false) {
 	retryButton.classList.toggle("hidden", !canRetry);
 	messageEl.classList.remove("hidden");
 	heroEl.classList.add("hidden");
+	watchEl.classList.add("hidden");
 	excitementEl.classList.add("hidden");
 	detailsEl.classList.add("hidden");
 	shareButton.disabled = true;
@@ -391,6 +394,17 @@ function renderHeroTeam(element, team, liveTeam) {
 
 function getGameTitle() {
 	return `${game.awayTeam.teamCity} ${game.awayTeam.teamName} @ ${game.homeTeam.teamCity} ${game.homeTeam.teamName}`;
+}
+
+function renderBroadcastProviders() {
+	broadcastLinksEl.replaceChildren();
+	const { broadcastRegion, language } = MODES[mode];
+	const providers = getBroadcastLabels(game, broadcastRegion, language);
+	for (const provider of providers) {
+		const label = broadcastProviderTemplate.content.firstElementChild.cloneNode(true);
+		label.querySelector("span").textContent = provider;
+		broadcastLinksEl.appendChild(label);
+	}
 }
 
 function renderGame() {
@@ -440,7 +454,7 @@ function renderGame() {
 		})
 		: t("notScheduled");
 	venueEl.textContent = [game.arenaName, game.arenaCity].filter(Boolean).join(" · ");
-	broadcastEl.textContent = getBroadcastLabels(game, MODES[mode].broadcastRegion, MODES[mode].language).join(" · ");
+	renderBroadcastProviders();
 
 	detailsEl.dataset.gameId = gameId;
 	detailsEl.dataset.awayTeam = game.awayTeam.teamTricode;
@@ -468,12 +482,11 @@ function renderGame() {
 	renderRating();
 	recapEl.classList.toggle("hidden", status !== 3);
 	if (status === 3) {
-		const anchor = recapEl.querySelector("a");
-		anchor.href = leagueId === "wnba"
+		recapEl.href = leagueId === "wnba"
 			? `https://www.wnba.com/game/${gameId}?watchRecap=true`
 			: `https://www.nba.com/game/${game.awayTeam.teamTricode.toLowerCase()}-vs-${game.homeTeam.teamTricode.toLowerCase()}-${gameId}?watchRecap=true`;
-		anchor.textContent = t("watchRecapHost", { host: LEAGUES[leagueId].recapHost });
 	}
+	watchEl.classList.toggle("hidden", broadcastLinksEl.childElementCount === 0 && status !== 3);
 	heroEl.classList.remove("hidden");
 	heroEl.classList.remove("is-loading");
 	detailsEl.classList.remove("hidden");
