@@ -1009,7 +1009,17 @@ MORE
     margin-bottom: 20px;
 }
 
-select {
+.options .checkbox-options {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: inherit;
+    width: max-content;
+    max-width: 100%;
+}
+
+select,
+#broadcaster-picker summary {
     -moz-appearance: none;
     -webkit-appearance: none;
     appearance: none;
@@ -1031,6 +1041,70 @@ select {
         5px 5px,
         1px 1.5em;
     background-repeat: no-repeat;
+}
+
+#broadcaster-picker {
+    position: relative;
+    width: 12em;
+    min-width: 0;
+    max-width: 100%;
+}
+
+#broadcaster-picker summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+#broadcaster-picker summary::-webkit-details-marker {
+    display: none;
+}
+
+#broadcaster-picker summary span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#broadcaster-picker .broadcaster-options {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    z-index: 2;
+    width: 100%;
+    max-height: 50vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 10px;
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border-radius: var(--card-corners);
+    box-shadow: var(--card-shadow);
+}
+
+#broadcaster-picker button {
+    border: none;
+    padding: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+#broadcaster-picker label {
+    margin-top: 10px;
+    min-height: 1.5em;
+    overflow-wrap: anywhere;
+}
+
+#broadcaster-picker .checkmark {
+    background-color: var(--bg-color);
+}
+
+#broadcaster-picker label:focus-within {
+    outline: 2px solid var(--text-color);
+    outline-offset: 2px;
 }
 
 label {

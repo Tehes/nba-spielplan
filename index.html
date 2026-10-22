@@ -163,14 +163,23 @@
 					<option value="UTA">Utah Jazz</option>
 					<option value="WAS">Washington Wizards</option>
 				</select>
-				<label class="hide-past-games"><span data-i18n="hidePastGames">vergangene Spiele ausblenden</span>
-					<input type="checkbox" checked />
-					<span class="checkmark"></span>
-				</label>
-				<label class="filter-primetime"><span data-i18n="primetimeOnly">Nur Prime-Time-Spiele</span>
-					<input type="checkbox" />
-					<span class="checkmark"></span>
-				</label>
+				<details id="broadcaster-picker" class="hidden">
+					<summary><span data-i18n="allBroadcasters">Alle Anbieter</span></summary>
+					<div class="broadcaster-options">
+						<button type="button" data-i18n="allBroadcasters">Alle Anbieter</button>
+						<div class="broadcaster-list"></div>
+					</div>
+				</details>
+				<div class="checkbox-options">
+					<label class="hide-past-games"><span data-i18n="hidePastGames">vergangene Spiele ausblenden</span>
+						<input type="checkbox" checked />
+						<span class="checkmark"></span>
+					</label>
+					<label class="filter-primetime"><span data-i18n="primetimeOnly">Nur Prime-Time-Spiele</span>
+						<input type="checkbox" />
+						<span class="checkmark"></span>
+					</label>
+				</div>
 			</div>
 			<section id="more">
 				<div class="card">
@@ -317,6 +326,9 @@
 			<div class="broadcast-label"></div>
 			<div class="game-label"></div>
 		</a>
+	</template>
+	<template id="template-broadcaster-option">
+		<label><span class="name"></span><input type="checkbox" /><span class="checkmark"></span></label>
 	</template>
 	<template id="template-more">
 		<a class="card" data-code="">

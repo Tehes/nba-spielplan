@@ -116,6 +116,8 @@ const renderedCoreCacheUrls = new Set();
 let lastCheckedDay = getCalendarDayKey(new Date());
 let requestCycleFailed = false;
 let selectedDay = getInitialSelectedDay();
+const selectedBroadcasters = new Set();
+let broadcasterSelectionOnOpen = null;
 
 // DOM Elements
 const todayHeadlineEl = document.querySelector("#today-headline");
@@ -138,6 +140,11 @@ const divisionStandingsEl = document.querySelector("#division-standings");
 const divisionStandingsToggleEl = document.querySelector(".standings-division-toggle");
 const checkboxDivisionStandings = document.querySelector(".standings-division-toggle input");
 const teamPicker = document.querySelector("#team-picker");
+const broadcasterPicker = document.querySelector("#broadcaster-picker");
+const broadcasterSummary = broadcasterPicker.querySelector("summary span");
+const broadcasterList = broadcasterPicker.querySelector(".broadcaster-list");
+const broadcasterResetButton = broadcasterPicker.querySelector("button");
+const broadcasterOptionTemplate = document.querySelector("#template-broadcaster-option");
 const checkboxShowScores = document.querySelector(".show-scores input");
 const checkboxShowRating = document.querySelector(".show-rating input");
 const checkboxHidePastGames = document.querySelector(".hide-past-games input");
@@ -511,6 +518,13 @@ function getMoreViewGames() {
 		});
 	}
 
+	if (selectedBroadcasters.size) {
+		gamesToDisplay = gamesToDisplay.filter((game) => {
+			return getBroadcastLabels(game, currentBroadcastRegion, currentLanguage)
+				.some((provider) => selectedBroadcasters.has(provider));
+		});
+	}
+
 	return sortGamesByLocalDate(gamesToDisplay);
 }
 
@@ -585,6 +599,7 @@ function rerenderLocalizedUi() {
 
 	if (schedule) {
 		prepareGameData();
+		updateBroadcasterPicker();
 		setProgressBar();
 		updateTeamPicker();
 		renderTodaysGames();
@@ -615,6 +630,9 @@ function setMode(mode) {
 		return;
 	}
 
+	selectedBroadcasters.clear();
+	broadcasterSelectionOnOpen = null;
+	broadcasterPicker.open = false;
 	const previousScheduleUrl = getScheduleUrl();
 	currentMode = mode;
 	applyMode();
@@ -695,11 +713,15 @@ function resetSeasonDependentData() {
 }
 
 function resetLeagueData() {
+	selectedBroadcasters.clear();
+	broadcasterSelectionOnOpen = null;
+	broadcasterPicker.open = false;
 	stopLivePolling();
 	liveById = new Map();
 	excitementCache.clear();
 	topExcitementByLeague.clear();
 	schedule = null;
+	updateBroadcasterPicker();
 	standings = null;
 	activeSeason = null;
 	games = {
@@ -1552,6 +1574,48 @@ function getScheduleGames() {
 MORE GAMES
 ---------------------------------------------------------------------------------------------------*/
 
+function getBroadcasterSelection() {
+	return Array.from(selectedBroadcasters).sort().join(" · ") || "all";
+}
+
+function updateBroadcasterSummary() {
+	broadcasterSummary.textContent = selectedBroadcasters.size
+		? Array.from(selectedBroadcasters).sort((a, b) => a.localeCompare(b, currentLocale)).join(" · ")
+		: t("allBroadcasters");
+}
+
+function updateBroadcasterPicker() {
+	const providers = Array.from(
+		new Set(
+			getScheduleGames().flatMap((game) => {
+				return getBroadcastLabels(game, currentBroadcastRegion, currentLanguage);
+			}),
+		),
+	).sort((a, b) => a.localeCompare(b, currentLocale));
+
+	for (const provider of selectedBroadcasters) {
+		if (!providers.includes(provider)) {
+			selectedBroadcasters.delete(provider);
+			broadcasterSelectionOnOpen = null;
+		}
+	}
+
+	broadcasterPicker.classList.toggle("hidden", providers.length === 0);
+	if (!providers.length) {
+		broadcasterPicker.open = false;
+	}
+	broadcasterList.replaceChildren();
+	providers.forEach((provider) => {
+		const option = broadcasterOptionTemplate.content.cloneNode(true);
+		const input = option.querySelector("input");
+		option.querySelector(".name").textContent = provider;
+		input.value = provider;
+		input.checked = selectedBroadcasters.has(provider);
+		broadcasterList.appendChild(option);
+	});
+	updateBroadcasterSummary();
+}
+
 function getTeamsForPicker() {
 	const teams = new Map();
 	const addTeam = (team) => {
@@ -2083,6 +2147,7 @@ function handleScheduleData(json) {
 		};
 
 		prepareGameData();
+		updateBroadcasterPicker();
 		setProgressBar();
 		renderTodaysGames();
 		renderMoreGames();
@@ -2411,6 +2476,52 @@ function init() {
 		showDivisionStandings = checkboxDivisionStandings.checked;
 		storeStandingsViewPreference("showDivisionStandings", showDivisionStandings);
 		updateStandingsViewControls();
+	});
+	broadcasterPicker.addEventListener("toggle", () => {
+		const selection = getBroadcasterSelection();
+		if (broadcasterPicker.open) {
+			broadcasterSelectionOnOpen = selection;
+			return;
+		}
+
+		const selectionChanged = broadcasterSelectionOnOpen !== null && broadcasterSelectionOnOpen !== selection;
+		broadcasterSelectionOnOpen = null;
+		if (selectionChanged) {
+			globalThis.umami?.track("NBA Schedule", {
+				broadcasterPicker: selection,
+				league: currentLeague,
+				mode: currentMode,
+			});
+		}
+	});
+	broadcasterList.addEventListener("change", (event) => {
+		const input = event.target;
+		if (input.checked) {
+			selectedBroadcasters.add(input.value);
+		} else {
+			selectedBroadcasters.delete(input.value);
+		}
+		updateBroadcasterSummary();
+		renderMoreGames();
+	});
+	broadcasterResetButton.addEventListener("click", () => {
+		selectedBroadcasters.clear();
+		broadcasterList.querySelectorAll("input").forEach((input) => {
+			input.checked = false;
+		});
+		updateBroadcasterSummary();
+		renderMoreGames();
+	});
+	document.addEventListener("click", (event) => {
+		if (!broadcasterPicker.contains(event.target)) {
+			broadcasterPicker.open = false;
+		}
+	});
+	document.addEventListener("keydown", (event) => {
+		if (event.key === "Escape" && broadcasterPicker.open) {
+			broadcasterPicker.open = false;
+			broadcasterPicker.querySelector("summary").focus();
+		}
 	});
 	teamPicker.addEventListener("change", () => {
 		globalThis.umami?.track("NBA Schedule", {
