@@ -36,6 +36,7 @@ let statsLoaded = false;
 let scheduleFromCache = false;
 let odds = null;
 let lastOddsRefresh = 0;
+let activeTab = null;
 
 const detailsEl = document.querySelector("#game-details");
 const heroEl = document.querySelector("#game-hero");
@@ -561,6 +562,14 @@ function switchTab() {
 	detailsEl.querySelectorAll(".panel").forEach((panel) => {
 		panel.classList.toggle("is-active", panel.id === `${target}-panel`);
 	});
+	if (activeTab !== null && activeTab !== target) {
+		globalThis.umami?.track("Game", {
+			action: "tabChange",
+			tab: target,
+			league: leagueId,
+		});
+	}
+	activeTab = target;
 }
 
 function init() {

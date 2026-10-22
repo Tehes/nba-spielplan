@@ -760,7 +760,7 @@ function setLeague(league) {
 	syncLeagueUrl();
 	updateLeagueTabs();
 	resetLeagueData();
-	globalThis.umami?.track("NBA Schedule", { league: currentLeague });
+	globalThis.umami?.track("Schedule", { action: "leagueChange", league: currentLeague });
 	startExcitementBackfill(currentLeague);
 	loadData();
 }
@@ -2440,7 +2440,8 @@ async function loadData() {
 function init() {
 	loadStandingsViewPreferences();
 	applyMode();
-	globalThis.umami?.track("NBA Schedule", {
+	globalThis.umami?.track("Schedule", {
+		action: "init",
 		league: currentLeague,
 		mode: currentMode,
 		language: currentLanguage,
@@ -2487,8 +2488,9 @@ function init() {
 		const selectionChanged = broadcasterSelectionOnOpen !== null && broadcasterSelectionOnOpen !== selection;
 		broadcasterSelectionOnOpen = null;
 		if (selectionChanged) {
-			globalThis.umami?.track("NBA Schedule", {
-				broadcasterPicker: selection,
+			globalThis.umami?.track("Schedule", {
+				action: "broadcasterFilter",
+				broadcasters: selection,
 				league: currentLeague,
 				mode: currentMode,
 			});
@@ -2524,9 +2526,10 @@ function init() {
 		}
 	});
 	teamPicker.addEventListener("change", () => {
-		globalThis.umami?.track("NBA Schedule", {
+		globalThis.umami?.track("Schedule", {
+			action: "teamFilter",
 			league: currentLeague,
-			teamPicker: teamPicker.value || "all",
+			team: teamPicker.value || "all",
 		});
 		renderMoreGames();
 	});
