@@ -11,7 +11,7 @@ import {
 	SCHEDULE_CACHE_VERSION,
 } from "./game-shared.js";
 import { createGameRenderer } from "./game-renderer.js";
-import { shareGame } from "./game-links.js";
+import { downloadGameCalendar, shareGame } from "./game-links.js";
 import { computeGameExcitement } from "./excitement.js";
 import { initServiceWorkerRegistration, SERVICE_WORKER_CONFIG } from "./service-worker-registration.js";
 
@@ -38,6 +38,7 @@ let scheduleFromCache = false;
 let odds = null;
 let lastOddsRefresh = 0;
 let activeTab = null;
+let calendarTimer = null;
 
 const detailsEl = document.querySelector("#game-details");
 const heroEl = document.querySelector("#game-hero");
@@ -70,6 +71,7 @@ const excitementEl = document.querySelector("#game-excitement");
 const excitementValue = document.querySelector("#game-excitement-value");
 const excitementLabel = document.querySelector("#game-excitement-label");
 const recapEl = document.querySelector("#game-recap-link");
+const calendarButton = document.querySelector("#game-calendar");
 const oddsEl = document.querySelector("#game-odds");
 const awayOddsName = oddsEl.querySelector(".odds-labels .away");
 const homeOddsName = oddsEl.querySelector(".odds-labels .home");
@@ -133,6 +135,10 @@ function getGameStatus() {
 function isBeforeTipoff() {
 	return getGameStatus() === 1 && game.postponedStatus !== "Y" && game.gameStatusText !== "PPD" &&
 		Date.now() < new Date(game.gameDateTimeUTC).getTime();
+}
+
+function isCalendarAvailable() {
+	return isBeforeTipoff() && game.gameStatusText !== "TBD" && game.gameStatusText !== "TBA";
 }
 
 function applyScheduleData(data) {
@@ -483,13 +489,20 @@ function renderGame() {
 		playsEl.textContent = t(pregame ? "statsAfterTipoff" : statsLoaded ? "noPlayByPlay" : "loading");
 	}
 	renderRating();
+	clearTimeout(calendarTimer);
+	const calendarVisible = isCalendarAvailable();
+	calendarButton.classList.toggle("hidden", !calendarVisible);
+	const calendarDelay = date.getTime() - Date.now();
+	if (calendarVisible && calendarDelay <= 2147483647) {
+		calendarTimer = setTimeout(() => renderGame(), calendarDelay);
+	}
 	recapEl.classList.toggle("hidden", status !== 3);
 	if (status === 3) {
 		recapEl.href = leagueId === "wnba"
 			? `https://www.wnba.com/game/${gameId}?watchRecap=true`
 			: `https://www.nba.com/game/${game.awayTeam.teamTricode.toLowerCase()}-vs-${game.homeTeam.teamTricode.toLowerCase()}-${gameId}?watchRecap=true`;
 	}
-	watchEl.classList.toggle("hidden", broadcastLinksEl.childElementCount === 0 && status !== 3);
+	watchEl.classList.toggle("hidden", broadcastLinksEl.childElementCount === 0 && status !== 3 && !calendarVisible);
 	heroEl.classList.remove("hidden");
 	heroEl.classList.remove("is-loading");
 	detailsEl.classList.remove("hidden");
@@ -637,6 +650,25 @@ function init() {
 	});
 	shareButton.addEventListener("click", () => {
 		shareGame(gameId, leagueId, mode, getGameTitle());
+	});
+	calendarButton.addEventListener("click", () => {
+		if (!isCalendarAvailable()) {
+			renderGame();
+			return;
+		}
+		downloadGameCalendar({
+			gameId,
+			league: leagueId,
+			mode,
+			title: getGameTitle(),
+			start: new Date(game.gameDateTimeUTC),
+			location: [game.arenaName, game.arenaCity].filter(Boolean).join(", "),
+			description: t("calendarDescription", { league: LEAGUES[leagueId].label }),
+		});
+		globalThis.umami?.track("Game", {
+			action: "calendarDownload",
+			league: leagueId,
+		});
 	});
 	retryButton.addEventListener("click", () => refreshGame());
 	document.addEventListener("visibilitychange", () => {

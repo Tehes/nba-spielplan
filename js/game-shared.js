@@ -62,6 +62,8 @@ export const messages = {
 	de: {
 		appName: "NBA-Spielplan",
 		shareGame: "Teilen",
+		addToCalendar: "Zum Kalender hinzufügen",
+		calendarDescription: "{league} · Geplante Dauer ca. 3 Stunden.",
 		backToSchedule: "Spielplan",
 		gameNotFound: "Diese Partie ist im aktuellen Spielplan nicht verfügbar.",
 		gameLoadFailed: "Die Spieldaten konnten nicht geladen werden.",
@@ -159,6 +161,8 @@ export const messages = {
 	en: {
 		appName: "NBA Schedule",
 		shareGame: "Share",
+		addToCalendar: "Add to calendar",
+		calendarDescription: "{league} · Estimated duration: 3 hours.",
 		backToSchedule: "Schedule",
 		gameNotFound: "This game is not available in the current schedule.",
 		gameLoadFailed: "Game data could not be loaded.",

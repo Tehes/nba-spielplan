@@ -400,7 +400,8 @@ main div span {
 .broadcast-label:not(:empty)::before,
 .game-page #game-share::before,
 .game-page #game-watch .broadcast-provider::before,
-.game-page #game-recap-link::before {
+.game-page #game-recap-link::before,
+.game-page #game-calendar::before {
     content: "";
     display: inline-block;
     background-color: currentColor;
@@ -920,6 +921,7 @@ JUMP LINK
 }
 
 .action-link:hover,
+.game-page #game-calendar:hover,
 .game-page #game-share:enabled:hover {
     background-color: var(--text-color);
     color: var(--bg-color);
@@ -1883,8 +1885,14 @@ GAME PAGE
     background-color: light-dark(var(--neutral200), var(--neutral700));
 }
 
+.game-page #game-calendar {
+    font-family: inherit;
+    background-color: transparent;
+}
+
 .game-page #game-watch .broadcast-provider::before,
-.game-page #game-recap-link::before {
+.game-page #game-recap-link::before,
+.game-page #game-calendar::before {
     width: 1em;
     height: 1em;
     flex-shrink: 0;
@@ -1892,6 +1900,10 @@ GAME PAGE
 
 .game-page #game-recap-link::before {
     mask-image: url("../svg/play.svg");
+}
+
+.game-page #game-calendar::before {
+    mask-image: url("../svg/calendar-plus.svg");
 }
 
 .game-page #game-details .tabs {
@@ -1902,7 +1914,8 @@ GAME PAGE
     margin-top: 28px;
 }
 
-.game-page #game-recap-link.hidden {
+.game-page #game-recap-link.hidden,
+.game-page #game-calendar.hidden {
     display: none;
 }
 
