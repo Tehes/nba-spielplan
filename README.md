@@ -126,6 +126,13 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
   - Only games in the current schedule are supported. Unavailable games show a link back to the
     schedule; no season archive is maintained.
 
+- **Calendar export**
+  - Download an ICS calendar file from the detail page for upcoming NBA and WNBA games with a
+    confirmed tip-off time. The button disappears at tip-off and is hidden for postponed games.
+  - Includes the matchup, start time, venue, detail-page link, and an estimated three-hour duration.
+  - Generates the file entirely in the browser. Import behavior depends on the device and calendar
+    app; imported events do not automatically update if a game is rescheduled.
+
 - **Play-by-Play Tab**
   - Live-by-play feed with time, description, and score delta.
   - Toggle to show only made shots for a quick scoring view.
