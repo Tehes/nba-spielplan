@@ -68,7 +68,7 @@ export const messages = {
 		gameNotFound: "Diese Partie ist im aktuellen Spielplan nicht verfügbar.",
 		gameLoadFailed: "Die Spieldaten konnten nicht geladen werden.",
 		retry: "Erneut versuchen",
-		beforeTipoff: "Vor dem Tip-off",
+		beforeTipoff: "Vor Tip-off",
 		statsAfterTipoff: "Statistiken sind nach Spielbeginn verfügbar.",
 		noBoxscore: "Keine Boxscore-Daten verfügbar.",
 		postponed: "Verschoben",

@@ -23,6 +23,7 @@ export function downloadGameCalendar({ gameId, league, mode, title, start, locat
 		`DTSTAMP:${formatCalendarDate(new Date())}`,
 		`DTSTART:${formatCalendarDate(start)}`,
 		`DTEND:${formatCalendarDate(new Date(start.getTime() + 3 * 60 * 60 * 1000))}`,
+		"TRANSP:TRANSPARENT",
 		`SUMMARY:${escapeCalendarText(title)}`,
 		`LOCATION:${escapeCalendarText(location)}`,
 		`DESCRIPTION:${escapeCalendarText(`${description}\n${url}`)}`,
