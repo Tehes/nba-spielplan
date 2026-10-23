@@ -26,6 +26,7 @@ let scheduleGames = [];
 let game = null;
 let boxscore = null;
 let playByPlay = null;
+let playByPlayFresh = false;
 let renderer = null;
 let refreshing = false;
 let refreshPending = false;
@@ -243,6 +244,7 @@ async function loadOdds() {
 }
 
 async function loadGameStats() {
+	playByPlayFresh = false;
 	const results = await Promise.allSettled([
 		fetchGameData(`/boxscore/${gameId}`),
 		fetchGameData(`/playbyplay/${gameId}`),
@@ -267,6 +269,7 @@ async function loadGameStats() {
 			boxscore = result.value.game;
 		} else {
 			playByPlay = result.value;
+			playByPlayFresh = true;
 		}
 	});
 	statsLoaded = true;
@@ -433,7 +436,7 @@ function renderGame() {
 		: status === 3
 		? t("final")
 		: status === 2 || soon
-		? getLiveLabel(currentGame, t)
+		? getLiveLabel(currentGame, t, playByPlayFresh ? playByPlay.game.actions : [])
 		: t("beforeTipoff");
 	scoreEl.textContent = pregame
 		? postponed

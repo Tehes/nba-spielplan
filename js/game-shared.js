@@ -136,6 +136,7 @@ export const messages = {
 		emptyStateCta: "Spiel selbst",
 		liveSoon: "in Kürze",
 		halftime: "Halbzeit",
+		timeout: "Auszeit {team}",
 		endQuarter: "Ende Q{period}",
 		endOvertime: "Ende {label}",
 		loadingPlays: "Lade Spielaktionen…",
@@ -232,6 +233,7 @@ export const messages = {
 		emptyStateCta: "Play yourself",
 		liveSoon: "Soon",
 		halftime: "Halftime",
+		timeout: "Timeout {team}",
 		endQuarter: "End Q{period}",
 		endOvertime: "End {label}",
 		loadingPlays: "Loading play-by-play…",
@@ -346,7 +348,7 @@ export function getBroadcastLabels(game, currentBroadcastRegion, currentLanguage
 	return Array.from(labels);
 }
 
-export function getLiveLabel(live, t) {
+export function getLiveLabel(live, t, actions = []) {
 	if (!live) return "LIVE";
 
 	// Pregame
@@ -372,11 +374,22 @@ export function getLiveLabel(live, t) {
 		return t("endOvertime", { label: otLabel });
 	}
 
-	// running time of periods
-	if (!isOT) {
-		return `Q${period} ${clockStr}`;
+	const liveLabel = isOT ? `${otLabel} ${clockStr}` : `Q${period} ${clockStr}`;
+	if (live.gameStatus === 2) {
+		for (let index = actions.length - 1; index >= 0; index--) {
+			const action = actions[index];
+			if (action.actionType === "substitution") {
+				continue;
+			}
+			if (
+				action.actionType === "timeout" && Number(action.period) === period &&
+				action.clock === live.gameClock
+			) {
+				return `${t("timeout", { team: action.teamTricode || "" }).trim()} · ${liveLabel}`;
+			}
+			break;
+		}
 	}
 
-	// running time of OT
-	return `${otLabel} ${clockStr}`;
+	return liveLabel;
 }
