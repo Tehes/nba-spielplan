@@ -1,7 +1,7 @@
 import { formatMinutes, getGameLocalDate } from "./game-shared.js";
 
 export function createGameRenderer(gameOverlayEl, options) {
-	const { t, getTeamColorValue, getTeamLogoSrc, getScheduleGames, getLocale } = options;
+	const { t, getTeamColorValue, getScheduleGames, getLocale } = options;
 	const documentEl = gameOverlayEl.ownerDocument;
 	const periodsEl = gameOverlayEl.querySelector("#periods");
 	const teamStatsEl = gameOverlayEl.querySelector("#team-stats");
@@ -224,14 +224,7 @@ export function createGameRenderer(gameOverlayEl, options) {
 		});
 		section.style.setProperty("--team-color", getTeamColorValue(team.teamTricode));
 
-		const teamLogo = section.querySelector(".team-logo");
 		const teamName = section.querySelector(".team-name");
-
-		teamLogo.src = getTeamLogoSrc(team.teamTricode);
-		teamLogo.alt = `${team.teamCity} ${team.teamName} Logo`;
-		teamLogo.onerror = () => {
-			teamLogo.src = "img/no-logo.svg";
-		};
 
 		teamName.textContent = `${team.teamCity} ${team.teamName}`;
 

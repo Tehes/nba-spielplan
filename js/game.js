@@ -619,7 +619,6 @@ function init() {
 	renderer = createGameRenderer(detailsEl, {
 		t,
 		getTeamColorValue,
-		getTeamLogoSrc,
 		getScheduleGames: () => scheduleGames,
 		getLocale,
 	});
