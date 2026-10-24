@@ -1738,8 +1738,18 @@ GAME PAGE
     position: absolute;
     inset: 0;
     z-index: -1;
-    background: linear-gradient(90deg, var(--away-color) 0%, var(--away-color) 33%, var(--home-color) 66%, var(--home-color) 100%);
+    background: linear-gradient(90deg, var(--away-color) 0%, var(--away-color) 20%, var(--home-color) 80%, var(--home-color) 100%);
     opacity: 0.6;
+}
+
+.game-page #game-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: url("../img/noise.png") repeat;
+    opacity: 0.03;
+    pointer-events: none;
 }
 
 .game-page #game-context {
