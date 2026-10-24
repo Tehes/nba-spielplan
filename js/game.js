@@ -47,6 +47,7 @@ const awayEl = document.querySelector("#away-team");
 const homeEl = document.querySelector("#home-team");
 const stateEl = document.querySelector("#game-state");
 const scoreEl = document.querySelector("#game-score");
+const bonusEl = document.querySelector("#game-bonus");
 const dateEl = document.querySelector("#game-date");
 const venueEl = document.querySelector("#game-venue");
 const broadcastLinksEl = document.querySelector("#game-broadcast-links");
@@ -451,6 +452,11 @@ function renderGame() {
 			? date.toLocaleTimeString(getLocale(), { hour: "numeric", minute: "2-digit" })
 			: t("notScheduled")
 		: `${awayScore ?? "–"} : ${homeScore ?? "–"}`;
+	const awayBonus = currentGame.awayTeam.inBonus === "1";
+	const homeBonus = currentGame.homeTeam.inBonus === "1";
+	bonusEl.classList.toggle("hidden", scheduleFromCache || status !== 2 || postponed || !(awayBonus || homeBonus));
+	bonusEl.classList.toggle("away-bonus", awayBonus);
+	bonusEl.classList.toggle("home-bonus", homeBonus);
 	dateEl.textContent = validDate
 		? date.toLocaleString(getLocale(), {
 			weekday: "short",

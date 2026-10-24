@@ -1842,6 +1842,38 @@ GAME PAGE
     font-variant-numeric: tabular-nums;
 }
 
+.game-page #game-bonus {
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 0;
+    font-size: 0.85rem;
+}
+
+.game-page #game-bonus:not(.hidden) {
+    display: inline-flex;
+}
+
+.game-page #game-bonus::before,
+.game-page #game-bonus::after {
+    content: "";
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    visibility: hidden;
+}
+
+.game-page #game-bonus::before {
+    border-right: 6px solid currentColor;
+}
+
+.game-page #game-bonus::after {
+    border-left: 6px solid currentColor;
+}
+
+.game-page #game-bonus.away-bonus::before,
+.game-page #game-bonus.home-bonus::after {
+    visibility: visible;
+}
+
 .game-page #game-meta {
     display: flex;
     flex-wrap: wrap;
