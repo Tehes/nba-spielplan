@@ -1,3 +1,5 @@
+@import url("./team-colors.css");
+
 :root {
     color-scheme: light dark;
 
@@ -30,55 +32,6 @@
     --warning-bg: light-dark(hsl(45 100% 75%), hsl(40, 60%, 40%));
 
     --transition-duration: 0.3s;
-
-    /* NBA */
-    --ATL: #e03a3e;
-    --BKN: #000000;
-    --BOS: #008348;
-    --CHA: #00788c;
-    --CHI: #cd1f43;
-    --CLE: #860038;
-    --DAL: #0064b1;
-    --DEN: #0d2240;
-    --DET: #c8102e;
-    --GSW: #fdb927;
-    --HOU: #ce0e2d;
-    --IND: #0c2340;
-    --LAC: #12173f;
-    --LAL: #542c81;
-    --MEM: #5d76a9;
-    --MIA: #961a31;
-    --MIL: #00471a;
-    --MIN: #1d428a;
-    --NOP: #0a2240;
-    --NYK: #f58426;
-    --OKC: #ee3c33;
-    --ORL: #0050b5;
-    --PHI: #1d428a;
-    --PHX: #e46025;
-    --POR: #cf0a2c;
-    --SAC: #592d81;
-    --SAS: #c2ccd2;
-    --TOR: #bc2126;
-    --UTA: #4e008e;
-    --WAS: #002b5c;
-
-    /* WNBA */
-    --wnba-ATL: #E4173D;
-    --wnba-CHI: #4D90CD;
-    --wnba-CON: #f05023;
-    --wnba-DAL: #b6da17;
-    --wnba-GSV: #b896d4;
-    --wnba-IND: #e03a3e;
-    --wnba-LAS: #552C82;
-    --wnba-WAS: #002b5c;
-    --wnba-TOR: #B8CCEA;
-    --wnba-LVA: #010101;
-    --wnba-MIN: #305c98;
-    --wnba-NYL: #86CEBC;
-    --wnba-PDX: #010101;
-    --wnba-PHX: #e64e1d;
-    --wnba-SEA: #2a4c31;
 
     --undefined: color-mix(in hsl, var(--card-bg) 85%, black);
 }

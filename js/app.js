@@ -19,6 +19,7 @@ import {
 	SUPPORTED_MODES,
 } from "./game-shared.js";
 import { getGamePageUrl } from "./game-links.js";
+import { setTeamLogo } from "./team-logos.js";
 import { computeGameExcitement } from "./excitement.js";
 import { initServiceWorkerRegistration, SERVICE_WORKER_CONFIG } from "./service-worker-registration.js";
 
@@ -343,10 +344,6 @@ function storeStandingsViewPreference(preference, value) {
 function getTeamColorValue(teamTricode) {
 	const league = getCurrentLeague();
 	return `var(--${league.colorPrefix}${teamTricode})`;
-}
-
-function getTeamLogoSrc(teamTricode) {
-	return `${getCurrentLeague().logoPath}/${teamTricode}.svg`;
 }
 
 function getCalendarDayKey(date) {
@@ -1278,10 +1275,8 @@ function renderTodaysGames() {
 			// Team UI
 			homeTeam.style.setProperty("--team-color", getTeamColorValue(g.homeTeam.teamTricode));
 			visitingTeam.style.setProperty("--team-color", getTeamColorValue(g.awayTeam.teamTricode));
-			homeLogo.src = getTeamLogoSrc(g.homeTeam.teamTricode);
-			homeLogo.onerror = () => (homeLogo.src = "img/no-logo.svg");
-			visitingLogo.src = getTeamLogoSrc(g.awayTeam.teamTricode);
-			visitingLogo.onerror = () => (visitingLogo.src = "img/no-logo.svg");
+			setTeamLogo(homeLogo, g.homeTeam.teamTricode, currentLeague);
+			setTeamLogo(visitingLogo, g.awayTeam.teamTricode, currentLeague);
 			homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`.trim();
 			visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`.trim();
 			homeAbbr.textContent = g.homeTeam.teamTricode;

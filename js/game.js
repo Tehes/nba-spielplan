@@ -12,6 +12,8 @@ import {
 } from "./game-shared.js";
 import { createGameRenderer } from "./game-renderer.js";
 import { downloadGameCalendar, shareGame } from "./game-links.js";
+import { getMatchupColors } from "./game-colors.js";
+import { setTeamLogo } from "./team-logos.js";
 import { computeGameExcitement } from "./excitement.js";
 import { initServiceWorkerRegistration, SERVICE_WORKER_CONFIG } from "./service-worker-registration.js";
 
@@ -24,6 +26,7 @@ let leagueId = "nba";
 let mode = "de";
 let scheduleGames = [];
 let game = null;
+let matchupColors = null;
 let boxscore = null;
 let playByPlay = null;
 let playByPlayFresh = false;
@@ -95,10 +98,6 @@ function getTeamColorValue(code) {
 	return `var(--${LEAGUES[leagueId].colorPrefix}${code}, var(--neutral400))`;
 }
 
-function getTeamLogoSrc(code) {
-	return `${LEAGUES[leagueId].logoPath}/${code}.svg`;
-}
-
 function getApiUrl(path) {
 	const url = new URL(path, API_BASE_URL);
 	url.searchParams.set("league", leagueId);
@@ -150,6 +149,10 @@ function applyScheduleData(data) {
 	const selectedGame = games.find((item) => item.gameId === gameId) || null;
 	if (selectedGame && (!selectedGame.awayTeam || !selectedGame.homeTeam)) {
 		throw new Error("Invalid schedule game");
+	}
+	if (selectedGame && (selectedGame.awayTeam.teamTricode !== game?.awayTeam.teamTricode ||
+		selectedGame.homeTeam.teamTricode !== game?.homeTeam.teamTricode)) {
+		matchupColors = getMatchupColors(selectedGame.awayTeam.teamTricode, selectedGame.homeTeam.teamTricode, leagueId);
 	}
 	scheduleGames = games;
 	game = selectedGame;
@@ -386,14 +389,7 @@ function showMessage(key, canRetry = false) {
 
 function renderHeroTeam(element, team, liveTeam) {
 	const logo = element.querySelector(".team-logo");
-	const src = getTeamLogoSrc(team.teamTricode);
-	if (logo.getAttribute("src") !== src) {
-		logo.src = src;
-		logo.onerror = () => {
-			logo.onerror = null;
-			logo.src = "img/no-logo.svg";
-		};
-	}
+	setTeamLogo(logo, team.teamTricode, leagueId, matchupColors?.[team.teamTricode]?.hex);
 	logo.alt = `${team.teamCity} ${team.teamName}`;
 	element.querySelector(".team-city").textContent = team.teamCity;
 	element.querySelector(".team-name").textContent = team.teamName;
@@ -433,6 +429,12 @@ function renderGame() {
 	document.title = `${getGameTitle()} – ${t("appName")}`;
 	contextEl.textContent = [game.gameLabel || game.gameSubtype, game.gameSubLabel].filter(Boolean).join(" · ") ||
 		LEAGUES[leagueId].label;
+	if (matchupColors) {
+		for (const [code, color] of Object.entries(matchupColors)) {
+			heroEl.style.setProperty(`--${LEAGUES[leagueId].colorPrefix}${code}`, color.hex);
+			detailsEl.style.setProperty(`--${LEAGUES[leagueId].colorPrefix}${code}`, color.hex);
+		}
+	}
 	heroEl.style.setProperty("--away-color", getTeamColorValue(game.awayTeam.teamTricode));
 	heroEl.style.setProperty("--home-color", getTeamColorValue(game.homeTeam.teamTricode));
 	stateEl.classList.toggle("is-live", !scheduleFromCache && (status === 2 || soon) && !postponed);
