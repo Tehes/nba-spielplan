@@ -3,6 +3,9 @@ import { LEAGUES } from "./game-shared.js";
 
 const TEAM_LOGOS = {
 	nba: {
+		UTA: {
+			dark: { file: "UTA-D.svg", background: 1 },
+		},
 		TOR: {
 			dark: { file: "TOR-D.svg", background: 1 },
 		},

@@ -20,6 +20,7 @@ import {
 } from "./game-shared.js";
 import { getGamePageUrl } from "./game-links.js";
 import { setTeamLogo } from "./team-logos.js";
+import { getMatchupColors } from "./game-colors.js";
 import { computeGameExcitement } from "./excitement.js";
 import { initServiceWorkerRegistration, SERVICE_WORKER_CONFIG } from "./service-worker-registration.js";
 
@@ -1272,11 +1273,24 @@ function renderTodaysGames() {
 			const label = g.gameLabel || g.gameSubtype || "";
 			const subLabel = g.gameSubLabel;
 
+			const matchupColors = getMatchupColors(g.awayTeam.teamTricode, g.homeTeam.teamTricode, currentLeague);
+
 			// Team UI
-			homeTeam.style.setProperty("--team-color", getTeamColorValue(g.homeTeam.teamTricode));
-			visitingTeam.style.setProperty("--team-color", getTeamColorValue(g.awayTeam.teamTricode));
-			setTeamLogo(homeLogo, g.homeTeam.teamTricode, currentLeague);
-			setTeamLogo(visitingLogo, g.awayTeam.teamTricode, currentLeague);
+			homeTeam.style.setProperty(
+				"--team-color",
+				matchupColors?.[g.homeTeam.teamTricode]?.hex ?? getTeamColorValue(g.homeTeam.teamTricode),
+			);
+			visitingTeam.style.setProperty(
+				"--team-color",
+				matchupColors?.[g.awayTeam.teamTricode]?.hex ?? getTeamColorValue(g.awayTeam.teamTricode),
+			);
+			setTeamLogo(homeLogo, g.homeTeam.teamTricode, currentLeague, matchupColors?.[g.homeTeam.teamTricode]?.hex);
+			setTeamLogo(
+				visitingLogo,
+				g.awayTeam.teamTricode,
+				currentLeague,
+				matchupColors?.[g.awayTeam.teamTricode]?.hex,
+			);
 			homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`.trim();
 			visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`.trim();
 			homeAbbr.textContent = g.homeTeam.teamTricode;
@@ -1738,12 +1752,20 @@ function renderMoreGames() {
 		const live = liveById.get(g.gameId);
 		const { isPostponed, isFinal, isLive } = getGameState(g, live);
 
+		const matchupColors = getMatchupColors(g.awayTeam.teamTricode, g.homeTeam.teamTricode, currentLeague);
+
 		homeName.textContent = `${g.homeTeam.teamCity} ${g.homeTeam.teamName}`.trim();
 		visitingName.textContent = `${g.awayTeam.teamCity} ${g.awayTeam.teamName}`.trim();
 		homeAbbr.textContent = g.homeTeam.teamTricode;
-		homeColor.style.setProperty("--team-color", getTeamColorValue(g.homeTeam.teamTricode));
+		homeColor.style.setProperty(
+			"--team-color",
+			matchupColors?.[g.homeTeam.teamTricode]?.hex ?? getTeamColorValue(g.homeTeam.teamTricode),
+		);
 		visitingAbbr.textContent = g.awayTeam.teamTricode;
-		visitingColor.style.setProperty("--team-color", getTeamColorValue(g.awayTeam.teamTricode));
+		visitingColor.style.setProperty(
+			"--team-color",
+			matchupColors?.[g.awayTeam.teamTricode]?.hex ?? getTeamColorValue(g.awayTeam.teamTricode),
+		);
 		card.dataset.abbr = `${g.awayTeam.teamTricode}/${g.homeTeam.teamTricode}`;
 		card.dataset.gameId = g.gameId;
 		card.href = getGamePageUrl(g.gameId, currentLeague, currentMode);
@@ -1844,6 +1866,7 @@ function renderTopExcitementCard(item) {
 	const homeScore = Number(item.homeScore);
 	const visitingScore = Number(item.awayScore);
 	const scheduleGame = getScheduleGames().find((game) => game.gameId === item.gameId);
+	const matchupColors = getMatchupColors(item.awayTeam?.teamTricode, item.homeTeam?.teamTricode, currentLeague);
 
 	clone.querySelector(".rating").textContent = formatExcitementRating(Number(item.excitement));
 	clone.querySelector(".date").textContent = formatTopExcitementGameDate(item);
@@ -1854,7 +1877,7 @@ function renderTopExcitementCard(item) {
 	homeTeam.querySelector(".score").textContent = Number.isFinite(homeScore) ? homeScore : "";
 	homeTeam.querySelector(".color").style.setProperty(
 		"--team-color",
-		getTeamColorValue(item.homeTeam?.teamTricode),
+		matchupColors?.[item.homeTeam?.teamTricode]?.hex ?? getTeamColorValue(item.homeTeam?.teamTricode),
 	);
 
 	visitingTeam.querySelector(".name").textContent = getTopExcitementTeamName(item.awayTeam);
@@ -1862,7 +1885,7 @@ function renderTopExcitementCard(item) {
 	visitingTeam.querySelector(".score").textContent = Number.isFinite(visitingScore) ? visitingScore : "";
 	visitingTeam.querySelector(".color").style.setProperty(
 		"--team-color",
-		getTeamColorValue(item.awayTeam?.teamTricode),
+		matchupColors?.[item.awayTeam?.teamTricode]?.hex ?? getTeamColorValue(item.awayTeam?.teamTricode),
 	);
 
 	if (Number.isFinite(homeScore) && Number.isFinite(visitingScore)) {
