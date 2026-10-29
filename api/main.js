@@ -260,6 +260,47 @@ async function fetchUpstream(url, league, isStats = false) {
 	return res.json();
 }
 
+async function diagnoseScoreboardTransport(league, origin) {
+	const transports = [
+		{ name: "default", options: null },
+		{ name: "http1", options: { http1: true, http2: false } },
+		{ name: "http2", options: { http1: false, http2: true } },
+	];
+	const results = await Promise.all(transports.map(async (transport) => {
+		let client;
+		try {
+			if (transport.options) {
+				client = Deno.createHttpClient(transport.options);
+			}
+			const response = await fetch(league.scoreboardUrl, {
+				headers: getUpstreamHeaders(league),
+				...(client ? { client } : {}),
+			});
+			const text = await response.text();
+			let validScoreboard = false;
+			try {
+				validScoreboard = Array.isArray(JSON.parse(text)?.scoreboard?.games);
+			} catch {
+				console.warn("[transport diagnostic] non-JSON response", transport.name, response.status);
+			}
+			return {
+				transport: transport.name,
+				status: response.status,
+				contentType: response.headers.get("content-type"),
+				validScoreboard: response.ok && validScoreboard,
+			};
+		} catch (error) {
+			console.warn("[transport diagnostic] request failed", transport.name, error);
+			return { transport: transport.name, error: error.message };
+		} finally {
+			client?.close();
+		}
+	}));
+	const response = respondWithCors({ league: league.id, results }, origin);
+	response.headers.set("Cache-Control", "no-store");
+	return response;
+}
+
 function withCors(origin, headers = {}) {
 	const corsHeaders = { ...BASE_CORS_HEADERS };
 	if (origin && ALLOWED_ORIGINS.has(origin)) {
@@ -1000,6 +1041,12 @@ Deno.serve(async (req, context) => {
 
 		// --- /scoreboard: no cache, always live ---
 		if (PATH === "/scoreboard") {
+			if (url.searchParams.get("diagnostic") === "transport") {
+				if (req.method !== "GET") {
+					return methodNotAllowed(origin);
+				}
+				return await diagnoseScoreboardTransport(league, origin);
+			}
 			return proxyWithCors(league.scoreboardUrl, origin, league);
 		}
 
