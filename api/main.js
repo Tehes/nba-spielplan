@@ -138,6 +138,7 @@ const TEAM_TRICODE_BY_ID_BY_LEAGUE = Object.fromEntries(
 const cachedSeasonContexts = new Map();
 const SEASON_CONTEXT_TTL_MS = 60 * 1000;
 let kvPromise = null;
+let upstreamClientPromise = null;
 const topExcitementProcessing = new Set();
 
 function getKv() {
@@ -238,6 +239,19 @@ async function getSeasonContext(league, scheduleJson = null) {
 }
 
 // === Helper Functions ===
+function getUpstreamClient() {
+	if (!upstreamClientPromise) {
+		upstreamClientPromise = import("npm:impit@0.14.8").then(({ Impit }) => {
+			return new Impit({
+				browser: "chrome151",
+				proxyUrl: Deno.env.get("HTTPS_PROXY") || Deno.env.get("HTTP_PROXY"),
+				ignoreTlsErrors: false,
+			});
+		});
+	}
+	return upstreamClientPromise;
+}
+
 function getUpstreamHeaders(league, isStats = false) {
 	const headers = {
 		...BASE_UPSTREAM_HEADERS,
@@ -254,8 +268,24 @@ function getUpstreamHeaders(league, isStats = false) {
 	return headers;
 }
 
+async function fetchUpstreamResponse(url, league, isStats = false) {
+	try {
+		const client = await getUpstreamClient();
+		const headers = getUpstreamHeaders(league, isStats);
+		// Keep the user agent and client hints consistent with the TLS browser profile.
+		delete headers["User-Agent"];
+		delete headers["Sec-CH-UA"];
+		delete headers["Sec-CH-UA-Mobile"];
+		delete headers["Sec-CH-UA-Platform"];
+		return await client.fetch(url, { headers });
+	} catch (error) {
+		console.warn("Browser HTTP client failed; using native fetch:", error);
+		return fetch(url, { headers: getUpstreamHeaders(league, isStats) });
+	}
+}
+
 async function fetchUpstream(url, league, isStats = false) {
-	const res = await fetch(url, { headers: getUpstreamHeaders(league, isStats) });
+	const res = await fetchUpstreamResponse(url, league, isStats);
 	if (!res.ok) throw new Error(`Upstream error (${res.status}): ${url}`);
 	return res.json();
 }
@@ -279,7 +309,7 @@ function respondWithCors(data, origin, cacheMaxAge = 0) {
 }
 
 async function proxyWithCors(url, origin, league, isStats = false) {
-	const res = await fetch(url, { headers: getUpstreamHeaders(league, isStats) });
+	const res = await fetchUpstreamResponse(url, league, isStats);
 	// Forwarding upstream streams can fail at Deno Deploy's HTTP/2 boundary.
 	const body = await res.arrayBuffer();
 	const headers = new Headers(res.headers);
