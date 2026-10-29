@@ -1,5 +1,4 @@
 {
-    "nodeModulesDir": "auto",
     "fmt": {
         "useTabs": true,
         "indentWidth": 4,

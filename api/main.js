@@ -260,77 +260,6 @@ async function fetchUpstream(url, league, isStats = false) {
 	return res.json();
 }
 
-async function compareScoreboardClients(league, origin) {
-	const variants = ["current", "reddit-http1", "impit-chrome151"];
-	const results = await Promise.all(variants.map(async (variant) => {
-		let client;
-		let response;
-		try {
-			let headers = getUpstreamHeaders(league);
-			if (variant === "reddit-http1") {
-				// Connection is an HTTP/1.1 header; use that protocol for the exact Reddit example.
-				client = Deno.createHttpClient({ allowHost: true, http1: true, http2: false });
-				headers = {
-					"Host": new URL(league.scoreboardUrl).host,
-					"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0",
-					"Accept": "*/*",
-					"Accept-Language": "en-US,en;q=0.9",
-					"Accept-Encoding": "gzip, deflate, br, zstd",
-					"Referer": `${league.origin}/`,
-					"Origin": league.origin,
-					"Connection": "keep-alive",
-					"Sec-Fetch-Dest": "empty",
-					"Sec-Fetch-Mode": "cors",
-					"Sec-Fetch-Site": "same-site",
-					"Priority": "u=4",
-					"TE": "trailers",
-				};
-			}
-			if (variant === "impit-chrome151") {
-				const { Impit } = await import("npm:impit@0.14.8");
-				const browserClient = new Impit({
-					browser: "chrome151",
-					proxyUrl: Deno.env.get("HTTPS_PROXY") || Deno.env.get("HTTP_PROXY"),
-					ignoreTlsErrors: false,
-				});
-				delete headers["User-Agent"];
-				delete headers["Sec-CH-UA"];
-				delete headers["Sec-CH-UA-Mobile"];
-				delete headers["Sec-CH-UA-Platform"];
-				response = await browserClient.fetch(league.scoreboardUrl, { headers });
-			} else {
-				response = await fetch(league.scoreboardUrl, { headers, ...(client ? { client } : {}) });
-			}
-			const text = await response.text();
-			let data;
-			try {
-				data = JSON.parse(text);
-			} catch {
-				console.warn("[client comparison] non-JSON response", variant, response.status);
-			}
-			return {
-				variant,
-				status: response.status,
-				contentType: response.headers.get("content-type"),
-				validScoreboard: response.ok && Array.isArray(data?.scoreboard?.games),
-			};
-		} catch (error) {
-			console.warn("[client comparison] request failed", variant, error);
-			return { variant, status: response?.status ?? null, error: error.message };
-		} finally {
-			client?.close();
-		}
-	}));
-	const response = respondWithCors({
-		league: league.id,
-		runtime: Deno.version.deno,
-		architecture: Deno.build.arch,
-		results,
-	}, origin);
-	response.headers.set("Cache-Control", "no-store");
-	return response;
-}
-
 function withCors(origin, headers = {}) {
 	const corsHeaders = { ...BASE_CORS_HEADERS };
 	if (origin && ALLOWED_ORIGINS.has(origin)) {
@@ -1071,12 +1000,6 @@ Deno.serve(async (req, context) => {
 
 		// --- /scoreboard: no cache, always live ---
 		if (PATH === "/scoreboard") {
-			if (url.searchParams.get("diagnostic") === "client-comparison") {
-				if (req.method !== "GET") {
-					return methodNotAllowed(origin);
-				}
-				return await compareScoreboardClients(league, origin);
-			}
 			return proxyWithCors(league.scoreboardUrl, origin, league);
 		}
 
