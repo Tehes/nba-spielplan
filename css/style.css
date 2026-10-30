@@ -353,6 +353,7 @@ main div span {
 .broadcast-label:not(:empty)::before,
 .game-page #game-share::before,
 .game-page #game-watch .broadcast-provider::before,
+.game-page #game-replay-link::before,
 .game-page #game-recap-link::before,
 .game-page #game-calendar::before {
     content: "";
@@ -1879,6 +1880,7 @@ GAME PAGE
 }
 
 .game-page #game-watch .broadcast-provider::before,
+.game-page #game-replay-link::before,
 .game-page #game-recap-link::before,
 .game-page #game-calendar::before {
     width: 1em;
@@ -1886,6 +1888,7 @@ GAME PAGE
     flex-shrink: 0;
 }
 
+.game-page #game-replay-link::before,
 .game-page #game-recap-link::before {
     mask-image: url("../svg/play.svg");
 }
@@ -1902,6 +1905,7 @@ GAME PAGE
     margin-top: 28px;
 }
 
+.game-page #game-replay-link.hidden,
 .game-page #game-recap-link.hidden,
 .game-page #game-calendar.hidden {
     display: none;

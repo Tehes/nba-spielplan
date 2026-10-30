@@ -74,6 +74,7 @@ const playsEl = document.querySelector("#playbyplay");
 const excitementEl = document.querySelector("#game-excitement");
 const excitementValue = document.querySelector("#game-excitement-value");
 const excitementLabel = document.querySelector("#game-excitement-label");
+const replayEl = document.querySelector("#game-replay-link");
 const recapEl = document.querySelector("#game-recap-link");
 const calendarButton = document.querySelector("#game-calendar");
 const oddsEl = document.querySelector("#game-odds");
@@ -504,8 +505,10 @@ function renderGame() {
 	if (calendarVisible && calendarDelay <= 2147483647) {
 		calendarTimer = setTimeout(() => renderGame(), calendarDelay);
 	}
+	replayEl.classList.toggle("hidden", status !== 3);
 	recapEl.classList.toggle("hidden", status !== 3);
 	if (status === 3) {
+		replayEl.href = `https://tehes.github.io/hoops-replay/?game=${gameId}`;
 		recapEl.href = leagueId === "wnba"
 			? `https://www.wnba.com/game/${gameId}?watchRecap=true`
 			: `https://www.nba.com/game/${game.awayTeam.teamTricode.toLowerCase()}-vs-${game.homeTeam.teamTricode.toLowerCase()}-${gameId}?watchRecap=true`;
