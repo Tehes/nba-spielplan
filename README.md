@@ -92,6 +92,9 @@ The app defaults to the NBA, but users can switch to the WNBA in the top menu. D
   - Lists starters and bench with complete statlines (MIN, PTS, REB, AST, STL, BLK, TOV, PF, FG, 3P,
     FT).
   - Marks players currently on the court with a red dot during live games.
+  - “Animated Replay” opens finished NBA and WNBA games in
+    [Hoops Replay](https://github.com/Tehes/hoops-replay), another project by the same author, in a new
+    tab. Replay availability depends on Hoops Replay.
   - Adds a direct NBA.com or WNBA.com recap link for finished games, opening the official game recap
     externally.
   - Uses static HTML templates for fast client‑side rendering.
