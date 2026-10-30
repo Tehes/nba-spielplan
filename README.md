@@ -209,34 +209,6 @@ the latest valid response separately in Cache API storage for offline use.
   `SERVICE_WORKER_CONFIG.useServiceWorker` to `false` for local debugging, or bump its
   `serviceWorkerVersion` once for an application update. Both HTML pages use the same version.
 
-### Pregame odds
-
-Manual verification:
-
-1. Open an upcoming NBA game with odds in German and English; verify team colors and percentages
-   adding up to 100% above previous matchups.
-2. Revisit the game offline after loading it online; verify cached odds appear before tip-off.
-3. Verify odds disappear when a fresh feed omits the game, at scheduled tip-off, or for live,
-   finished, and postponed games. WNBA games must not request or display NBA odds.
-
-### Game sharing
-
-Publish the frontend files, including `game.html` and the shared JavaScript modules. Sharing uses
-ordinary detail-page URLs and requires no additional backend routes or Deno deployment. The static
-HTML contains the same social preview for every matchup; the URL parameters select the correct game
-when the page opens. The detail page omits a fixed `og:url` so preview services can use the requested
-URL, including its game parameters.
-
-Manual verification:
-
-1. Open scheduled and finished NBA and WNBA games; verify team colors, local dates, scores, and stats.
-2. Follow a live game through its next refresh and final state; simulate a failed request and recovery.
-3. Select a schedule day, open a game by clicking its card, then use browser Back to verify the
-   selected day is restored. Open the game again and share it from the detail page.
-4. Check all three tabs, language changes, and the schedule link at mobile and desktop widths.
-5. After deployment, share a direct detail-page URL and verify the common site preview and correct
-   destination; check an unavailable game's link back to the schedule.
-
 ## License and usage
 
 This project is source-available, not open source.
