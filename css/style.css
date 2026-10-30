@@ -1888,9 +1888,12 @@ GAME PAGE
     flex-shrink: 0;
 }
 
-.game-page #game-replay-link::before,
-.game-page #game-recap-link::before {
+.game-page #game-replay-link::before {
     mask-image: url("../svg/play.svg");
+}
+
+.game-page #game-recap-link::before {
+    mask-image: url("../svg/video.svg");
 }
 
 .game-page #game-calendar::before {
