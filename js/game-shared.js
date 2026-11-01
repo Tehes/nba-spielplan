@@ -391,7 +391,7 @@ export function getLiveLabel(live, t, actions = []) {
 				action.actionType === "timeout" && Number(action.period) === period &&
 				action.clock === live.gameClock
 			) {
-				return `${t("timeout", { team: action.teamTricode || "" }).trim()} · ${liveLabel}`;
+				return t("timeout", { team: action.teamTricode || "" }).trim();
 			}
 			break;
 		}
